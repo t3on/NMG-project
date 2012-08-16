@@ -1,0 +1,216 @@
+#source.py
+#A collections of methods used to take data from sensor space to source space
+##Teon Brooks
+##July 26, 2012
+
+#1. make proj
+#2. noise covariance
+#3. make fwd
+#4. make_stc or make_stc_epochs
+
+import os
+import mne
+import numpy as np
+from eelbrain.eellab import *
+from eelbrain.utils import subp
+
+__hide__ = ['os', 'np', 'subp', 'mne']
+
+
+
+def make_proj(meg_ds, write = True):
+#add the projections to this object by using 
+
+	meg_ds_fix = meg_ds[meg_ds['experiment'] == 'fixation']
+	epochs = load.fiff.mne_Epochs(meg_ds_fix, tstart=-0.2, tstop=.6, baseline=(None, 0), reject={'mag':1.5e-11})
+	sensor = load.fiff.sensors(epochs)
+	proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=5, n_eeg=0)
+	
+	#for our data, the iron-cross noise is the first principal component
+	#first_proj = proj[0]['data']['data']
+	#name = proj[0]['desc'][-5:]
+	#PCA = ndvar(first_proj, (sensor,), name=name)
+	#PCA = mne.read_proj(ds.info['proj'])
+	
+	if write == True:
+		first_proj = [proj[0]]
+		mne.write_proj(meg_ds.info['proj'], first_proj)
+		print 'Projection written to file'
+	
+	
+	meg_ds.info['raw'].info['projs'] += [proj[0]]
+	
+	return meg_ds
+
+
+
+def make_cov(meg_ds, write = True):
+# create covariance matrix
+
+	index = meg_ds['experiment'] == 'fixation'
+	meg_ds_fix = meg_ds[index]
+
+	meg_ds_fix = make_proj(meg_ds_fix, write = False)
+
+	epochs = load.fiff.mne_Epochs(meg_ds_fix, baseline=(None, 0), reject={'mag':2e-12}, tstart = -.2, tstop = .2)
+	cov = mne.cov.compute_covariance(epochs)
+
+	if write == True:
+		cov.save(meg_ds.info['cov'])
+		print 'Covariance Matrix written to file'
+	
+	return cov
+
+
+	
+def make_fwd(meg_ds, fromfile = True):
+# create the forward solution
+
+	if fromfile == True:
+		subp.do_forward_solution(paths={'src': meg_ds.info['src'], 'trans': meg_ds.info['trans'], 
+		
+'cov': meg_ds.info['cov'], 'bem': meg_ds.info['bem'], 'fwd': meg_ds.info['fwd'], 
+		'mri_sdir': meg_ds.info['mridir'], 'rawfif': meg_ds.info['rawfif']}, overwrite=False, v=1)
+		print 'Forward Solution written to file'
+	
+	else:
+		make_cov(meg_ds)
+		subp.do_forward_solution(paths={'src': meg_ds.info['src'], 'trans': meg_ds.info['trans'], 
+		
+'cov': meg_ds.info['cov'], 'bem': meg_ds.info['bem'], 'fwd': meg_ds.info['fwd'], 
+		'mri_sdir': meg_ds.info['mridir'], 'rawfif': meg_ds.info['rawfif']}, overwrite=False, v=1)
+			
+		print 'Forward Solution and Covariance Matrix written to file'
+
+
+def make_stc(meg_ds, reject = 2e-12):
+#creates an stc file for each condition. this uses the evoked (averaged epochs) object
+#currently you can only make a single stc per condition. modify for each condition
+	conditions = ['control_identity', 'identity', 'control_constituent', 'first_constituent']
+	wordtypes = ['opaque', 'transparent', 'novel', 'ortho']
+
+	fwd = mne.read_forward_solution(meg_ds.info['fwd'])
+	cov = mne.read_cov(meg_ds.info['cov'])
+	
+	if meg_ds.info['raw'].info['projs'] == []:
+		proj = mne.read_proj(meg_ds.info['proj'])
+		meg_ds.info['raw'].info['projs'] += proj[:]	
+
+
+	for type in wordtypes: 
+		for cond in conditions:
+		
+			# load the events of interest
+			index1 = meg_ds['condition'] == cond
+			index2 = meg_ds['wordtype'] == type
+			meg = meg_ds.subset(index1*index2)
+			
+			# create the inverse solution
+			ds = load.fiff.mne_Epochs(meg, tstart=-0.2, tstop=0.6, baseline=(-.2, 0), reject={'mag': reject})
+			inv = mne.minimum_norm.make_inverse_operator(ds.info, fwd, cov, loose = None)
+			
+			#average ds		
+			ds = ds.average()
+			
+			stc = mne.minimum_norm.apply_inverse(ds, inv, lambda2 = 1./9)
+			stc.save(os.path.join(meg.info['fifdir'], 'stc', '_'.join((meg_ds.info['subname'], type, cond))))
+			
+	print 'STCs written to file'
+
+
+
+def make_stc_epochs(meg_ds, reject = 3e-12, label = 'label', from_file = True):
+#creates a dataset with all the epochs given from the meg_ds
+		
+	stc_data = []
+
+	if from_file:
+		if meg_ds.info['raw'].info['projs'] == []:
+			proj = mne.read_proj(meg_ds.info['proj'])
+			meg_ds.info['raw'].info['projs'] += proj[:]
+		cov = mne.read_cov(meg_ds.info['cov'])
+	
+	
+	else:
+		meg_ds = make_proj(meg_ds, write = False)
+		cov = make_cov(meg_ds, write = False)
+
+	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=True) #there is currently no solution for creating the fwd as an object.
+
+	index1 = meg_ds['experiment'] == 'experiment' #This is unnecessary, just overly precautious.
+	index2 = meg_ds['target'] == 'target'
+	meg = meg_ds.subset(index1*index2)
+
+	# create the inverse solution
+	epochs = load.fiff.mne_Epochs(meg, tstart=-0.2, tstop=0.6, baseline=(-.2, 0), reject={'mag':reject}, preload=True)
+	inv = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, cov, loose = None)	
+	
+	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
+	stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2 = 1./9, label = roi) #one stc per epoch
+
+	stc_data = []
+	stc_data.extend(stc.data.mean(0) for stc in stcs) #Mean activation over all of the sources
+	
+	stc = np.vstack(stc_data) #Reorganize to be a matrix of epochs over time
+	
+	meg_ds = meg_ds.subset(epochs.model['index'])
+	meg_ds['subject'] = factor([meg_ds.info['subname']]*meg_ds.N, name = 'subname')
+	T = var(stcs[0].times, name='time')
+	meg_ds.info['label'] = label
+	meg_ds.info['toi'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))
+	meg_ds.info['stc'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_stc.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
+	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_stc_ds.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
+
+	
+	meg_ds['stc'] = ndvar(stc, dims=('case', T)) #adds the source estimates to the dataset as an ndvar  
+	
+	return meg_ds
+	
+def export_toi(ds):
+
+	#for a given time region
+	ds['m170'] = ds['stc'].summary(time = (.12, .22))
+	ds['m250'] = ds['stc'].summary(time = (.2, .3))
+	ds['m350'] = ds['stc'].summary(time = (.3, .4))
+		
+	ds.export(fn = ds.info['toi'])
+
+	print 'Export completed'
+
+def export_stc(ds):
+	time = np.around(ds['stc'].time.x, decimals = 3)
+	time = map(str, time)
+	
+	np.savetxt(ds.info['stc'], np.vstack((time, ds['stc'].x)), fmt='%s', delimiter='\t', newline='\n')
+	ds.export(ds.info['stc_ds'])
+
+def combine_group_stc(exp = 'NMG', label = 'label'):
+	expdir = os.path.join(os.path.expanduser('~'), 'data', exp)
+	list = os.listdir(expdir)
+	subjects = []
+	for item in list:
+		if item.startswith('R'):
+			subjects.append(item)
+	
+	files = []
+	for subject in subjects:
+		files.append(os.path.join(expdir, subject, 'mne_data', '_'.join((subject, label, 'erfs.txt'))))
+
+	exportfile = open(os.path.join(expdir, 'group', '%s_group_%s_erfs.txt' %(exp,label)), 'w')
+	
+	for iter, file in enumerate(files):
+		if os.path.lexists(file) and not(open(file).read().endswith('\r\n')): # or open(file).read().endswith('\r')):
+			if iter == 0:
+				exportfile.write(open(file).read()+'\r\n')
+			else:
+				exportfile.write('\r\n'.join((open(file).read().split('\r\n')[1:])) +'\r\n')
+		elif os.path.lexists(file) and open(file).read().endswith('\r\n'):
+			if iter == 0:
+				exportfile.write(open(file).read())
+			else:
+				exportfile.write('\r\n'.join((re.split('\r\n', open(file).read())[1:])))
+		
+	exportfile.close()
+
+
+	

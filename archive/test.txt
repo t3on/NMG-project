@@ -1,0 +1,5 @@
+condition
+wordtype
+m170
+m250
+m350
