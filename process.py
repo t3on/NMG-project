@@ -16,15 +16,30 @@ import eelbrain.utils.subp as subp
 __hide__ = ['os', 'V', 'scipy.io', 'subp', 'E', 'mne', 'ui']
 
 
-def format_latency(subjects = []):
+def format_latency(subjects = [], expname = 'NMG'):
+	root = os.path.join(os.path.expanduser('~'), 'data', expname)
+	group_latency_out = os.path.join(root, 'group', '_'.join((expname, 'group', 'latencies.txt')))
+	group_latencies = []
+
 	for subject in subjects:
+		latency_out = os.path.join(root, subject, 'data', '_'.join((subject, expname, 'latencies.txt')))
+		data = os.path.join(root, subject, 'rawdata', 'behavioral', subject+'_data.txt')
+		header = []
 		latencies = []
-		for line in open(filename):
+
+		for line in open(data):
 			if line.startswith('KEY\tsound'):
-				latencies.append(line)
-		with open(
-		
-			
+				latencies.append(line.strip())
+				group_latencies.append('\t'.join((subject, line.strip())))
+			if line.startswith('Response'):
+				header.append(line.strip())
+
+		with open(latency_out, 'w') as FILE:
+			FILE.write(header[0]+os.linesep)
+			FILE.write(os.linesep.join(latencies))
+		with open(group_latency_out, 'w') as FILE:
+			FILE.write(header[0]+os.linesep)
+			FILE.write(os.linesep.join((group_latencies)))
 
 
     
