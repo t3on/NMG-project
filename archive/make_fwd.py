@@ -1,3 +1,0 @@
-import osimport mnefrom eelbrain.eellab import *from eelbrain.utils import subpimport load_events# create the forward solutionmeg_ds = load_events.load_meg_events('R0095')
-subp.do_forward_solution(paths={'src': meg_ds.info['src'], 'trans': meg_ds.info['trans'], 
-'cov': meg_ds.info['cov'], 'bem': meg_ds.info['bem'], 'fwd': meg_ds.info['fwd'], 'mri_sdir': meg_ds.info['mri'], 'rawfif': meg_ds.info['rawfif']}, overwrite=False, v=1)
