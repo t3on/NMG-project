@@ -179,9 +179,6 @@ def eeg_align(subname, expname = 'NMG', voiceproblem = False):
 
 
 
-
-
-
 def kit2fiff(subname, expname = 'NMG', sfreq = 500):
 
 	paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
@@ -193,7 +190,6 @@ def kit2fiff(subname, expname = 'NMG', sfreq = 500):
                  		rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif')))),
                  		sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')),
                  		sfreq=sfreq)
-
 
 
 
@@ -365,7 +361,6 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
     stim_ds['c2_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_nmg']))))
     
     return stim_ds
-
 
 
 
