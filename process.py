@@ -15,6 +15,18 @@ import eelbrain.utils.subp as subp
 
 __hide__ = ['os', 'V', 'scipy.io', 'subp', 'E', 'mne', 'ui']
 
+
+def format_latency(subjects = []):
+	for subject in subjects:
+		latencies = []
+		for line in open(filename):
+			if line.startswith('KEY\tsound'):
+				latencies.append(line)
+		with open(
+		
+			
+
+
     
 def load_eeg_events(subname, expname = 'NMG'):
 
@@ -23,7 +35,7 @@ def load_eeg_events(subname, expname = 'NMG'):
     rawdata = os.path.join(root, 'rawdata')
     filename = os.path.join(rawdata, 'eeg', ''.join(('_'.join((subname, expname)), '.vmrk')))
     fifdir = os.path.join(root, 'myfif')
-    andir = os.path.join(root, 'mne_data')
+    datadir = os.path.join(root, 'data')
     
 #Initialize lists   
     marker = []
@@ -61,7 +73,7 @@ def load_eeg_events(subname, expname = 'NMG'):
 
     eeg.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname,expname,'EEG', 'raw.fif')))))
     eeg.info['fifdir'] = fifdir
-    eeg.info['andir'] = andir
+    eeg.info['datadir'] = datadir
     
     eeg.info['subname'] = subname
     eeg.info['expname'] = expname
@@ -200,7 +212,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     rawdata = os.path.join(root, 'rawdata')
     fifdir = os.path.join(root, 'myfif')
     mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
-    andir = os.path.join(root, 'mne_data')
+    datadir = os.path.join(root, 'data')
     
 #Finds the file    
     triggerlist = os.path.join(rawdata, 'meg', '_'.join((subname, 'triggerlist.txt')))
@@ -227,7 +239,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     ds.info['proj'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif'))))
     ds.info['subname'] = subname
     ds.info['expname'] = expname
-    ds.info['andir'] = andir
+    ds.info['datadir'] = datadir
 
 #Adds mri filenames
     ds.info['fwd'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-fwd.fif')))
