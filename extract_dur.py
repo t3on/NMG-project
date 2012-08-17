@@ -2,12 +2,11 @@ import os
 import fnmatch
 
 
-testing = ['test']
 subjects = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504']
 
-
-
 root = os.path.join(os.path.expanduser('~'), 'data', 'NMG')
+
+header = '\t'.join(('word', 'tsec', 's1', 's1_dur', 's2', 's2_dur'))+os.linesep
 
 
 
@@ -20,10 +19,10 @@ for subject in subjects:
 
 
     files = os.listdir(textgrids_dir)
-
     files = fnmatch.filter(files, '*.TextGrid')
     
-    durations_out = os.path.join(behavioral_dir, '%s_%s.txt' %(subject, 'durations'))
+    durations_out = os.path.join(root, subject, 'data', '%s_%s.txt' %(subject, 'durations'))
+    
     for file in files:
         title, ext = os.path.splitext(file)
 
@@ -39,19 +38,21 @@ for subject in subjects:
         textgrid = open(os.path.join(textgrids_dir, file)).read().split('\n')
         
 
+
         durations = []
         for segment in transcript:
             try:
-                i = textgrid.index(str('"%s"'%segment.upper()))+1
+                i = textgrid.index(str('"%s"'%segment.upper()))-2
                 points = map(float, textgrid[i:i+2])
                 duration = points[1] - points[0]
                 durations.append(duration)
             except ValueError:
                 durations.append('NaN')
-        line = '\t'.join(map(str, (word, tsec, transcript[0], durations[0], transcript[1], durations[1])))
+        line = '\t'.join(map(str, (word, tsec, transcript[0], durations[0], transcript[1], durations[1])))+os.linesep
 
         lines.append(line)    
+
+
     with open(durations_out, 'w') as FILE:
-        [FILE.write('%s%s' % (line, os.linesep)) for line in lines]
-    
-    
+        FILE.write(header)
+        [FILE.write(line) for line in lines]
