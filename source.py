@@ -157,9 +157,9 @@ def make_stc_epochs(meg_ds, reject = 3e-12, label = 'label', from_file = True):
 	meg_ds['subject'] = factor([meg_ds.info['subname']]*meg_ds.N, name = 'subname')
 	T = var(stcs[0].times, name='time')
 	meg_ds.info['label'] = label
-	meg_ds.info['toi'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))
-	meg_ds.info['stc'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_stc.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
-	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['andir'], '%s_%s_%s_stc_ds.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
+	meg_ds.info['toi'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))
+	meg_ds.info['stc'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_stc.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
+	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_stc_ds.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
 
 	
 	meg_ds['stc'] = ndvar(stc, dims=('case', T)) #adds the source estimates to the dataset as an ndvar  
@@ -194,7 +194,7 @@ def combine_group_stc(exp = 'NMG', label = 'label'):
 	
 	files = []
 	for subject in subjects:
-		files.append(os.path.join(expdir, subject, 'mne_data', '_'.join((subject, label, 'erfs.txt'))))
+		files.append(os.path.join(expdir, subject, 'data', '_'.join((subject, label, 'erfs.txt'))))
 
 	exportfile = open(os.path.join(expdir, 'group', '%s_group_%s_erfs.txt' %(exp,label)), 'w')
 	
