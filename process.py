@@ -17,32 +17,32 @@ __hide__ = ['os', 'V', 'scipy.io', 'subp', 'E', 'mne', 'ui']
 
 
 def format_latency(subjects = [], expname = 'NMG'):
-	root = os.path.join(os.path.expanduser('~'), 'data', expname)
-	group_latency_out = os.path.join(root, 'group', '_'.join((expname, 'group', 'latencies.txt')))
-	group_latencies = []
+    root = os.path.join(os.path.expanduser('~'), 'data', expname)
+    group_latency_out = os.path.join(root, 'group', '_'.join((expname, 'group', 'latencies.txt')))
+    group_latencies = []
 
-	for subject in subjects:
-		latency_out = os.path.join(root, subject, 'data', '_'.join((subject, expname, 'latencies.txt')))
-		data = os.path.join(root, subject, 'rawdata', 'behavioral', subject+'_data.txt')
-		header = []
-		latencies = []
+    for subject in subjects:
+        latency_out = os.path.join(root, subject, 'data', '_'.join((subject, expname, 'latencies.txt')))
+        data = os.path.join(root, subject, 'rawdata', 'behavioral', subject+'_data.txt')
+        header = []
+        latencies = []
 
-		for line in open(data):
-			if line.startswith('KEY\tsound'):
-				latencies.append(line.strip())
-				group_latencies.append('\t'.join((subject, line.strip())))
-			if line.startswith('Response'):
-				header.append(line.strip())
+        for line in open(data):
+            if line.startswith('KEY\tsound'):
+                latencies.append(line.strip())
+                group_latencies.append('\t'.join((subject, line.strip())))
+            if line.startswith('Response'):
+                header.append(line.strip())
 
-		with open(latency_out, 'w') as FILE:
-			FILE.write(header[0]+os.linesep)
-			FILE.write(os.linesep.join(latencies))
-		with open(group_latency_out, 'w') as FILE:
-			FILE.write(header[0]+os.linesep)
-			FILE.write(os.linesep.join((group_latencies)))
+        with open(latency_out, 'w') as FILE:
+            FILE.write(header[0]+os.linesep)
+            FILE.write(os.linesep.join(latencies))
+        with open(group_latency_out, 'w') as FILE:
+            FILE.write(header[0]+os.linesep)
+            FILE.write(os.linesep.join((group_latencies)))
 
 
-    
+
 def load_eeg_events(subname, expname = 'NMG'):
 
 #Finds the file
@@ -208,15 +208,15 @@ def eeg_align(subname, expname = 'NMG', voiceproblem = False):
 
 def kit2fiff(subname, expname = 'NMG', sfreq = 500):
 
-	paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
-		
-	subp.kit2fiff(paths=dict(mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt'))),
-						elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp'))),
-						hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp'))),
-						rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt')))),
-                 		rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif')))),
-                 		sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')),
-                 		sfreq=sfreq)
+    paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
+        
+    subp.kit2fiff(paths=dict(mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt'))),
+                        elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp'))),
+                        hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp'))),
+                        rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt')))),
+                         rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif')))),
+                         sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')),
+                         sfreq=sfreq)
 
 
 
@@ -269,7 +269,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
     
     
-    
+    print subname
 #Loads the eyelink data
     edf_path = os.path.join(rawdata, 'behavioral', 'eyelink', '*.edf')
     if os.path.exists(os.path.dirname(edf_path)):
@@ -303,16 +303,15 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
 #Decomposes the trigger
     for v in ds['eventID']:
+        binary_trig = bin(int(v))[2:]
         eventID_bin.append(binary_trig)
 
         if v > 128:        
-            binary_trig = bin(int(v))[2:]
             exp.append(int(binary_trig[0], 2))
             target.append(int(binary_trig[1], 2))
             type.append(int(binary_trig[2:5], 2))
             cond.append(int(binary_trig[5:8], 2))
         else:
-            binary_trig = bin(int(v))[2:]
             exp.append(None)
             target.append(None)
             type.append(None)
@@ -328,13 +327,11 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
     index = np.arange(3,ds.N, 4)
     ds['experiment'][index] = 'voice'
-#     ds['target'][index] = 'None'
-#     ds['wordtype'][index] = 'None'
-#     ds['condition'][index] = 'None'
+
 
 
 #Load the stim info from mat file
-	stim_ds = _load_stims_info()
+    stim_ds = _load_stims_info()
 
     temp = ds[ds['target'] == 'target']
     idx = []
@@ -345,6 +342,10 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
     stim_ds = stim_ds[idx].repeat(4) 
     ds.update(stim_ds)
+    
+#Load duration data and adds it to the dataset.
+    ds = _load_dur_info(ds)
+	
 
     return ds
 
@@ -366,7 +367,7 @@ def _logread(filename):
 
 
 def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
-	#Adds stim information
+    #Adds stim information
 
     stims = scipy.io.loadmat(stims_info)['stims']
     stim_ds = E.dataset()
@@ -391,14 +392,29 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
 
 
 
+def _load_dur_info(meg_ds):
+    ds = E.load.txt.tsv(os.path.join(meg_ds.info['datadir'], '_'.join((meg_ds.info['subname'], 'durations.txt'))))
+    index = sorted(range(ds.N),key=lambda x:ds['tsec'].x[x])
+    ds = ds[index].repeat(4)
+    assert ds['word'] == meg_ds['word']
+#This imports the segmentation information for the orthographic words. Their segmentation is not done in the mat file.
+    meg_ds['c1'] = ds['s1']
+    meg_ds['c2'] = ds['s2']
+    del ds['word'], ds['tsec'], ds['s1'], ds['s2']
+    meg_ds.update(ds)
+    
+    return meg_ds
+    
+
+
 def reject_blinks(meg_ds):
 
-	if 't_edf' in meg_ds:
-		meg_ds.info['edf'].mark(meg_ds, tstart=-0.2, tstop=0.4, good=None, bad=False, use=['EBLINK'], T='t_edf', target='accept')
-		meg = meg_ds.subset('accept')
-		del meg['t_edf'], meg['accept']
-	else:
-		print 'No Eyelink data'
-		meg = meg_ds
-	
-	return meg
+    if 't_edf' in meg_ds:
+        meg_ds.info['edf'].mark(meg_ds, tstart=-0.2, tstop=0.4, good=None, bad=False, use=['EBLINK'], T='t_edf', target='accept')
+        meg = meg_ds.subset('accept')
+        del meg['t_edf'], meg['accept']
+    else:
+        print 'No Eyelink data'
+        meg = meg_ds
+    
+    return meg
