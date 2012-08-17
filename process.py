@@ -244,7 +244,8 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 #Asserts that the right value of triggers is given. Experimentally determined.
 #For NMG: 4 trigger events per trial, 240 trials per list, 4 lists    
     assert ds.N == 3840
-
+#This assures that the trigger values are equivalent to the ones in PTB
+    ds['eventID'] = log
 
 
 #Adds the raw fif info used in epoching data.    
@@ -269,13 +270,16 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
     
     
-    print subname
+
 #Loads the eyelink data
     edf_path = os.path.join(rawdata, 'behavioral', 'eyelink', '*.edf')
     if os.path.exists(os.path.dirname(edf_path)):
         edf = E.load.eyelink.Edf(edf_path)
-        edf.add_T_to(ds)
-        ds.info['edf'] = edf
+        try:
+            edf.add_T_to(ds)
+            ds.info['edf'] = edf
+        except ValueError:
+            print 'Eyelink Module Not Working'        
     else:
         print "%s%s This path does not exist. Please check your folder." %(edf_path, os.linesep)
 #     elif not ui.ask(title='Missing Files', message='Subject %s Eyelink files are missing. Okay to proceed?' %subname, cancel=False, default=True):
@@ -327,7 +331,8 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
     index = np.arange(3,ds.N, 4)
     ds['experiment'][index] = 'voice'
-
+#Add subject as a redundant variable to the dataset
+    ds['subject'] = E.factor([ds.info['subname']], rep = ds.N)
 
 
 #Load the stim info from mat file
@@ -345,7 +350,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     
 #Load duration data and adds it to the dataset.
     ds = _load_dur_info(ds)
-	
+    
 
     return ds
 
