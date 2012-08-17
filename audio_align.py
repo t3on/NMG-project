@@ -83,7 +83,7 @@ for subject in subjects:
             print '%s\n%s' %(stderr, stdout)
     
 
-    audio_out = os.path.abspath(os.path.join(audio_dir, '..', '%s_%s.txt' % (subject, 'audio')))
+    audio_out = os.path.abspath(os.path.join(audio_dir, '..', '%s_%s.txt' % (subject, 'audio_timestamp')))
 
     with open(audio_out, 'w') as FILE:
             [FILE.write('%s\t%s%s' % (a, b, os.linesep)) for a, b in zip(trials, ctime)]
