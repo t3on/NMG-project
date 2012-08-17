@@ -289,8 +289,8 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
 #Propagates itemID for all trigger events
     index = ds['eventID'] < 64
-    itemID = map(int, ds['eventID'][index])
-    ds['itemID'] = E.var(np.repeat(itemID, 4))
+    scenario = map(int, ds['eventID'][index])
+    ds['scenario'] = E.var(np.repeat(scenario, 4))
 
 #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
 #Repairs voice trigger value problem, if needed.
@@ -333,12 +333,16 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     ds['experiment'][index] = 'voice'
 #Add subject as a redundant variable to the dataset
     ds['subject'] = E.factor([ds.info['subname']], rep = ds.N)
-
+#Add itemID to uniquely identify each word
+    temp = ds[ds['target'] == 'target']
+    
+    return temp
+    itemID = temp['scenario'].x+(temp['wordtype'].x*60)
+    ds['itemID'] = E.var(np.repeat(itemID, 4))
 
 #Load the stim info from mat file
     stim_ds = _load_stims_info()
 
-    temp = ds[ds['target'] == 'target']
     idx = []
     for (itemID,wordtype) in zip(temp['itemID'],temp['wordtype']):
         a = itemID == stim_ds['itemID']
