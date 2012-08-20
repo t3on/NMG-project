@@ -119,7 +119,7 @@ def make_stc(meg_ds, reject = 2e-12):
 
 
 
-def make_stc_epochs(meg_ds, reject = 3e-12, label = 'label', from_file = True):
+def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 'label', from_file = True):
 #creates a dataset with all the epochs given from the meg_ds
 		
 	stc_data = []
@@ -142,7 +142,7 @@ def make_stc_epochs(meg_ds, reject = 3e-12, label = 'label', from_file = True):
 	meg = meg_ds.subset(index1*index2)
 
 	# create the inverse solution
-	epochs = load.fiff.mne_Epochs(meg, tstart=-0.2, tstop=0.6, baseline=(-.2, 0), reject={'mag':reject}, preload=True)
+	epochs = load.fiff.mne_Epochs(meg, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
 	inv = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, cov, loose = None)	
 	
 	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
@@ -154,37 +154,38 @@ def make_stc_epochs(meg_ds, reject = 3e-12, label = 'label', from_file = True):
 	stc = np.vstack(stc_data) #Reorganize to be a matrix of epochs over time
 	
 	meg_ds = meg_ds.subset(epochs.model['index'])
-	meg_ds['subject'] = factor([meg_ds.info['subname']]*meg_ds.N, name = 'subname')
 	T = var(stcs[0].times, name='time')
-	meg_ds.info['label'] = label
-	meg_ds.info['toi'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))
-	meg_ds.info['stc'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_stc.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
-	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['datadir'], '%s_%s_%s_stc_ds.txt' %(meg_ds.info['subname'], meg_ds.info['expname'], meg_ds.info['label']))		
+	meg_ds['label'] = factor([label], rep = meg_ds.N)
+	meg_ds.info['erfs'] = os.path.join(meg_ds.info['datadir'], '%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname']))
+	meg_ds.info['stc'] = os.path.join(meg_ds.info['datadir'], '%s_%s_stc.txt' %(meg_ds.info['subname'], meg_ds.info['expname']))		
+	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['datadir'], '%s_%s_stc_ds.txt' %(meg_ds.info['subname'], meg_ds.info['expname']))		
 
 	
 	meg_ds['stc'] = ndvar(stc, dims=('case', T)) #adds the source estimates to the dataset as an ndvar  
 	
 	return meg_ds
 	
-def export_toi(ds):
+def export_erfs(ds):
 
 	#for a given time region
 	ds['m170'] = ds['stc'].summary(time = (.12, .22))
 	ds['m250'] = ds['stc'].summary(time = (.2, .3))
 	ds['m350'] = ds['stc'].summary(time = (.3, .4))
 		
-	ds.export(fn = ds.info['toi'])
+	ds.export(fn = ds.info['erfs'])
 
 	print 'Export completed'
 
-def export_stc(ds):
+def export_stcs(ds):
 	time = np.around(ds['stc'].time.x, decimals = 3)
 	time = map(str, time)
 	
 	np.savetxt(ds.info['stc'], np.vstack((time, ds['stc'].x)), fmt='%s', delimiter='\t', newline='\n')
 	ds.export(ds.info['stc_ds'])
+	
+	print 'Export completed'
 
-def combine_group_stc(exp = 'NMG', label = 'label'):
+def combine_group_stcs(exp = 'NMG', label = 'label'):
 	expdir = os.path.join(os.path.expanduser('~'), 'data', exp)
 	list = os.listdir(expdir)
 	subjects = []

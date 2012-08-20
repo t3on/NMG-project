@@ -206,7 +206,7 @@ def eeg_align(subname, expname = 'NMG', voiceproblem = False):
 
 
 
-def kit2fiff(subname, expname = 'NMG', sfreq = 500):
+def kit2fiff(subname, expname = 'NMG', sfreq = 500, lowpass=30, highpass=0, stimthresh=0.1, add=None, aligntol=25):
 
     paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
         
@@ -216,7 +216,7 @@ def kit2fiff(subname, expname = 'NMG', sfreq = 500):
                         rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt')))),
                          rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif')))),
                          sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')),
-                         sfreq=sfreq)
+                         sfreq=sfreq, lowpass = lowpass, highpass = highpass, stimthresh = stimthresh, add = add, aligntol = aligntol)
 
 
 
@@ -227,7 +227,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     rawdata = os.path.join(root, 'rawdata')
     fifdir = os.path.join(root, 'myfif')
     mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
-    datadir = os.path.join(root, 'data')
+    datadir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', expname, 'data')
     
 #Finds the file    
     triggerlist = os.path.join(rawdata, 'meg', '_'.join((subname, 'triggerlist.txt')))
@@ -333,10 +333,9 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     ds['experiment'][index] = 'voice'
 #Add subject as a redundant variable to the dataset
     ds['subject'] = E.factor([ds.info['subname']], rep = ds.N)
-#Add itemID to uniquely identify each word
+#Makes a temporary ds
     temp = ds[ds['target'] == 'target']
-    
-    return temp
+#Add itemID to uniquely identify each word    
     itemID = temp['scenario'].x+(temp['wordtype'].x*60)
     ds['itemID'] = E.var(np.repeat(itemID, 4))
 
@@ -344,8 +343,8 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     stim_ds = _load_stims_info()
 
     idx = []
-    for (itemID,wordtype) in zip(temp['itemID'],temp['wordtype']):
-        a = itemID == stim_ds['itemID']
+    for (scenario,wordtype) in zip(temp['scenario'],temp['wordtype']):
+        a = scenario == stim_ds['scenario']
         b = wordtype == stim_ds['wordtype']
         idx.append(np.where(a*b)[0][0])
 
@@ -389,7 +388,7 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
     stim_ds['word_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_freq']))))
     stim_ds['word_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_nmg']))))
     stim_ds['wordtype'] = E.factor(np.hstack(np.hstack(np.hstack(stims['wordtype']))), labels = {0: 'opaque', 1: 'transparent', 2: 'novel', 3: 'ortho'})
-    stim_ds['itemID'] = E.var(np.hstack(np.hstack(np.hstack(stims['itemID']))))
+    stim_ds['scenario'] = E.var(np.hstack(np.hstack(np.hstack(stims['itemID']))))
     
     stim_ds['c2_rating'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_rating']))))
     stim_ds['c2_sd'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_sd']))))
@@ -402,7 +401,7 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
 
 
 def _load_dur_info(meg_ds):
-    ds = E.load.txt.tsv(os.path.join(meg_ds.info['datadir'], '_'.join((meg_ds.info['subname'], 'durations.txt'))))
+    ds = E.load.txt.tsv(os.path.join(meg_ds.info['expdir'], meg_ds.info['subname'], 'data', '_'.join((meg_ds.info['subname'], 'durations.txt'))))
     index = sorted(range(ds.N),key=lambda x:ds['tsec'].x[x])
     ds = ds[index].repeat(4)
     assert ds['word'] == meg_ds['word']
