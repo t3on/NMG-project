@@ -227,7 +227,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     rawdata = os.path.join(root, 'rawdata')
     fifdir = os.path.join(root, 'myfif')
     mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
-    datadir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', expname, 'data')
+    datadir = os.path.join(root, 'data')
     
 #Finds the file    
     triggerlist = os.path.join(rawdata, 'meg', '_'.join((subname, 'triggerlist.txt')))
@@ -235,7 +235,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     dur_file = os.path.join(rawdata, 'behavioral', '_'.join((subname, 'durations.txt')))
 
 #Loads the triggerlist as ds from getSQDTriggers and from the log file   
-    ds = E.load.txt.tsv(triggerlist)
+    meg_ds = E.load.txt.tsv(triggerlist)
     log = _logread(logfile)
 
 #Compares the log file to the triggerlist. Adds variable of boolean comparison
@@ -245,29 +245,29 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 #For NMG: 4 trigger events per trial, 240 trials per list, 4 lists    
     assert ds.N == 3840
 #This assures that the trigger values are equivalent to the ones in PTB
-    ds['eventID'] = log
+    meg_ds['eventID'] = log
 
 
 #Adds the raw fif info used in epoching data.    
-    ds.info['fifdir'] = fifdir
-    ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname,'raw.fif')))))
-    ds.info['rawfif'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif'))))
-    ds.info['proj'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif'))))
-    ds.info['subname'] = subname
-    ds.info['expname'] = expname
-    ds.info['datadir'] = datadir
+    meg_ds.info['fifdir'] = fifdir
+    meg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname,'raw.fif')))))
+    meg_ds.info['rawfif'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif'))))
+    meg_ds.info['proj'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif'))))
+    meg_ds.info['subname'] = subname
+    meg_ds.info['expname'] = expname
+    meg_ds.info['datadir'] = datadir
 
 #Adds mri filenames
-    ds.info['fwd'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-fwd.fif')))
-    ds.info['cov'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-cov.fif')))
-    ds.info['inv'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-inv.fif')))
-    ds.info['trans'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-trans.fif')))
+    meg_ds.info['fwd'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-fwd.fif')))
+    meg_ds.info['cov'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-cov.fif')))
+    meg_ds.info['inv'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-inv.fif')))
+    meg_ds.info['trans'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-trans.fif')))
     
-    ds.info['bem'] = os.path.join(mridir, 'bem', subname+'-5120-bem-sol.fif')
-    ds.info['src'] = os.path.join(mridir, 'bem', subname+'-ico-4-src.fif')
-    ds.info['mridir'] = mridir    
-    ds.info['labeldir'] = os.path.join(mridir, 'label')
-    ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
+    meg_ds.info['bem'] = os.path.join(mridir, 'bem', subname+'-5120-bem-sol.fif')
+    meg_ds.info['src'] = os.path.join(mridir, 'bem', subname+'-ico-4-src.fif')
+    meg_ds.info['mridir'] = mridir    
+    meg_ds.info['labeldir'] = os.path.join(mridir, 'label')
+    meg_ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
     
     
 
@@ -276,8 +276,8 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     if os.path.exists(os.path.dirname(edf_path)):
         edf = E.load.eyelink.Edf(edf_path)
         try:
-            edf.add_T_to(ds)
-            ds.info['edf'] = edf
+            edf.add_T_to(meg_ds)
+            meg_ds.info['edf'] = edf
         except ValueError:
             print 'Eyelink Module Not Working'        
     else:
@@ -288,15 +288,15 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
 
 #Propagates itemID for all trigger events
-    index = ds['eventID'] < 64
-    scenario = map(int, ds['eventID'][index])
-    ds['scenario'] = E.var(np.repeat(scenario, 4))
+    index = meg_ds['eventID'] < 64
+    scenario = map(int, meg_ds['eventID'][index])
+    meg_ds['scenario'] = E.var(np.repeat(scenario, 4))
 
 #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
 #Repairs voice trigger value problem, if needed.
     if voiceproblem == True:
-        index = range(3,ds.N, 4)
-        ds['eventID'][index] = ds['eventID'][index]-128
+        index = range(3,meg_ds.N, 4)
+        meg_ds['eventID'][index] = meg_ds['eventID'][index]-128
 
 #Initialize lists    
     eventID_bin = []
@@ -306,7 +306,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     type = []
 
 #Decomposes the trigger
-    for v in ds['eventID']:
+    for v in meg_ds['eventID']:
         binary_trig = bin(int(v))[2:]
         eventID_bin.append(binary_trig)
 
@@ -322,22 +322,22 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
             cond.append(None)        
 
 #Labels events    
-    ds['experiment'] = E.factor(exp, labels={None: 'fixation', 1: 'experiment'})
-    ds['target'] = E.factor(target, labels={None: 'fixation/voice', 0: 'prime', 1: 'target'})
-    ds['wordtype'] = E.factor(type, labels={None: 'None', 1: 'transparent', 2: 'opaque', 3: 'novel', 4: 'ortho', 5:'ortho'})
-    ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity', 2: 'identity', 3: 'control_constituent', 4: 'first_constituent'})
-    ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
+    meg_ds['experiment'] = E.factor(exp, labels={None: 'fixation', 1: 'experiment'})
+    meg_ds['target'] = E.factor(target, labels={None: 'fixation/voice', 0: 'prime', 1: 'target'})
+    meg_ds['wordtype'] = E.factor(type, labels={None: 'None', 1: 'transparent', 2: 'opaque', 3: 'novel', 4: 'ortho', 5:'ortho'})
+    meg_ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity', 2: 'identity', 3: 'control_constituent', 4: 'first_constituent'})
+    meg_ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
 #Labels the voice events
 #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
-    index = np.arange(3,ds.N, 4)
-    ds['experiment'][index] = 'voice'
+    index = np.arange(3,meg_ds.N, 4)
+    meg_ds['experiment'][index] = 'voice'
 #Add subject as a redundant variable to the dataset
-    ds['subject'] = E.factor([ds.info['subname']], rep = ds.N)
+    meg_ds['subject'] = E.factor([meg_ds.info['subname']], rep = meg_ds.N)
 #Makes a temporary ds
-    temp = ds[ds['target'] == 'target']
+    temp = meg_ds[meg_ds['target'] == 'target']
 #Add itemID to uniquely identify each word    
     itemID = temp['scenario'].x+(temp['wordtype'].x*60)
-    ds['itemID'] = E.var(np.repeat(itemID, 4))
+    meg_ds['itemID'] = E.var(np.repeat(itemID, 4))
 
 #Load the stim info from mat file
     stim_ds = _load_stims_info()
@@ -349,13 +349,13 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
         idx.append(np.where(a*b)[0][0])
 
     stim_ds = stim_ds[idx].repeat(4) 
-    ds.update(stim_ds)
+    meg_ds.update(stim_ds)
     
 #Load duration data and adds it to the dataset.
-    ds = _load_dur_info(ds)
+    meg_ds = _load_dur_info(meg_ds)
     
 
-    return ds
+    return meg_ds
 
 
 
