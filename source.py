@@ -146,7 +146,7 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 	inv = mne.minimum_norm.make_inverse_operator(epochs.info, fwd, cov, loose = None)	
 	
 	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
-	stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2 = 1./9, label = roi) #one stc per epoch
+	stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2 = 1./9, label = roi) #a list of lists of all sources within label per epoch.
 
 	stc_data = []
 	stc_data.extend(stc.data.mean(0) for stc in stcs) #Mean activation over all of the sources
@@ -177,8 +177,11 @@ def export_erfs(ds):
 	print 'Export completed'
 
 def export_stcs(ds):
-	time = np.around(ds['stc'].time.x, decimals = 3)
-	time = map(str, time)
+	timetemp = np.around(ds['stc'].time.x, decimals = 3)*1000 #header to be represented in milliseconds
+	timetemp = map(str, timetemp)
+	time = []
+	for point in timetemp:
+		time.append(point + 'ms')
 	
 	np.savetxt(ds.info['stc'], np.vstack((time, ds['stc'].x)), fmt='%s', delimiter='\t', newline='\n')
 	ds.export(ds.info['stc_ds'])

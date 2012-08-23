@@ -12,17 +12,22 @@ import mne
 from eelbrain import ui, vessels as V
 import scipy.io
 import eelbrain.utils.subp as subp
+import subprocess
+import tempfile
+import fnmatch
+import re
 
-__hide__ = ['os', 'V', 'scipy.io', 'subp', 'E', 'mne', 'ui']
+__hide__ = ['np', 'E', 'os', 'mne', 'V', 'scipy.io', 'subp', 'subprocess', 'tempfile', 'fnmatch', 're']
 
 
 def format_latency(subjects = [], expname = 'NMG'):
+    datadir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', expname, 'data')
     root = os.path.join(os.path.expanduser('~'), 'data', expname)
-    group_latency_out = os.path.join(root, 'group', '_'.join((expname, 'group', 'latencies.txt')))
+    group_latency_out = os.path.join(datadir, '_'.join((expname, 'group', 'latencies.txt')))
     group_latencies = []
 
     for subject in subjects:
-        latency_out = os.path.join(root, subject, 'data', '_'.join((subject, expname, 'latencies.txt')))
+        latency_out = os.path.join(root, subject, 'data',  '_'.join((subject, expname, 'latencies.txt')))
         data = os.path.join(root, subject, 'rawdata', 'behavioral', subject+'_data.txt')
         header = []
         latencies = []
@@ -35,72 +40,88 @@ def format_latency(subjects = [], expname = 'NMG'):
                 header.append(line.strip())
 
         with open(latency_out, 'w') as FILE:
-            FILE.write(header[0]+os.linesep)
+            FILE.write('subject\t'+header[0]+os.linesep)
             FILE.write(os.linesep.join(latencies))
-        with open(group_latency_out, 'w') as FILE:
-            FILE.write(header[0]+os.linesep)
-            FILE.write(os.linesep.join((group_latencies)))
+    with open(group_latency_out, 'w') as FILE:
+        FILE.write('subject\t'+header[0]+os.linesep)
+        FILE.write(os.linesep.join((group_latencies)))
 
 
+
+def brain_vision2fiff(subname, expname = 'NMG'):
+
+    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
+    fifdir = os.path.join(root, 'myfif')
+    datadir = os.path.join(root, 'rawdata', 'eeg')
+    vhdr = os.path.join(datadir, '_'.join((subname, expname+'.vhdr')))
+    out = os.path.join(fifdir, '_'.join((subname, expname, 'EEG')))
+
+    cmd = ['/Applications/mne/bin/mne_brain_vision2fiff', 
+           '--header', '%s' %vhdr, 
+           '--orignames',
+           '--out', '%s' %out]
+    cwd = datadir
+    sp = subprocess.Popen(cmd, cwd=cwd,
+                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sp.communicate()
+    
+    if stderr:
+        print '\n> ERROR: %s\n%s' %(stderr, stdout)    
+    
 
 def load_eeg_events(subname, expname = 'NMG'):
 
 #Finds the file
     root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
-    rawdata = os.path.join(root, 'rawdata')
-    filename = os.path.join(rawdata, 'eeg', ''.join(('_'.join((subname, expname)), '.vmrk')))
+    rawdata = os.path.join(root, 'rawdata', 'eeg')
+    vmrk = os.path.join(rawdata, ''.join(('_'.join((subname, expname)), '.vmrk')))
     fifdir = os.path.join(root, 'myfif')
     datadir = os.path.join(root, 'data')
-    
+
 #Initialize lists   
-    marker = []
     eventID = []
     i_start = []
     size = []
     channel = []
+    
 
 #Extracts info for dataset
-    for line in open(filename):
+    for line in open(vmrk):
         if line.startswith('Mk'):
+#The first marker has information about the experiment
             if line.startswith('Mk1='):
                 continue
             items = line.split(',')
-            items[0] = '='.join((items[0].split('=')[0], 'Stimulus'))
-            marker.append(items[0])
             eventID.append(items[1][1:])
             i_start.append(int(items[2]))
             size.append(int(items[3]))
             channel.append(int(items[4]))
-
-    marker = E.factor(marker, 'marker')            
+            print line
     eventID = E.factor(eventID, 'eventID')
     i_start = E.var(i_start, 'i_start')
     size = E.var(size, 'size')
     channel = E.var(channel, 'channel')
 
+
 #Creates dataset    
-    eeg = E.dataset(marker, eventID, i_start, size, channel)
-
-#Adds header information to the dataset
-    tmp = open(filename).read()
-    header = tmp.split('Mk2')[0]
-    eeg.info['header'] = header
-
-    eeg.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname,expname,'EEG', 'raw.fif')))))
-    eeg.info['fifdir'] = fifdir
-    eeg.info['datadir'] = datadir
+    eeg_ds = E.dataset(eventID, i_start, size, channel)
+    eeg_ds['subject'] = E.factor([subname], rep = eeg_ds.N)
+#Add info to dataset
+    eeg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname,expname,'EEG', 'raw.fif')))))
+    eeg_ds.info['fifdir'] = fifdir
+    eeg_ds.info['datadir'] = datadir
     
-    eeg.info['subname'] = subname
-    eeg.info['expname'] = expname
+    eeg_ds.info['subname'] = subname
+    eeg_ds.info['expname'] = expname
     
-    eeg.info['sns_locs'], eeg.info['sns_names'] = sns_read()
-    eeg.info['sensors'] = V.sensors.sensor_net(locs = eeg.info['sns_locs'], names = eeg.info['sns_names'])
+    eeg_ds.info['sns_locs'], eeg_ds.info['sns_names'] = _sns_read()
+    eeg_ds.info['sensors'] = V.sensors.sensor_net(locs = eeg_ds.info['sns_locs'], names = eeg_ds.info['sns_names'])
     
-    return eeg
+    return eeg_ds, eventID
     
 
     
-def sns_read():
+def _sns_read():
     locs = []
     names = []
     loc_file = []
@@ -116,28 +137,55 @@ def sns_read():
     
     
 
-def export_v(eeg_ds):
+def export_v(subname, expname = 'NMG'):
 
 #Finds the file
-    root = os.path.join(os.path.expanduser('~'), 'data', eeg_ds.info['expname'], eeg_ds.info['subname'])
-    rawdata = os.path.join(root, 'rawdata')    
-    vhdr_input = os.path.join(rawdata, 'eeg', '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'])) + '.vhdr')
-    vhdr_filename = os.path.join(rawdata, 'eeg', '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'], 'new')) + '.vhdr')   
-    vmrk_filename = os.path.join(rawdata, 'eeg', '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'], 'new')) + '.vmrk')
-    vmrk_handle = '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'], 'new')) + '.vmrk'
-        
+    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
+    rawdata = os.path.join(root, 'rawdata', 'eeg')    
+
+    files = os.listdir(rawdata)
+    vmrk_input = os.path.join(rawdata, fnmatch.filter(files, '%s_%s_*.*.*.vmrk' %(subname, expname))[0])
+    vhdr_input = os.path.join(rawdata, fnmatch.filter(files, '%s_%s_*.*.*.vhdr' %(subname, expname))[0])
+    
+    vhdr_filename = os.path.join(rawdata, '_'.join((subname, expname)) + '.vhdr')   
+    vmrk_filename = os.path.join(rawdata, '_'.join((subname, expname)) + '.vmrk')
+    vmrk_basename = os.path.basename(vmrk_filename)
+    #vmrk_handle = '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'])) + '.vmrk'
+
+#Extract header information
+    header = open(vmrk_input).read().split('Mk2')[0]
+
+
+#Initialize lists   
+    markers = []
+    eventIDs = []
+    i_starts = []
+    sizes = []
+    channels = []
+    
+    for line in open(vmrk_input):
+        if line.startswith('Mk'):
+            if line.startswith('Mk1='):
+                continue
+            items = line.split(',')
+            items[0] = '='.join((items[0].split('=')[0], 'Stimulus'))
+            markers.append(items[0])
+            eventIDs.append(items[1][1:])
+            i_starts.append(int(items[2]))
+            sizes.append(int(items[3]))
+            channels.append(int(items[4]))
+
     vmrk = open(vmrk_filename, 'w')
-    vmrk.write(eeg_ds.info['header'])
-    for i in range(eeg_ds.N):
-        vmrk.write('%s,S%s,%s,%s,%s\n\r' %(eeg_ds['marker'][i], eeg_ds['eventID'][i], eeg_ds['i_start'][i], eeg_ds['size'][i], eeg_ds['channel'][i]))
+    vmrk.write(header)
+    for marker, eventID, i_start, size, channel in zip(markers, eventIDs, i_starts, sizes, channels):
+        vmrk.write('%s,S%s,%s,%s,%s\r\n' %(marker, eventID, i_start, size, channel))
     vmrk.close()
     
     
     vhdr = open(vhdr_filename, 'w')
-    
     for line in open(vhdr_input):
         if line.startswith('MarkerFile'):
-            vhdr.write('MarkerFile=%s\n\r' %vmrk_handle)
+            vhdr.write('MarkerFile=%s\r\n' %vmrk_basename)
         else:
             vhdr.write(line)
 
@@ -205,20 +253,75 @@ def eeg_align(subname, expname = 'NMG', voiceproblem = False):
     return eeg_ds
 
 
+#This class is from Christian Brodbeck's subprocess in eelbrain
 
-def kit2fiff(subname, expname = 'NMG', sfreq = 500, lowpass=30, highpass=0, stimthresh=0.1, add=None, aligntol=25):
+
+
+class marker_avg_file:
+    def __init__(self, path):
+        # Parse marker file, based on Tal's pipeline:
+        regexp = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
+        output_lines = []
+        for line in open(path):
+            match = regexp.search(line)
+            if match:
+                output_lines.append('\t'.join(match.groups()))
+        txt = '\n'.join(output_lines)
+        
+        fd, self.path = tempfile.mkstemp(suffix='hpi', text=True)
+        f = os.fdopen(fd, 'w')
+        f.write(txt)
+        f.close()
+    
+    def __del__(self):
+        os.remove(self.path)
+        
+        
+        
+def kit2fiff(subname, expname = 'NMG', aligntol=25, sfreq = 500, lowpass=30, highpass=0, stimthresh=0.1, stim = xrange(168,160,-1), add=None):
 
     paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
-        
-    subp.kit2fiff(paths=dict(mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt'))),
-                        elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp'))),
-                        hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp'))),
-                        rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt')))),
-                         rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif')))),
-                         sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')),
-                         sfreq=sfreq, lowpass = lowpass, highpass = highpass, stimthresh = stimthresh, add = add, aligntol = aligntol)
+    
+    mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt')))
+    elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp')))
+    hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp')))
+    rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt'))))
+    rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif'))))
+    sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')
 
+    # convert the marker file
+    mrk_file = marker_avg_file(mrk)
+    hpi = mrk_file.path
 
+    stim = ':'.join(map(str, stim))
+
+    cmd = ['/Applications/mne/bin/mne_kit2fiff', 
+           '--elp', elp, 
+           '--hsp', hsp,  
+           '--sns', sns,
+           '--hpi', hpi,
+           '--aligntol', aligntol,
+           '--raw', rawtxt,
+           '--out', rawfif,
+           '--sfreq', sfreq,
+           '--lowpass', lowpass,
+           '--highpass', highpass,
+           '--stim', stim,
+           '--stimthresh', stimthresh]
+    cwd = '/Applications/mne/bin/'
+
+    if add:
+        add = ':'.join((add))
+        cmd = cmd + '--add %s' %add
+    
+    cmd = [unicode(c) for c in cmd]
+    sp = subprocess.Popen(cmd, cwd=cwd,
+                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sp.communicate()
+    
+    if stderr:
+        print '\n> ERROR: %s\n%s' %(stderr, stdout) 
+    
 
 def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
@@ -383,7 +486,7 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
     stim_ds['c1_sd'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_sd']))))
     stim_ds['c1'] = E.factor(np.hstack(np.hstack(stims['c1'])))
     stim_ds['c1_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_freq']))))
-    stim_ds['c1_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_nmg']))))
+    stim_ds['elp_c1_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_nmg']))))
     stim_ds['word'] = E.factor(np.hstack(np.hstack(stims['word'])))
     stim_ds['word_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_freq']))))
     stim_ds['word_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_nmg']))))
@@ -394,7 +497,7 @@ def _load_stims_info(stims_info = '/Users/teon/data/NMG/stims/stims_info.mat'):
     stim_ds['c2_sd'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_sd']))))
     stim_ds['c2'] = E.factor(np.hstack(np.hstack(stims['c2'])))
     stim_ds['c2_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_freq']))))
-    stim_ds['c2_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_nmg']))))
+    stim_ds['elp_c2_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_nmg']))))
     
     return stim_ds
 
