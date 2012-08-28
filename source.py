@@ -12,9 +12,9 @@ import os
 import mne
 import numpy as np
 from eelbrain.eellab import *
-from eelbrain.utils import subp
+import subprocess
 
-__hide__ = ['os', 'np', 'subp', 'mne']
+__hide__ = ['os', 'np', 'subprocess', 'mne']
 
 
 
@@ -23,14 +23,8 @@ def make_proj(meg_ds, write = True):
 
 	meg_ds_fix = meg_ds[meg_ds['experiment'] == 'fixation']
 	epochs = load.fiff.mne_Epochs(meg_ds_fix, tstart=-0.2, tstop=.6, baseline=(None, 0), reject={'mag':1.5e-11})
-	sensor = load.fiff.sensors(epochs)
 	proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=5, n_eeg=0)
-	
-	#for our data, the iron-cross noise is the first principal component
-	#first_proj = proj[0]['data']['data']
-	#name = proj[0]['desc'][-5:]
-	#PCA = ndvar(first_proj, (sensor,), name=name)
-	#PCA = mne.read_proj(ds.info['proj'])
+
 	
 	if write == True:
 		first_proj = [proj[0]]
@@ -63,25 +57,55 @@ def make_cov(meg_ds, write = True):
 
 
 	
-def make_fwd(meg_ds, fromfile = True):
+def make_fwd(meg_ds, fromfile = True, overwrite = False):
 # create the forward solution
-
-	if fromfile == True:
-		subp.do_forward_solution(paths={'src': meg_ds.info['src'], 'trans': meg_ds.info['trans'], 
-		
-'cov': meg_ds.info['cov'], 'bem': meg_ds.info['bem'], 'fwd': meg_ds.info['fwd'], 
-		'mri_sdir': meg_ds.info['mridir'], 'rawfif': meg_ds.info['rawfif']}, overwrite=False, v=1)
-		print 'Forward Solution written to file'
-	
+	#os.environ['SUBJECTS_DIR'] = mri_dir
+	if fromfile:
+		cov = meg_ds.info['cov']
 	else:
-		make_cov(meg_ds)
-		subp.do_forward_solution(paths={'src': meg_ds.info['src'], 'trans': meg_ds.info['trans'], 
-		
-'cov': meg_ds.info['cov'], 'bem': meg_ds.info['bem'], 'fwd': meg_ds.info['fwd'], 
-		'mri_sdir': meg_ds.info['mridir'], 'rawfif': meg_ds.info['rawfif']}, overwrite=False, v=1)
-			
-		print 'Forward Solution and Covariance Matrix written to file'
+		cov = make_cov(meg_ds, write=False)
 
+	subject = meg_ds.info['subname']		
+	src = meg_ds.info['src']
+	trans = meg_ds.info['trans'] 		
+	bem = meg_ds.info['bem']
+	fwd = meg_ds.info['fwd'] 
+	mri_sdir = meg_ds.info['mridir'] 
+	rawfif = meg_ds.info['rawfif']
+	
+	cwd = meg_ds.info['mne_bin']
+	cmd = ['mne_do_forward_solution',
+	   '--subject', subject,
+	   '--src', src,
+	   '--bem', bem, 
+	   '--mri', trans, # MRI description file containing the MEG/MRI coordinate transformation.
+	   '--meas', rawfif, # provides sensor locations and coordinate transformation between the MEG device coordinates and MEG head-based coordinates.
+	   '--fwd', fwd, #'--destdir', target_file_dir, # optional 
+	   '--megonly']
+	
+	if overwrite:
+		cmd.append('--overwrite')
+	elif os.path.exists(fwd):
+		raise IOError("fwd file at %r already exists" % fwd)
+	
+	sp = subprocess.Popen(cmd, cwd=cwd,
+						  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	stdout, stderr = sp.communicate()
+		
+	if stderr:
+		print '\n> ERROR:'
+		print stderr
+	
+	if os.path.exists(fwd):
+		return fwd
+		print 'Forward Solution written to file'
+
+	else:
+		err = "fwd-file not created"
+		err = os.linesep.join([err, "command out:", stdout])
+		raise RuntimeError(err)
+
+	
 
 def make_stc(meg_ds, reject = 2e-12):
 #creates an stc file for each condition. this uses the evoked (averaged epochs) object
@@ -119,7 +143,7 @@ def make_stc(meg_ds, reject = 2e-12):
 
 
 
-def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 'label', from_file = True):
+def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 'label', force_fixed = True, from_file = True, method = 'rms'):
 #creates a dataset with all the epochs given from the meg_ds
 		
 	stc_data = []
@@ -135,11 +159,10 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 		meg_ds = make_proj(meg_ds, write = False)
 		cov = make_cov(meg_ds, write = False)
 
-	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=True) #there is currently no solution for creating the fwd as an object.
+	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=force_fixed) #there is currently no solution for creating the fwd as an object.
 
-	index1 = meg_ds['experiment'] == 'experiment' #This is unnecessary, just overly precautious.
-	index2 = meg_ds['target'] == 'target'
-	meg = meg_ds.subset(index1*index2)
+	index = meg_ds['target'] == 'target'
+	meg = meg_ds.subset(index)
 
 	# create the inverse solution
 	epochs = load.fiff.mne_Epochs(meg, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
@@ -149,8 +172,10 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 	stcs = mne.minimum_norm.apply_inverse_epochs(epochs, inv, lambda2 = 1./9, label = roi) #a list of lists of all sources within label per epoch.
 
 	stc_data = []
-	stc_data.extend(stc.data.mean(0) for stc in stcs) #Mean activation over all of the sources
-	
+	if method == 'rms':
+		stc_data.extend(np.sqrt((stc.data **2).mean(axis=0)) for stc in stcs) #RMS activation over all of the sources
+	else:
+		stc_data.extend(stc.data.mean(0) for stc in stcs)
 	stc = np.vstack(stc_data) #Reorganize to be a matrix of epochs over time
 	
 	meg_ds = meg_ds.subset(epochs.model['index'])

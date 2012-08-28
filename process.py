@@ -78,7 +78,8 @@ def load_eeg_events(subname, expname = 'NMG'):
     fifdir = os.path.join(root, 'myfif')
     datadir = os.path.join(root, 'data')
 
-#Initialize lists   
+#Initialize lists
+    marker = []   
     eventID = []
     i_start = []
     size = []
@@ -96,7 +97,7 @@ def load_eeg_events(subname, expname = 'NMG'):
             i_start.append(int(items[2]))
             size.append(int(items[3]))
             channel.append(int(items[4]))
-            print line
+
     eventID = E.factor(eventID, 'eventID')
     i_start = E.var(i_start, 'i_start')
     size = E.var(size, 'size')
@@ -117,7 +118,13 @@ def load_eeg_events(subname, expname = 'NMG'):
     eeg_ds.info['sns_locs'], eeg_ds.info['sns_names'] = _sns_read()
     eeg_ds.info['sensors'] = V.sensors.sensor_net(locs = eeg_ds.info['sns_locs'], names = eeg_ds.info['sns_names'])
     
-    return eeg_ds, eventID
+#Details listed in data/NMG/stims/sns_clusters.py
+    eeg_ds.info['sns_clusters'] = dict(outer = ['Fp1', 'Fp2', 'F7', 'F8', 'P7', 'P8', 'O1', 'O2'],
+    									midlateral = ['F3', 'F4', 'FC5', 'FC6', 'CP5', 'CP6', 'P3', 'P4'],
+    									inner = ['FC1', 'FC2', 'C3', 'C4', 'CP1', 'CP2'],
+    									midline = ['Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz'])
+    
+    return eeg_ds
     
 
     
@@ -178,14 +185,14 @@ def export_v(subname, expname = 'NMG'):
     vmrk = open(vmrk_filename, 'w')
     vmrk.write(header)
     for marker, eventID, i_start, size, channel in zip(markers, eventIDs, i_starts, sizes, channels):
-        vmrk.write('%s,S%s,%s,%s,%s\r\n' %(marker, eventID, i_start, size, channel))
+        vmrk.write('%s,S%s,%s,%s,%s\r' %(marker, eventID, i_start, size, channel))
     vmrk.close()
     
     
     vhdr = open(vhdr_filename, 'w')
     for line in open(vhdr_input):
         if line.startswith('MarkerFile'):
-            vhdr.write('MarkerFile=%s\r\n' %vmrk_basename)
+            vhdr.write('MarkerFile=%s\r' %vmrk_basename)
         else:
             vhdr.write(line)
 
@@ -193,11 +200,13 @@ def export_v(subname, expname = 'NMG'):
     
     
         
-def eeg_align(subname, expname = 'NMG', voiceproblem = False):
+def eeg_align(subname, expname = 'NMG', voiceproblem = True):
 
     #Loads events
     eeg_ds = load_eeg_events(subname, expname)
     meg_ds = load_meg_events(subname, expname, voiceproblem)
+    if 't_edf' in meg_ds:
+        del meg_ds['t_edf']
     
     #Removes the fixations to match the eeg
     index = meg_ds['experiment'] != 'fixation'
@@ -236,21 +245,22 @@ def eeg_align(subname, expname = 'NMG', voiceproblem = False):
     #Removes the extra trigger events
     index = np.ones(eeg_ds.N, dtype = 'Bool')
     index[flags] = False
-    eeg_ds = eeg_ds[index]
+    combined_ds = eeg_ds[index]
     
     #Replaces the EEG triggers with ones from the MEG
-    eeg_ds['eventID'] = meg_ds['eventID'].as_factor(name='eventID', labels='%i')
-    
+    combined_ds['eventID'] = meg_ds['eventID']
+    #Adds meg_ds['i_start']
+    combined_ds['i_start_meg'] = meg_ds['i_start']
+    #Adds eeg_ds['i_start']
+    combined_ds['i_start_eeg'] = combined_ds['i_start']
     #Adds additional info
-    eeg_ds['itemID'] = meg_ds['itemID']
-    eeg_ds['experiment'] = meg_ds['experiment']
-    eeg_ds['target'] = meg_ds['target']
-    eeg_ds['wordtype'] = meg_ds['wordtype']
-    eeg_ds['condition'] = meg_ds['condition']
-    eeg_ds['eventID_bin'] = meg_ds['eventID_bin']
+    combined_ds.update(meg_ds)
+    combined_ds.info = eeg_ds.info
     
+    #Deletes i_start (unlabeled)
+    del combined_ds['i_start']
     
-    return eeg_ds
+    return combined_ds
 
 
 #This class is from Christian Brodbeck's subprocess in eelbrain
@@ -343,10 +353,9 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
 #Compares the log file to the triggerlist. Adds variable of boolean comparison
     log = np.array(log)
-    assert ds['eventID'] == log
 #Asserts that the right value of triggers is given. Experimentally determined.
 #For NMG: 4 trigger events per trial, 240 trials per list, 4 lists    
-    assert ds.N == 3840
+    assert meg_ds.N == 3840
 #This assures that the trigger values are equivalent to the ones in PTB
     meg_ds['eventID'] = log
 
@@ -359,6 +368,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     meg_ds.info['subname'] = subname
     meg_ds.info['expname'] = expname
     meg_ds.info['datadir'] = datadir
+    meg_ds.info['mne_bin'] = os.path.join('/Applications/mne/bin')
 
 #Adds mri filenames
     meg_ds.info['fwd'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-fwd.fif')))
@@ -455,7 +465,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
     meg_ds.update(stim_ds)
     
 #Load duration data and adds it to the dataset.
-    meg_ds = _load_dur_info(meg_ds)
+    #meg_ds = _load_dur_info(meg_ds)
     
 
     return meg_ds
@@ -507,7 +517,7 @@ def _load_dur_info(meg_ds):
     ds = E.load.txt.tsv(os.path.join(meg_ds.info['expdir'], meg_ds.info['subname'], 'data', '_'.join((meg_ds.info['subname'], 'durations.txt'))))
     index = sorted(range(ds.N),key=lambda x:ds['tsec'].x[x])
     ds = ds[index].repeat(4)
-    assert ds['word'] == meg_ds['word']
+    assert all(ds['word'] == meg_ds['word'])
 #This imports the segmentation information for the orthographic words. Their segmentation is not done in the mat file.
     meg_ds['c1'] = ds['s1']
     meg_ds['c2'] = ds['s2']
