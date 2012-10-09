@@ -295,7 +295,10 @@ def kit2fiff(subname, expname = 'NMG', aligntol=25, sfreq = 500, lowpass=30, hig
     mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt')))
     elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp')))
     hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp')))
-    rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export500.txt'))))
+    if sfreq == 1000:
+            rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export.txt'))))
+    else:
+        rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export'+ str(sfreq) + '.txt'))))
     rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif'))))
     sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')
 
