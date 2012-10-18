@@ -288,7 +288,7 @@ class marker_avg_file:
         
         
         
-def kit2fiff(subname, expname = 'NMG', aligntol=25, sfreq = 500, lowpass=30, highpass=0, stimthresh=0.1, stim = xrange(168,160,-1), add=None):
+def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpass=0, stimthresh=1, stim=xrange(168, 160, -1), add=None):
 
     paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
     
@@ -365,7 +365,7 @@ def load_meg_events(subname, expname = 'NMG', voiceproblem = True):
 
 #Adds the raw fif info used in epoching data.    
     meg_ds.info['fifdir'] = fifdir
-    meg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname,'raw.fif')))))
+    meg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif')))), verbose=False)
     meg_ds.info['rawfif'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif'))))
     meg_ds.info['proj'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif'))))
     meg_ds.info['subname'] = subname
