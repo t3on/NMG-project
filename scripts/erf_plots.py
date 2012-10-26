@@ -8,10 +8,9 @@ import eelbrain.eellab as E
 import process, source
 datadir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'results', 'plots', 'meg', 'erfs')
 
-subjects = ['R0095', 'R0498', 'R0504']
+subjects = ['R0095', 'R0498', 'R0504', 'R0414', 'R0547', 'R0569', 'R0574', 'R0575', 'R0576']
+labels = ['lh.fusiform', 'lh.medialorbitofrontal', 'lh.temporalpole']
 group_ds = []
-
-labels = ['lh.fusiform', 'lh.temporalpole', 'lh.parstriangularis', 'lh.superiortemporal', 'lh.medialorbitofrontal', 'lh.lateralorbitofrontal']
 
 tstart = -0.2
 tstop = 0.4
@@ -25,7 +24,7 @@ for subject in subjects:
 
     meg_ds = meg_ds[index]
     meg_ds = process.reject_blinks(meg_ds)
-    meg_ds.info['epochs'] = load.fiff.mne_Epochs(meg_ds, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
+    meg_ds = load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
 
     for lbl in labels:
         ds = source.make_stc_epochs(meg_ds, tstart = tstart, tstop = tstop, reject = reject, label = lbl, force_fixed = True, from_file = True, method = 'rms')
