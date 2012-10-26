@@ -171,10 +171,10 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 
 	# create the inverse solution
 	#epochs = load.fiff.mne_Epochs(meg, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
-	inv = mne.minimum_norm.make_inverse_operator(meg_ds.info['epochs'].info, fwd, cov, loose = None)	
+	inv = mne.minimum_norm.make_inverse_operator(meg_ds['epochs'].info, fwd, cov, loose=None)
 	
 	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
-	stcs = mne.minimum_norm.apply_inverse_epochs(meg_ds.info['epochs'], inv, lambda2 = 1./9, label = roi) #a list of lists of all sources within label per epoch.
+	stcs = mne.minimum_norm.apply_inverse_epochs(meg_ds['epochs'], inv, lambda2=1. / 9, label=roi) #a list of lists of all sources within label per epoch.
 
 	stc_data = []
 	if method == 'rms':
@@ -183,7 +183,6 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 		stc_data.extend(stc.data.mean(0) for stc in stcs)
 	stc = np.vstack(stc_data) #Reorganize to be a matrix of epochs over time
 	
-	meg_ds = meg_ds.subset(meg_ds.info['epochs'].model['index'])
 	T = var(stcs[0].times, name='time')
 	meg_ds['label'] = factor([label], rep = meg_ds.N)
 	meg_ds.info['erfs'] = os.path.join(meg_ds.info['datadir'], '%s_%s_erfs.txt' %(meg_ds.info['subname'], meg_ds.info['expname']))
