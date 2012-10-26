@@ -336,7 +336,7 @@ def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpas
         print '\n> ERROR: %s\n%s' % (stderr, stdout)
 
 
-def load_meg_events(subname, expname='NMG', hasMRI=False, voiceproblem=False):
+def load_meg_events(subname, expname='NMG', voiceproblem=False):
 
 #Defines directories
     root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
@@ -345,28 +345,32 @@ def load_meg_events(subname, expname='NMG', hasMRI=False, voiceproblem=False):
     datadir = os.path.join(root, 'data')
 
 #Specifies whether it calls the subject's MRI or the average brain
-    if hasMRI == True:
-        mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
-    else:
+
+    mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
+
+    if not os.path.lexists(mridir):
         mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', '00'))
+        hasMRI = False
+    else:
+        hasMRI = True
 
 #Finds the file    
     logfile = os.path.join(rawdata, 'behavioral', 'logs', '_'.join((subname, 'log.txt')))
     fif_file = os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif')))
 
 #Loads the triggerlist from the log file   
-    log = _logread(logfile)
+    #log = _logread(logfile)
 
 #Loads the triggers from the fif and makes a dataset
     meg_ds = E.load.fiff.events(fif_file)
 
 #Compares the log file to the triggerlist. Adds variable of boolean comparison
-    log = np.array(log)
+    #log = np.array(log)
 #Asserts that the right value of triggers is given. Experimentally determined.
 #For NMG: 4 trigger events per trial, 240 trials per list, 4 lists    
-    assert meg_ds.N == 3840
+    #assert meg_ds.N == 3840
 #This assures that the trigger values are equivalent to the ones in PTB
-    assert all(meg_ds['eventID'].x == log)
+    #assert all(meg_ds['eventID'].x == log)
 
 #Adds directory to rawfif    
     meg_ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
@@ -390,7 +394,9 @@ def load_meg_events(subname, expname='NMG', hasMRI=False, voiceproblem=False):
     meg_ds.info['trans'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-trans.fif')))
 
 #Specifies filenames according for either subject's MRI or common average brain
-    if hasMRI == True:
+    meg_ds.info['hasMRI'] = hasMRI
+
+    if meg_ds.info['hasMRI'] == True:
         meg_ds.info['bem'] = os.path.join(mridir, 'bem', subname + '-5120-bem-sol.fif')
         meg_ds.info['src'] = os.path.join(mridir, 'bem', subname + '-ico-4-src.fif')
     else:
@@ -465,7 +471,7 @@ def load_meg_events(subname, expname='NMG', hasMRI=False, voiceproblem=False):
 #Add subject as a redundant variable to the dataset
     meg_ds['subject'] = E.factor([meg_ds.info['subname']], rep=meg_ds.N)
 #Add block to the ds. 4 events per trial, 240 trials per block
-    meg_ds['block'] = E.var(np.repeat([0, 1, 2, 3], repeats=960, axis=None))
+    #meg_ds['block'] = E.var(np.repeat([0, 1, 2, 3], repeats=960, axis=None))
 #Makes a temporary ds
     temp = meg_ds[meg_ds['target'] == 'target']
 #Add itemID to uniquely identify each word    
@@ -485,7 +491,7 @@ def load_meg_events(subname, expname='NMG', hasMRI=False, voiceproblem=False):
     meg_ds.update(stim_ds)
 
 #Load duration data and adds it to the dataset.
-    meg_ds = _load_dur_info(meg_ds)
+  #  meg_ds = _load_dur_info(meg_ds)
 
 
     return meg_ds
