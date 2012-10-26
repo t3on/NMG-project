@@ -65,7 +65,12 @@ def make_fwd(meg_ds, fromfile = True, overwrite = False):
 	else:
 		cov = make_cov(meg_ds, write=False)
 
-	subject = meg_ds.info['subname']		
+# this is added to create the correct fwd model for the subjects without MRIs.
+	if meg_ds.info['hasMRI'] == False:
+		subject = '00'
+	else:
+		subject = meg_ds.info['subname']
+
 	src = meg_ds.info['src']
 	trans = meg_ds.info['trans'] 		
 	bem = meg_ds.info['bem']
