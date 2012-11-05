@@ -3,7 +3,9 @@ import process
 import source
 import copy
 
-subjects = ['R0095', 'R0498', 'R0504', 'R0414', 'R0547', 'R0569', 'R0574', 'R0575', 'R0576']
+subjects = [('R0095', ['MEG 000']), ('R0498', ['MEG 000']), ('R0504', ['MEG 000']), 
+            ('R0414', ['MEG 000']), ('R0547', ['MEG 000']), ('R0569', ['MEG 000']), 
+            ('R0574', ['MEG 000']), ('R0575', ['MEG 000']), ('R0576', ['MEG 000'])]
 labels = ['lh.fusiform', 'lh.medialorbitofrontal', 'lh.temporalpole']
 #'lh.parstriangularis', 'lh.superiortemporal', 'lh.lateralorbitofrontal'
 #maybe AMF
@@ -16,11 +18,16 @@ reject = 3e-12
 for subject in subjects:
     subject_datasets = []
         
-    meg_ds = process.load_meg_events(subname=subject, expname='NMG', voiceproblem=False)
+    meg_ds = process.load_meg_events(subname=subject[0], expname='NMG', voiceproblem=False)
     index = meg_ds['target'] == 'target'
 
+#create picks to remove bad channels
+    if subject[1]:
+        meg_ds.info['raw'].
     meg_ds = meg_ds[index]
     #meg_ds = process.reject_blinks(meg_ds)
+    
+    #add epochs to the dataset after excluding bad channels
     meg_ds = load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop, baseline=(tstart, 0), reject={'mag':reject}, preload=True)
 
     for lbl in labels:

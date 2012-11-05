@@ -179,6 +179,10 @@ def make_stc_epochs(meg_ds, tstart = -0.2, tstop = 0.4, reject = 3e-12, label = 
 	stc_data = []
 	if method == 'rms':
 		stc_data.extend(np.sqrt((stc.data **2).mean(axis=0)) for stc in stcs) #RMS activation over all of the sources
+	
+	#adding evoked
+	#if method == 'evoked':
+	#	stc_data.extend(stc.data.mean(0) for stc in stcs)
 	else:
 		stc_data.extend(stc.data.mean(0) for stc in stcs)
 	stc = np.vstack(stc_data) #Reorganize to be a matrix of epochs over time

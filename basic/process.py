@@ -9,15 +9,14 @@ import numpy as np
 import eelbrain.eellab as E
 import os
 import mne
-from eelbrain import ui, vessels as V
+from eelbrain import vessels as V
 import scipy.io
-import eelbrain.utils.subp as subp
 import subprocess
 import tempfile
 import fnmatch
 import re
 
-__hide__ = ['np', 'E', 'os', 'mne', 'V', 'scipy.io', 'subp', 'subprocess', 'tempfile', 'fnmatch', 're']
+__hide__ = ['np', 'E', 'os', 'mne', 'V', 'scipy.io', 'subprocess', 'tempfile', 'fnmatch', 're']
 
 
 def format_latency(subjects=[], expname='NMG'):
