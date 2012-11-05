@@ -335,7 +335,7 @@ def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpas
         print '\n> ERROR: %s\n%s' % (stderr, stdout)
 
 
-def load_meg_events(subname, expname='NMG', voiceproblem=False):
+def load_meg_events(subname, expname='NMG'):
 
 #Defines directories
     root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
@@ -422,8 +422,8 @@ def load_meg_events(subname, expname='NMG', voiceproblem=False):
 
 #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
 #Repairs voice trigger value problem, if needed.
-    if voiceproblem == True:
-        index = range(3, meg_ds.N, 4)
+    index = range(3, meg_ds.N, 4)
+    if all(meg_ds['eventID'][index].x > 128):
         meg_ds['eventID'][index] = meg_ds['eventID'][index] - 128
 
 
