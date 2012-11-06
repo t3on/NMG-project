@@ -55,6 +55,9 @@ for subject in subjects:
 #combines the datasets for group
 group_ds = E.combine(datasets)
 
+#select only the constituent conditions
+group_ds = group_ds[group_ds['condition'].isany('control_constituent', 'first_constituent')]
+
 clusters = []for lbl in labels:
     clusters.append(E.testnd.cluster_anova(group_ds[lbl], group_ds['condition'] * group_ds['wordtype'] * group_ds['subject']))
 
