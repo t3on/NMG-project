@@ -468,7 +468,7 @@ def load_meg_events(subname, expname='NMG'):
     index = np.arange(3, meg_ds.N, 4)
     meg_ds['experiment'][index] = 'voice'
 #Add subject as a redundant variable to the dataset
-    meg_ds['subject'] = E.factor([meg_ds.info['subname']], rep=meg_ds.N)
+    meg_ds['subject'] = E.factor([meg_ds.info['subname']], rep=meg_ds.N, random = True)
 #Add block to the ds. 4 events per trial, 240 trials per block
     #meg_ds['block'] = E.var(np.repeat([0, 1, 2, 3], repeats=960, axis=None))
 #Makes a temporary ds
