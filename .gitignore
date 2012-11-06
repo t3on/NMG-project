@@ -8,3 +8,9 @@
 *.pyo
 
 *.txt
+
+NMG.egg-info/PKG-INFO
+
+.DS_Store
+
+.DS_Store
