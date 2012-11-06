@@ -56,8 +56,6 @@ for subject in subjects_test:
 #combines the datasets for group
 group_ds = E.combine(datasets)
 
-#group_ds = E.compress(group_ds['subject'] % group_ds['condition'] % group_ds['wordtype'])
-
-E.testnd.cluster_anova(group_ds['stc'], group_ds['condition'] * group_ds['wordtype'] * group_ds['subject'])
-
+clusters = []for lbl in labels:
+    clusters.append(E.testnd.cluster_anova(group_ds[lbl], group_ds['condition'] * group_ds['wordtype'] * group_ds['subject']))
 
