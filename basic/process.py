@@ -299,7 +299,7 @@ def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpas
     else:
         rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export' + str(sfreq) + '.txt'))))
     rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif'))))
-    sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'scripts', 'sns.txt')
+    sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'parameters', 'sns.txt')
 
     # convert the marker file
     mrk_file = marker_avg_file(mrk)
@@ -356,12 +356,12 @@ def load_meg_events(subname, expname='NMG'):
 #Finds the file    
     logfile = os.path.join(rawdata, 'behavioral', 'logs', '_'.join((subname, 'log.txt')))
     fif_file = os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif')))
-
+    proj_file = os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif')))
 #Loads the triggerlist from the log file   
     #log = _logread(logfile)
 
 #Loads the triggers from the fif and makes a dataset
-    meg_ds = E.load.fiff.events(fif_file)
+    meg_ds = E.load.fiff.events(fif_file, proj=proj_file)
 
 #Compares the log file to the triggerlist. Adds variable of boolean comparison
     #log = np.array(log)
