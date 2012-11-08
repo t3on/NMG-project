@@ -44,7 +44,7 @@ for subject in subjects:
             lblname = lbl
         labelnames.append(lblname)
 
-        meg_ds = source.make_stc_epochs(meg_ds, tstart=tstart, tstop=tstop, reject=reject, label=lbl, label2=lbl2, force_fixed=True, from_file=True)
+        source.make_stc_epochs(meg_ds, tstart=tstart, tstop=tstop, reject=reject, label=lbl, label2=lbl2, force_fixed=True)
 
     #collapsing across sources using a root-mean squared
         meg_ds[lblname] = meg_ds[lblname].summary('source_space', func=E.statfuncs.RMS, name=lblname)
@@ -52,7 +52,7 @@ for subject in subjects:
     #delete subject epochs from memory
     del meg_ds['epochs']
 
-    meg_ds = meg_ds.compress(meg_ds['condition'] % meg_ds['wordtype'], drop_bad=True)
+    meg_ds = meg_ds.compress(meg_ds['target'] % meg_ds['condition'] % meg_ds['wordtype'], drop_bad=True)
 
 
     #Append to group level datasets
