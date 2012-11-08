@@ -14,7 +14,7 @@ import numpy as np
 import eelbrain.eellab as E
 import subprocess
 
-__hide__ = ['os', 'np', 'subprocess', 'mne']
+__hide__ = ['os', 'np', 'subprocess', 'mne', 'E']
 
 
 
@@ -114,8 +114,7 @@ def make_fwd(meg_ds, fromfile=True, overwrite=False):
 def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', label2=None, force_fixed=True):
 #creates a dataset with all the epochs given from the meg_ds
 
-	if from_file:
-		cov = mne.read_cov(meg_ds.info['cov'])
+	cov = mne.read_cov(meg_ds.info['cov'])
 
 	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=force_fixed) #there is currently no solution for creating the fwd as an object.
 
