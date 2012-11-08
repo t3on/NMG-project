@@ -82,16 +82,16 @@ group_prime_wordtype = group_ds[prime * wordtype_condition]
 
 constituent_clusters = []
 identity_clusters = []
-wordtype_clusters = []for lblname in labelnames:
-    a = E.testnd.cluster_anova(lblname, 'condition' * 'wordtype' * 'subject', ds=group_target_constituent)
-    a.figure.savefig(os.path.join(clusters_dir, 'group_target_constituent_%s.png' % lbl))
+wordtype_clusters = []
+for lblname in labelnames:
+    a = E.testnd.cluster_anova(group_target_constituent[lblname], group_target_constituent['condition'] * group_target_constituent['wordtype'] * group_target_constituent['subject'])
+    E.plot.uts.clusters(a).figure.savefig(os.path.join(clusters_dir, 'group_target_constituent_%s.png' % lblname))
     constituent_clusters.append(a)
 
-    b = E.testnd.cluster_anova(lblname, 'condition' * 'wordtype' * 'subject', ds=group_target_identity)
-    b.figure.savefig(os.path.join(clusters_dir, 'group_target_identity_%s.png' % lbl))
+    b = E.testnd.cluster_anova(group_target_identity[lblname], group_target_identity['condition'] * group_target_identity['wordtype'] * group_target_identity['subject'])
+    E.plot.uts.clusters(b).figure.savefig(os.path.join(clusters_dir, 'group_target_identity_%s.png' % lblname))
     identity_clusters.append(b)
 
-    c = E.testnd.cluster_anova(lblname, 'wordtype' * 'subject', ds=group_prime_wordtype)
-    c.figure.savefig(os.path.join(clusters_dir, 'group_prime_wordtype_%s.png' % lbl))
+    c = E.testnd.cluster_anova(group_prime_wordtype[lblname], group_prime_wordtype['wordtype'] * group_prime_wordtype['subject'])
+    E.plot.uts.clusters(c).figure.savefig(os.path.join(clusters_dir, 'group_prime_wordtype_%s.png' % lblname))
     wordtype_clusters.append(c)
-
