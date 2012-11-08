@@ -44,6 +44,6 @@ prime = group_ds[group_ds['target'] == 'prime']
 target = group_ds[group_ds['target'] == 'target']
 
 #prime
-E.plot.topo.butterfly(prime['epochs']).figure.save
+E.plot.topo.butterfly(prime['MEG']).figure.save
 #target
-E.plot.topo.butterfly(target['epochs'])
+E.plot.topo.butterfly(target['MEG'])
