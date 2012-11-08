@@ -14,3 +14,7 @@ NMG.egg-info/PKG-INFO
 .DS_Store
 
 .DS_Store
+
+*.pyc
+
+*.pyo
