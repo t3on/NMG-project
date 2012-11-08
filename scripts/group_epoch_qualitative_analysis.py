@@ -5,7 +5,7 @@ import copy
 import os
 import mne
 
-clusters_dir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'results', 'clusters')
+plots_dir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'results', 'plots', 'meg')
 subjects = [('R0095', ['MEG 151']), ('R0498', ['MEG 066']), ('R0504', ['MEG 031']),
             ('R0414', []), ('R0547', ['MEG 002']), ('R0569', ['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084']),
             ('R0574', []), ('R0575', []), ('R0576', ['MEG 143'])]
@@ -44,6 +44,6 @@ prime = group_ds[group_ds['target'] == 'prime']
 target = group_ds[group_ds['target'] == 'target']
 
 #prime
-E.plot.topo.butterfly(prime['MEG']).figure.save
+E.plot.utsnd.butterfly(prime['MEG']).savefig(os.path.join(plots_dir, 'primes_grandavg.pdf'))
 #target
-E.plot.topo.butterfly(target['MEG'])
+E.plot.utsnd.butterfly(target['MEG']).savefig(os.path.join(plots_dir, 'targets_grandavg.pdf'))
