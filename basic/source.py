@@ -6,7 +6,7 @@
 #1. make proj
 #2. noise covariance
 #3. make fwd
-#4. make_stc or make_stc_epochs
+#4. make_stc_epochs
 
 import os
 import mne
@@ -32,9 +32,9 @@ def make_proj(meg_ds, write=True):
 		print 'Projection written to file'
 
 
-	meg_ds.info['raw'].info['projs'] += [proj[0]]
+	pc = [proj[0]]
 
-	return meg_ds
+	return pc
 
 
 
@@ -111,52 +111,11 @@ def make_fwd(meg_ds, fromfile=True, overwrite=False):
 		raise RuntimeError(err)
 
 
-
-def make_stc(meg_ds, reject=2e-12):
-#creates an stc file for each condition. this uses the evoked (averaged epochs) object
-#currently you can only make a single stc per condition. modify for each condition
-	conditions = ['control_identity', 'identity', 'control_constituent', 'first_constituent']
-	wordtypes = ['opaque', 'transparent', 'novel', 'ortho']
-
-	fwd = mne.read_forward_solution(meg_ds.info['fwd'])
-	cov = mne.read_cov(meg_ds.info['cov'])
-
-	if meg_ds.info['raw'].info['projs'] == []:
-		proj = mne.read_proj(meg_ds.info['proj'])
-		meg_ds.info['raw'].info['projs'] += proj[:]
-
-
-	for type in wordtypes:
-		for cond in conditions:
-
-			# load the events of interest
-			index1 = meg_ds['condition'] == cond
-			index2 = meg_ds['wordtype'] == type
-			meg = meg_ds.subset(index1 * index2)
-
-			# create the inverse solution
-			ds = E.load.fiff.mne_Epochs(meg, tstart= -0.2, tstop=0.6, baseline=(-.2, 0), reject={'mag': reject})
-			inv = mne.minimum_norm.make_inverse_operator(ds.info, fwd, cov, loose=None)
-
-			#average ds		
-			ds = ds.average()
-
-			stc = mne.minimum_norm.apply_inverse(ds, inv, lambda2=1. / 9)
-			stc.save(os.path.join(meg.info['fifdir'], 'stc', '_'.join((meg_ds.info['subname'], type, cond))))
-
-	print 'STCs written to file'
-
-
-
-def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', label2=None, force_fixed=True, from_file=True, method='rms'):
+def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', label2=None, force_fixed=True):
 #creates a dataset with all the epochs given from the meg_ds
 
 	if from_file:
 		cov = mne.read_cov(meg_ds.info['cov'])
-
-
-	else:
-		cov = make_cov(meg_ds, write=False)
 
 	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=force_fixed) #there is currently no solution for creating the fwd as an object.
 
@@ -179,9 +138,7 @@ def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label'
 		meg_ds[labelname] = E.load.fiff.stcs_ndvar(stcs, subject='00')
 
 	meg_ds.info['erfs'] = os.path.join(meg_ds.info['datadir'], '%s_%s_erfs.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
-	meg_ds.info['stc'] = os.path.join(meg_ds.info['datadir'], '%s_%s_stc.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
-	meg_ds.info['stc_ds'] = os.path.join(meg_ds.info['datadir'], '%s_%s_stc_ds.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
-
+	
 	return meg_ds
 
 def export_erfs(ds):
@@ -195,7 +152,8 @@ def export_erfs(ds):
 
 	print 'Export completed'
 
-def export_stcs(ds):
+#deprecated
+def _export_stcs(ds):
 	timetemp = np.around(ds['stc'].time.x, decimals=3) * 1000 #header to be represented in milliseconds
 	timetemp = map(str, timetemp)
 	time = []
@@ -207,7 +165,8 @@ def export_stcs(ds):
 
 	print 'Export completed'
 
-def combine_group_stcs(exp='NMG', label='label'):
+#deprecated
+def _combine_group_stcs(exp='NMG', label='label'):
 	expdir = os.path.join(os.path.expanduser('~'), 'data', exp)
 	list = os.listdir(expdir)
 	subjects = []
