@@ -148,7 +148,7 @@ def make_stc(meg_ds, reject=2e-12):
 
 
 
-def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', force_fixed=True, from_file=True, method='rms'):
+def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', label2=None, force_fixed=True, from_file=True, method='rms'):
 #creates a dataset with all the epochs given from the meg_ds
 
 	if from_file:
@@ -163,12 +163,20 @@ def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label'
 	# create the inverse solution
 	inv = mne.minimum_norm.make_inverse_operator(meg_ds['epochs'].info, fwd, cov, loose=None)
 	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
+	if label2:
+		roi2 = mne.read_label(os.path.join(meg_ds.info['labeldir'], label2 + '.label'))
+		roi = roi + roi2
 	stcs = mne.minimum_norm.apply_inverse_epochs(meg_ds['epochs'], inv, lambda2=1. / 9, label=roi) #a list of lists of all sources within label per epoch.
 
-	if meg_ds.info['hasMRI']:
-		meg_ds[label] = E.load.fiff.stcs_ndvar(stcs, subject=meg_ds.info['subname'])
+	if label2:
+		labelname = '%s+%s' % (label, label2)
 	else:
-		meg_ds[label] = E.load.fiff.stcs_ndvar(stcs, subject='00')
+		labelname = label
+
+	if meg_ds.info['hasMRI']:
+		meg_ds[labelname] = E.load.fiff.stcs_ndvar(stcs, subject=meg_ds.info['subname'])
+	else:
+		meg_ds[labelname] = E.load.fiff.stcs_ndvar(stcs, subject='00')
 
 	meg_ds.info['erfs'] = os.path.join(meg_ds.info['datadir'], '%s_%s_erfs.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
 	meg_ds.info['stc'] = os.path.join(meg_ds.info['datadir'], '%s_%s_stc.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
