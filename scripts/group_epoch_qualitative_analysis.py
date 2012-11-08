@@ -16,7 +16,7 @@ tstart = -0.1
 tstop = 0.4
 reject = 3e-12
 
-for subject in subjects:
+for subject in [subjects[0]]:
 
     meg_ds = process.load_meg_events(subname=subject[0], expname='NMG')
     index = meg_ds['target'].isany('prime', 'target')
