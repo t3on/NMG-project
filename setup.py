@@ -9,9 +9,9 @@ After:
 http://packages.python.org/distribute/setuptools.html#basic-use
 
 
-Created on Jul 28, 2012
+Created on Nov 7, 2012
 
-@author: Christian M Brodbeck
+@author: Teon Brooks
 '''
 from distribute_setup import use_setuptools
 use_setuptools()
@@ -19,7 +19,7 @@ use_setuptools()
 from setuptools import setup, find_packages
 
 setup(
-    name = "NMG",
+    name = "basic",
     version = "0.1dev",
     packages = find_packages(),
 )
