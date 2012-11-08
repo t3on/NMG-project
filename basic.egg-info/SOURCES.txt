@@ -1,0 +1,10 @@
+setup.py
+basic/__init__.py
+basic/audio.py
+basic/audio_align.py
+basic/process.py
+basic/source.py
+basic.egg-info/PKG-INFO
+basic.egg-info/SOURCES.txt
+basic.egg-info/dependency_links.txt
+basic.egg-info/top_level.txt
