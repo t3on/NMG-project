@@ -30,7 +30,7 @@ for subject in [subjects[0]]:
 
     #add epochs to the dataset after excluding bad channels
     meg_ds = E.load.fiff.add_epochs(meg_ds, tstart=tstart, tstop=tstop, baseline=(tstart, 0), threshold=reject)
-    meg_ds = meg_ds.compress(meg_ds['target'] % meg_ds['condition'] % meg_ds['wordtype'] % meg_ds['epochs'], drop_bad=True)
+    meg_ds = meg_ds.compress(meg_ds['target'] % meg_ds['condition'] % meg_ds['wordtype'] % meg_ds['MEG'], drop_bad=True)
 
     #Append to group level datasets
     datasets.append(meg_ds)
