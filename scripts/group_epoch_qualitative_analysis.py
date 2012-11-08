@@ -37,7 +37,7 @@ for subject in [subjects[0]]:
 
 #combines the datasets for group
 group_ds = E.combine(datasets)
-group_ds = group_ds.compress(group_ds['target'] % group_ds['epochs'], drop_bad=True)
+group_ds = group_ds.compress(group_ds['target'], drop_bad=True)
 
 #creates indices for prime and target
 prime = group_ds[group_ds['target'] == 'prime']
