@@ -4,6 +4,7 @@ import basic.source as source
 import copy
 import os
 import mne
+import scipy.io
 
 plots_dir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'results', 'plots', 'meg')
 subjects = [('R0095', ['MEG 151']), ('R0498', ['MEG 066']), ('R0504', ['MEG 031']),
@@ -16,21 +17,23 @@ tstart = -0.1
 tstop = 0.4
 reject = 3e-12
 
-for subject in [subjects[0]]:
-
-    meg_ds = process.load_meg_events(subname=subject[0], expname='NMG')
-    index = meg_ds['target'].isany('prime', 'target')
-
-#create picks to remove bad channels
+for subject in subjects:
     if subject[1]:
-        meg_ds.info['raw'].info['bads'].extend(subject[1])
+        meg_ds = process.load_meg_events(subname=subject[0],
+                                         expname='NMG', bad_channels=subject[1])
+    else:
+        meg_ds = process.load_meg_events(subname=subject[0], expname='NMG')
 
+    #Data reduction
+    index = meg_ds['target'].isany('prime', 'target')
     meg_ds = meg_ds[index]
-    #meg_ds = process.reject_blinks(meg_ds)
+    meg_ds = process.reject_blinks(meg_ds)
 
     #add epochs to the dataset after excluding bad channels
-    meg_ds = E.load.fiff.add_epochs(meg_ds, tstart=tstart, tstop=tstop, baseline=(tstart, 0), threshold=reject)
-    meg_ds = meg_ds.compress(meg_ds['target'] % meg_ds['condition'] % meg_ds['wordtype'], drop_bad=True)
+    meg_ds = E.load.fiff.add_epochs(meg_ds, tstart=tstart, tstop=tstop,
+                                    baseline=(tstart, 0), threshold=reject)
+    meg_ds = meg_ds.compress(meg_ds['target'] % meg_ds['condition']
+                             % meg_ds['wordtype'], drop_bad=True)
 
     #Append to group level datasets
     datasets.append(meg_ds)
