@@ -6,15 +6,15 @@
 
 
 import numpy as np
-import eelbrain.eellab as E
 import os
 import mne
-from eelbrain import vessels as V
-import scipy.io
+from eelbrain import vessels as V, ui as ui, eellab as E
 import subprocess
 import tempfile
 import fnmatch
 import re
+import scipy.io
+
 
 __hide__ = ['np', 'E', 'os', 'mne', 'V', 'scipy.io', 'subprocess', 'tempfile', 'fnmatch', 're']
 
@@ -335,7 +335,7 @@ def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpas
         print '\n> ERROR: %s\n%s' % (stderr, stdout)
 
 
-def load_meg_events(subname, expname='NMG'):
+def load_meg_events(subname, expname='NMG', bad_channels=None):
 
 #Defines directories
     root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
@@ -362,6 +362,9 @@ def load_meg_events(subname, expname='NMG'):
 
 #Loads the triggers from the fif and makes a dataset
     meg_ds = E.load.fiff.events(fif_file, proj=proj_file)
+#Adds bad channel to list if provided
+    if bad_channels:
+        meg_ds.info['raw'].info['bads'].extend(bad_channels)
 
 #Compares the log file to the triggerlist. Adds variable of boolean comparison
     #log = np.array(log)
@@ -404,19 +407,19 @@ def load_meg_events(subname, expname='NMG'):
 
 
 
-##Loads the eyelink data
-#    edf_path = os.path.join(rawdata, 'behavioral', 'eyelink', '*.edf')
-#    if os.path.exists(os.path.dirname(edf_path)):
-#        edf = E.load.eyelink.Edf(edf_path)
-#        try:
-#            edf.add_T_to(meg_ds)
-#            meg_ds.info['edf'] = edf
-#        except ValueError:
-#            print 'Eyelink Module Not Working'
-#    else:
-#        print "%s%s This path does not exist. Please check your folder." % (edf_path, os.linesep)
-##     elif not ui.ask(title='Missing Files', message='Subject %s Eyelink files are missing. Okay to proceed?' %subname, cancel=False, default=True):
-##         raise RuntimeError('missing file')
+#Loads the eyelink data
+    edf_path = os.path.join(rawdata, 'behavioral', 'eyelink', '*.edf')
+    if os.path.exists(os.path.dirname(edf_path)):
+        edf = E.load.eyelink.Edf(edf_path)
+        try:
+            edf.add_T_to(meg_ds)
+            meg_ds.info['edf'] = edf
+        except ValueError:
+            print 'Eyelink Module Not Working'
+    else:
+        print "%s%s This path does not exist. Please check your folder." % (edf_path, os.linesep)
+#    elif not ui.ask(title='Missing Files', message='Subject %s Eyelink files are missing. Okay to proceed?' % subname, cancel=False, default=True):
+#        raise RuntimeError('missing file')
 
 
 
