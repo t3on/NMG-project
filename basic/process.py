@@ -504,14 +504,16 @@ def _logread(filename):
 
 #Initializes list
     triggers = []
+    trigger_times = []
 
 #Reads the logfile and searches for the triggers
     for line in open(filename):
         if line.startswith('TRIGGER\tUSBBox'):
             items = line.split()
             triggers.append(int(items[2]))
+            trigger_times.append(items[3])
 
-    return triggers
+    return triggers, trigger_times
 
 
 
