@@ -361,7 +361,10 @@ def load_meg_events(subname, expname='NMG', bad_channels=None):
     #log = _logread(logfile)
 
 #Loads the triggers from the fif and makes a dataset
-    meg_ds = E.load.fiff.events(fif_file, proj=proj_file)
+    if os.path.lexists(proj_file):
+        meg_ds = E.load.fiff.events(fif_file, proj=proj_file)
+    else:
+        meg_ds = E.load.fiff.events(fif_file)
 #Adds bad channel to list if provided
     if bad_channels:
         meg_ds.info['raw'].info['bads'].extend(bad_channels)
@@ -401,9 +404,11 @@ def load_meg_events(subname, expname='NMG', bad_channels=None):
     if meg_ds.info['hasMRI'] == True:
         meg_ds.info['bem'] = os.path.join(mridir, 'bem', subname + '-5120-bem-sol.fif')
         meg_ds.info['src'] = os.path.join(mridir, 'bem', subname + '-ico-4-src.fif')
+        meg_ds.info['mri_subname'] = subname
     else:
         meg_ds.info['bem'] = os.path.join(mridir, 'bem', '00-5120-bem-sol.fif')
         meg_ds.info['src'] = os.path.join(mridir, 'bem', '00-ico-4-src.fif')
+        meg_ds.info['mri_subname'] = '00'
 
 
 
