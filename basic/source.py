@@ -1,13 +1,13 @@
-#source.py
-#A collections of methods used to take data from sensor space to source space
-##Teon Brooks
-##July 26, 2012
+"""source.py
+A collections of methods used to take data from sensor space to source space
+Teon Brooks
+July 26, 2012
 
-#1. make proj
-#2. noise covariance
-#3. make fwd
-#4. make_stc_epochs
-
+1. make proj
+2. noise covariance
+3. make fwd
+4. make_stcs
+"""
 import os
 import mne
 import numpy as np
@@ -111,34 +111,66 @@ def make_fwd(meg_ds, fromfile=True, overwrite=False):
 		raise RuntimeError(err)
 
 
-def make_stc_epochs(meg_ds, tstart= -0.2, tstop=0.4, reject=3e-12, label='label', label2=None, force_fixed=True):
-#creates a dataset with all the epochs given from the meg_ds
 
+def make_stcs(meg_ds, labels=None, force_fixed=True,
+				stc_object=False, stc_type='epochs', lambda2=1. / 9):
+
+	"""Creates an stc object of transformed data from the meg_ds
+
+		Parameters
+		----------
+		meg_ds: dataset
+			data
+		labels: list
+			a list of ROIs
+		force_fixed: bool
+			True = Fixed orientation, False = Free orientation
+		stc_object: bool
+			True = mne.object, False = eelbrain.ndvar
+		stc_type: str
+			'epochs'
+			'evoked'
+
+	"""
+	rois = None
 	cov = mne.read_cov(meg_ds.info['cov'])
+	#there is currently no solution for creating the fwd as an object.
+	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=force_fixed)
+	inv = mne.minimum_norm.make_inverse_operator(info=meg_ds['epochs'].info,
+												forward=fwd, noise_cov=cov, loose=None)
 
-	fwd = mne.read_forward_solution(meg_ds.info['fwd'], force_fixed=force_fixed) #there is currently no solution for creating the fwd as an object.
+	#for ROI analyses
+	if labels:
+		rois = []
+		for lbl in labels:
+			rois.append(mne.read_label(os.path.join(meg_ds.info['labeldir'],
+										lbl + '.label')))
 
-	# create the inverse solution
-	inv = mne.minimum_norm.make_inverse_operator(meg_ds['epochs'].info, fwd, cov, loose=None)
-	roi = mne.read_label(os.path.join(meg_ds.info['labeldir'], label + '.label'))
-	if label2:
-		roi2 = mne.read_label(os.path.join(meg_ds.info['labeldir'], label2 + '.label'))
-		roi = roi + roi2
-	stcs = mne.minimum_norm.apply_inverse_epochs(meg_ds['epochs'], inv, lambda2=1. / 9, label=roi) #a list of lists of all sources within label per epoch.
+		if len(rois) > 1:
+			roi = rois.pop(0)
+			rois = sum(rois, roi)
+		elif len(rois) == 1:
+			rois = rois[0]
 
-	if label2:
-		labelname = '%s+%s' % (label, label2)
+	#makes stc epochs or evoked
+
+	if stc_type == 'epochs':
+	#a list of stcs within label per epoch.
+		stcs = mne.minimum_norm.apply_inverse_epochs(meg_ds['epochs'], inv,
+													lambda2=lambda2, label=rois,
+													verbose=False)
+	elif stc_type == 'evoked':
+		evoked = meg_ds['epochs'].average()
+		stcs = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=lambda2,
+												verbose=False)
 	else:
-		labelname = label
+		raise TypeError('Currently only implemented for epochs and evoked')
 
-	if meg_ds.info['hasMRI']:
-		meg_ds[labelname] = E.load.fiff.stcs_ndvar(stcs, subject=meg_ds.info['subname'])
-	else:
-		meg_ds[labelname] = E.load.fiff.stcs_ndvar(stcs, subject='00')
+	#makes stc object or ndvar
+	if not stc_object:
+		stcs = E.load.fiff.stc_ndvar(stcs, subject=meg_ds.info['mri_subname'])
 
-	meg_ds.info['erfs'] = os.path.join(meg_ds.info['datadir'], '%s_%s_erfs.txt' % (meg_ds.info['subname'], meg_ds.info['expname']))
-	
-	return meg_ds
+	return stcs
 
 def export_erfs(ds):
 
