@@ -83,7 +83,7 @@ stcs -= stcs.summary(time=(tstart, 0))
 group_ds = E.dataset(subjects_list, condition, stcs)
 tt = E.testnd.ttest(Y=group_ds['morphed'], X=group_ds['condition'], c1='prime')
 
-a = E.plot.brain.stat(tt.p, hemi='lh')
+a = E.plot.brain.stat(tt.p, hemi='lh', p0=.01, p1=.001)
 a.lh.show_view('lateral')
 a.animate(save_mov=os.path.join(movie_dir, 'group-lateral.mov'))
 
