@@ -142,9 +142,9 @@ def make_stcs(meg_ds, labels=None, force_fixed=True,
 	#for ROI analyses
 	if labels:
 		rois = []
-		for lbl in labels:
+		for label in labels:
 			rois.append(mne.read_label(os.path.join(meg_ds.info['labeldir'],
-										lbl + '.label')))
+										label + '.label')))
 
 		if len(rois) > 1:
 			roi = rois.pop(0)
