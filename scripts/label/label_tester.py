@@ -1,5 +1,1 @@
-import osfrom surfer import Brain
-
-rois = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'talk', 'rois')subject_id = "R0095"hemi = "lh"surf = "smoothwm"brain = Brain(subject_id, hemi, surf)
-
-brain.add_label("LPTL", color = 'orchid')brain.save_image(os.path.join(rois, "%s_LPTL.png" % subject_id))
+'''Created on Nov 28, 2012@author: teon'''import osfrom surfer import Brainrois = os.path.join(os.path.expanduser('~'), 'Dropbox',                     'Experiments', 'NMG', 'results', 'rois')subject_id = "00"hemi = "lh"surf = "white"brain = Brain(subject_id, hemi, surf)# Plot roisbrain.add_label("fusiform", color = 'orchid')#brain.add_label("LATL", color = 'steelblue')#brain.add_label("vmPFC", color = 'coral')#brain.add_label("LPTL", color = 'crimson')#brain.add_label("inferiortemporal", color = 'salmon')

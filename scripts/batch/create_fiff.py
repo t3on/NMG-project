@@ -1,12 +1,13 @@
-import scipy.stats as stats
-import matplotlib
-import matplotlib.pyplot as pyplot
-import eelbrain.eellab as E
-import process
+'''
+Created on Aug 17, 2012
 
-subjects = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504']
+@author: teon
+'''
 
+import basic.process as process
+ 
+e = process.NMG()
 
-for subject in subjects:
-    process.kit2fiff(subname = subject)
+for _ in e.iter_vars('subject'):
+    e.kit2fiff()
     
