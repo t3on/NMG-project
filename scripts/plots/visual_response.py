@@ -4,17 +4,14 @@ Created on Nov 15, 2012
 @author: teon
 '''
 import eelbrain.eellab as E
-import basic.process as process
-import basic.source as source
 import os
 import mne
 import scipy.stats as stats
+from basic.subclass import myexp
+
+e = myexp(root='~/data')
 
 movie_dir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG', 'results', 'movies')
-subjects = [('R0095', ['MEG 151']), ('R0498', ['MEG 066']), ('R0504', ['MEG 031']),
-            ('R0414', []), ('R0547', ['MEG 002']), ('R0569', ['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084']),
-            ('R0574', []), ('R0575', []), ('R0576', ['MEG 143'])]
-
 
 tstart = -0.1
 tstop = 0.6
@@ -25,13 +22,9 @@ subjects_list = []
 condition = []
 target = 'prime'
 
-for subject in subjects:
-    meg_ds = process.load_meg_events(subname=subject[0], expname='NMG')
+for _ in e.iter_vars(['subject']):
+    meg_ds = e.load_events()
     index = meg_ds['target'] == target
-
-    #create picks to remove bad channels
-    if subject[1]:
-        meg_ds.info['raw'].info['bads'].extend(subject[1])
 
     meg_ds = meg_ds[index]
     #meg_ds = process.reject_blinks(meg_ds)
@@ -39,8 +32,8 @@ for subject in subjects:
     #add epochs to the dataset after excluding bad channels
     idx = meg_ds['target'] == 'prime'
     meg = E.load.fiff.add_mne_epochs(meg_ds[idx], tstart=tstart, tstop=tstop,
-                        reject={'mag':reject}, preload=True, downsample=4)
-    stc = source.make_stcs(meg, force_fixed=False,
+                        reject={'mag':reject}, preload=True, decim=4)
+    stc = e.make_stcs(meg, force_fixed=False,
                            stc_object=True, stc_type='evoked')
 
     morphed = mne.morph_data(subject_from=meg_ds.info['mri_subname'],
