@@ -1,578 +1,482 @@
-#load_events.py
-##Written by Teon Brooks
-##Created 6/10/2012
+'''
+Created on Nov 25, 2012
 
-#This module is used to load eeg and meg events in the event that they are missing from the fif-file.
+@author: teon
+'''
 
-
-import numpy as np
 import os
+from eelbrain import eellab as E
+from eelbrain.vessels import experiment 
+import numpy as np
 import mne
-from eelbrain import vessels as V, ui as ui, eellab as E
-import subprocess
-import tempfile
-import fnmatch
-import re
-import scipy.io
+from subprocess import Popen, PIPE
+from collections import defaultdict
 
 
-__hide__ = ['np', 'E', 'os', 'mne', 'V', 'scipy.io', 'subprocess', 'tempfile', 'fnmatch', 're']
+bad_channels = defaultdict(lambda: ['MEG 065'])
+bad_channels['R0095'].extend(['MEG 151'])
+bad_channels['R0498'].extend(['MEG 066'])
+bad_channels['R0504'].extend(['MEG 031'])
+bad_channels['R0547'].extend(['MEG 002'])
+bad_channels['R0569'].extend(['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084'])
+bad_channels['R0576'].extend(['MEG 143'])
+
+class NMG(experiment.mne_experiment):
+    _common_brain = '00'
+    _exp = 'NMG'
+    _subject_loc = 'exp_dir'  # location of subject folders
+    _mri_loc = 'mri_dir'
+        #################
+        #    bad chs    #
+        #################    
+    def __init__(self, subject = None, root='~/data'):
+        super(NMG, self).__init__(root=root, subject = subject)
+        self.bad_channels = bad_channels
+        self.log = defaultdict(list)
+
+    def get_templates(self):
+        t = {
+
+            #experiment
+            'experiment': self._exp,
+            'mne_bin': os.path.join('/Applications/mne/bin'),
+             
+            # basic dir
+            'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
+            'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
+            'fif_sdir': os.path.join('{exp_sdir}', 'myfif'),
+
+            # mri dir
+            'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
+            'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
+            'label_sdir': os.path.join('{mri_sdir}', 'label'),
+            
+            # raw folders
+            'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
+            'raw_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
+            'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
+            'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
+            'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
+            'log_sdir': os.path.join('{beh_sdir}', 'logs'),
+            
+            # fif files
+            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'), # for subp.kit2fiff
+            'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
+            
+            # fif files derivatives
+            'fwd': os.path.join('{fif_sdir}', '{s_e}_raw-fwd.fif'),
+            'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
+            'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
+            'cov': os.path.join('{fif_sdir}', '{s_e}_raw-cov.fif'),
+
+            # fwd model
+            'bem': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-5120-bem-sol.fif'),
+            'src': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-ico-4-src.fif'),
+            'bem_head': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-head.fif'),
+            
+            # parameter files
+            'mrk': os.path.join('{param_sdir}', '{s_e}_marker-coregis.txt'),
+            'elp': os.path.join('{param_sdir}', '{s_e}.elp'),
+            'hsp': os.path.join('{param_sdir}', '{s_e}.hsp'),
+            
+            # raw files
+            'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'), # legacy. looks in the fif folder for file pattern
+            's_e': '{subject}_{experiment}',
+            'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '_export*.txt'),
+            'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
+            'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
+            
+            # eye-tracker
+            'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
+            'edf': os.path.join('{edf_sdir}', '*.edf'),
+                         
+            # EEG
+            'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
+            'eegfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
+            
+            # BESA
+            #'besa_triggers': os.path.join('{exp_sdir}', 'besa', '{s_e}_{analysis}_triggers.txt'),
+            #'besa_evt': os.path.join('{exp_sdir}', 'besa', '{s_e}_{analysis}.evt'),
+            }
+        
+        return t
+
+    #################
+    #    process    #
+    #################
+
+    def load_events(self, subject=None, experiment=None,
+                    remove_bad_chs=True,
+                    proj=True, edf=True, raw=None):
+        """
+
+        Loads events from the corresponding raw file, adds the raw to the info
+        dict.
+
+        proj : True | False | str
+            load a projection file and add it to the raw
+        edf : bool
+            Loads edf and add it to the info dict.
+
+        """
+        self.set(subject=subject, experiment=experiment, raw=raw)
+        raw_file = self.get('rawfif')
+        if isinstance(proj, str):
+            proj = self.get('proj', projname=proj)
+        ds = E.load.fiff.events(raw_file, proj=proj)
+
+        raw = ds.info['raw']
+        if remove_bad_chs:
+            bad_chs = self.bad_channels[(self.state['subject'], self.state['experiment'])]
+            raw.info['bads'].extend(bad_chs)
+
+        if subject is None:
+            subject = self.state['subject']
+        if experiment is None:
+            experiment = self.state['experiment']
+
+        self.label_events(ds, experiment, subject)
+
+        # add edf
+        if edf:
+            if os.path.lexists(self.get('edf_sdir')):
+                edf = self.load_edf()
+                #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
+                #Repairs voice trigger value problem, if needed.
+                index = range(3, edf.triggers.size, 4)
+                for trial,idx in zip(edf.triggers[index], index):
+                    a = trial[0]
+                    b = trial[1] - 128 if trial[1] > 128 else trial[1]
+                    edf.triggers[idx] = (a,b)
+                            
+                edf.add_T_to(ds)
+                ds.info['edf'] = edf
+            self._reject_blinks(ds)
+        return ds
+    
+    def load_edf(self, subject=None, experiment=None, match = False):
+        src = self.get('edf', subject=subject, 
+                       experiment=experiment, match = match)
+        edf = E.load.eyelink.Edf(src)
+        return edf
+
+    def label_events(self, ds, subject=None, experiment=None):
+        #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
+        #Repairs voice trigger value problem, if needed.
+        index = range(3, ds.N, 4)
+        if all(ds['eventID'][index].x > 128):
+            ds['eventID'][index] = ds['eventID'][index] - 128
+
+        #Propagates itemID for all trigger events
+        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
+        index = ds['eventID'] < 64
+        scenario = map(int, ds['eventID'][index])
+        ds['scenario'] = E.var(np.repeat(scenario, 2))
+
+        #Initialize lists    
+        eventID_bin = []
+        exp = []
+        target = []
+        cond = []
+        wtype = []
+
+        #Decomposes the trigger
+        for v in ds['eventID']:
+            binary_trig = bin(int(v))[2:]
+            eventID_bin.append(binary_trig)
+
+            if v > 128:
+                exp.append(int(binary_trig[0], 2))
+                target.append(int(binary_trig[1], 2))
+                wtype.append(int(binary_trig[2:5], 2))
+                cond.append(int(binary_trig[5:8], 2))
+            else:
+                exp.append(None)
+                target.append(None)
+                wtype.append(None)
+                cond.append(None)
+
+        #Labels events    
+        ds['experiment'] = E.factor(exp, labels={None: 'fixation', 1: 'experiment'})
+        ds['target'] = E.factor(target, labels={None: 'fixation/voice', 0: 'prime', 1: 'target'})
+        ds['wordtype'] = E.factor(wtype, labels={None: 'None', 1: 'transparent', 2: 'opaque', 3: 'novel', 4: 'ortho', 5:'ortho'})
+        ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity', 2: 'identity', 3: 'control_constituent', 4: 'first_constituent'})
+        ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
+        #Labels the voice events
+        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
+        index = np.arange(3, ds.N, 4)
+        ds['experiment'][index] = 'voice'
+        #Add subject as a redundant variable to the dataset
+        ds['subject'] = E.factor([self.get('subject')], rep=ds.N, random=True)
+        #Add block to the ds. 4 events per trial, 240 trials per block
+        ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
+                                      axis=None))
+        #Makes a temporary ds
+        temp = ds[ds['target'] == 'target']
+        #Add itemID to uniquely identify each word    
+        itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
+        ds['itemID'] = E.var(np.repeat(itemID, 4))
+
+        #Loads the stim info from txt file and adds it to the ds
+        stim_ds = self._load_stim_info(ds)
+        ds.update(stim_ds)
+        
+        #Loads logfile and adds it to the ds
+#        ds = self._logread()
+#        ds.update(ds)
+
+        #Load duration data and adds it to the dataset.
+        #  ds = _load_dur_info(ds)
 
 
-def format_latency(subjects=[], expname='NMG'):
-    datadir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', expname, 'data')
-    root = os.path.join(os.path.expanduser('~'), 'data', expname)
-    group_latency_out = os.path.join(datadir, '_'.join((expname, 'group', 'latencies.txt')))
-    group_latencies = []
+        return ds
 
-    for subject in subjects:
-        latency_out = os.path.join(root, subject, 'data', '_'.join((subject, expname, 'latencies.txt')))
-        data = os.path.join(root, subject, 'rawdata', 'behavioral', subject + '_data.txt')
-        header = []
-        latencies = []
+    def _reject_blinks(self, ds):
 
-        for line in open(data):
-            if line.startswith('KEY\tsound'):
-                latencies.append(line.strip())
-                group_latencies.append('\t'.join((subject, line.strip())))
-            if line.startswith('Response'):
-                header.append(line.strip())
-
-        with open(latency_out, 'w') as FILE:
-            FILE.write('subject\t' + header[0] + os.linesep)
-            FILE.write(os.linesep.join(latencies))
-    with open(group_latency_out, 'w') as FILE:
-        FILE.write('subject\t' + header[0] + os.linesep)
-        FILE.write(os.linesep.join((group_latencies)))
-
-
-
-def brain_vision2fiff(subname, expname='NMG'):
-
-    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
-    fifdir = os.path.join(root, 'myfif')
-    datadir = os.path.join(root, 'rawdata', 'eeg')
-    vhdr = os.path.join(datadir, '_'.join((subname, expname + '.vhdr')))
-    out = os.path.join(fifdir, '_'.join((subname, expname, 'EEG')))
-
-    cmd = ['/Applications/mne/bin/mne_brain_vision2fiff',
-           '--header', '%s' % vhdr,
-           '--orignames',
-           '--out', '%s' % out]
-    cwd = datadir
-    sp = subprocess.Popen(cmd, cwd=cwd,
-                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = sp.communicate()
-
-    if stderr:
-        print '\n> ERROR: %s\n%s' % (stderr, stdout)
-
-
-def load_eeg_events(subname, expname='NMG'):
-
-#Finds the file
-    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
-    rawdata = os.path.join(root, 'rawdata', 'eeg')
-    vmrk = os.path.join(rawdata, ''.join(('_'.join((subname, expname)), '.vmrk')))
-    fifdir = os.path.join(root, 'myfif')
-    datadir = os.path.join(root, 'data')
-
-#Initialize lists
-    marker = []
-    eventID = []
-    i_start = []
-    size = []
-    channel = []
-
-
-#Extracts info for dataset
-    for line in open(vmrk):
-        if line.startswith('Mk'):
-#The first marker has information about the experiment
-            if line.startswith('Mk1='):
-                continue
-            items = line.split(',')
-            eventID.append(items[1][1:])
-            i_start.append(int(items[2]))
-            size.append(int(items[3]))
-            channel.append(int(items[4]))
-
-    eventID = E.factor(eventID, 'eventID')
-    i_start = E.var(i_start, 'i_start')
-    size = E.var(size, 'size')
-    channel = E.var(channel, 'channel')
-
-
-#Creates dataset    
-    eeg_ds = E.dataset(eventID, i_start, size, channel)
-    eeg_ds['subject'] = E.factor([subname], rep=eeg_ds.N)
-#Add info to dataset
-    eeg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'EEG', 'raw.fif')))))
-    eeg_ds.info['fifdir'] = fifdir
-    eeg_ds.info['datadir'] = datadir
-
-    eeg_ds.info['subname'] = subname
-    eeg_ds.info['expname'] = expname
-
-    eeg_ds.info['sns_locs'], eeg_ds.info['sns_names'] = _sns_read()
-    eeg_ds.info['sensors'] = V.sensors.sensor_net(locs=eeg_ds.info['sns_locs'], names=eeg_ds.info['sns_names'])
-
-#Details listed in data/NMG/stims/sns_clusters.py
-    eeg_ds.info['sns_clusters'] = dict(outer=['Fp1', 'Fp2', 'F7', 'F8', 'P7', 'P8', 'O1', 'O2'],
-    									midlateral=['F3', 'F4', 'FC5', 'FC6', 'CP5', 'CP6', 'P3', 'P4'],
-    									inner=['FC1', 'FC2', 'C3', 'C4', 'CP1', 'CP2'],
-    									midline=['Fz', 'FCz', 'Cz', 'CPz', 'Pz', 'POz'])
-
-    return eeg_ds
-
-
-
-def _sns_read():
-    locs = []
-    names = []
-    loc_file = []
-
-    for line in open('/Users/teon/Dropbox/Experiments/tools/scripts/eeg_sns.txt'):
-        if line.startswith('ID'):
-            continue
-        id, label, x, y, z = line.split()
-        locs.append((x, y, z))
-        names.append(label)
-
-    return locs, names
-
-
-
-def export_v(subname, expname='NMG'):
-
-#Finds the file
-    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
-    rawdata = os.path.join(root, 'rawdata', 'eeg')
-
-    files = os.listdir(rawdata)
-    vmrk_input = os.path.join(rawdata, fnmatch.filter(files, '%s_%s_*.*.*.vmrk' % (subname, expname))[0])
-    vhdr_input = os.path.join(rawdata, fnmatch.filter(files, '%s_%s_*.*.*.vhdr' % (subname, expname))[0])
-
-    vhdr_filename = os.path.join(rawdata, '_'.join((subname, expname)) + '.vhdr')
-    vmrk_filename = os.path.join(rawdata, '_'.join((subname, expname)) + '.vmrk')
-    vmrk_basename = os.path.basename(vmrk_filename)
-    #vmrk_handle = '_'.join((eeg_ds.info['subname'], eeg_ds.info['expname'])) + '.vmrk'
-
-#Extract header information
-    header = open(vmrk_input).read().split('Mk2')[0]
-
-
-#Initialize lists   
-    markers = []
-    eventIDs = []
-    i_starts = []
-    sizes = []
-    channels = []
-
-    for line in open(vmrk_input):
-        if line.startswith('Mk'):
-            if line.startswith('Mk1='):
-                continue
-            items = line.split(',')
-            items[0] = '='.join((items[0].split('=')[0], 'Stimulus'))
-            markers.append(items[0])
-            eventIDs.append(items[1][1:])
-            i_starts.append(int(items[2]))
-            sizes.append(int(items[3]))
-            channels.append(int(items[4]))
-
-    vmrk = open(vmrk_filename, 'w')
-    vmrk.write(header)
-    for marker, eventID, i_start, size, channel in zip(markers, eventIDs, i_starts, sizes, channels):
-        vmrk.write('%s,S%s,%s,%s,%s\r' % (marker, eventID, i_start, size, channel))
-    vmrk.close()
-
-
-    vhdr = open(vhdr_filename, 'w')
-    for line in open(vhdr_input):
-        if line.startswith('MarkerFile'):
-            vhdr.write('MarkerFile=%s\r' % vmrk_basename)
+        if 't_edf' in ds:
+            ds.info['edf'].mark(ds, tstart= -0.2, tstop=0.4,
+                                good=None, bad=False, use=['EBLINK'],
+                                T='t_edf', target='accept')
+            dsx = ds.subset('accept')
+            rejected = (ds.N-dsx.N)*100/ds.N
+            remains = dsx.N*100/ds.N
+            if rejected > 25:
+                self.logger(log = 'edf: %s: %d' %(self.get('subject'), rejected) 
+                            + r'% ' + 'rejected, eyelink disabled')
+            else:
+                self.logger(log = 'edf: %s: %d' %(self.get('subject'), remains) 
+                            + r'% ' + 'remains')
+                ds = dsx
+            del ds['t_edf'], ds['accept']
         else:
-            vhdr.write(line)
+            self.logger(log = 'edf: %s: has no Eyelink data' 
+                        % self.get('subject'))
+            ds = ds
 
-    print 'All Done!'
+        return ds
+
+    def _logread(self, subject=None, experiment=None):
+        logfile = self.get('logfile', subject=subject, experiment=experiment)
+
+    #Initializes list
+        displays = []
+        triggers = []
+        trigger_times = []
+
+    #Reads the logfile and searches for the triggers
+        for line in open(logfile):
+            if line.startswith('TRIGGER\tUSBBox'):
+                items = line.split()
+                triggers.append(int(items[2]))
+                trigger_times.append(float(items[3]))
+            if line.startswith('STIM'):
+                items = line.split('\t')
+                if any('practice' in item for item in items):
+                    continue
+                elif any('The end.' in item for item in items):
+                    continue
+                elif any('Text' in item for item in items):
+                    displays.append(items[2])
+                elif any('Response_Catcher' in item for item in items):
+                    displays.append(items[2])
+
+        trigger = E.var(triggers, name='trigger')
+        trigger_time = E.var(trigger_times, name='trigger_time')
+        display = E.factor(displays, name='display')
+
+        ds = E.dataset(display, trigger, trigger_time)
+        ds['word_length'] = E.var(map(len, ds['display']))
+
+        return ds
+
+    def _load_stim_info(self, ds, subject=None, experiment=None):
+        stims = self.get('stims_info', subject=subject, experiment=experiment)
+        stim_ds = E.load.txt.tsv(stims)
+
+        temp = ds[ds['target'] == 'target']
+        idx = []
+        for (scenario, wordtype) in zip(temp['scenario'], temp['wordtype']):
+            a = scenario == stim_ds['scenario']
+            b = wordtype == stim_ds['wordtype']
+            idx.append(np.where(a * b)[0][0])
+
+        stim_ds = stim_ds[idx].repeat(4)
+        return stim_ds
+
+    ################
+    #    source    #
+    ################
+
+    def make_proj(self, write=True, overwrite = False):
+        ds = self.load_events(proj = False, edf = False)
+        if write and not overwrite:
+            if os.path.lexists(self.get('proj')):
+                raise IOError("proj file at %r already exists" 
+                              % self.get('proj'))
+        
+        #add the projections to this object by using 
+
+        ds_fix = ds[ds['experiment'] == 'fixation']
+        epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6, baseline=(None, 0), reject={'mag':1.5e-11})
+        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=5, n_eeg=0)
 
 
+        if write == True:
+            first_proj = [proj[0]]
+            mne.write_proj(self.get('proj'), first_proj)
+            self.logger(log = 'proj: %s: Projection written to file' 
+                        %self.get('subject'))
 
-def eeg_align(subname, expname='NMG', voiceproblem=True):
+    
+        pc = [proj[0]]
+    
+        return pc
+    
+    def make_cov(self, write=True, overwrite = False):
+        ds = self.load_events(proj = True, edf = False)
+        if write and not overwrite:
+            if os.path.lexists(self.get('cov')):
+                raise IOError("cov file at %r already exists" 
+                              % self.get('cov'))
+        
+        # create covariance matrix
+        index = ds['experiment'] == 'fixation'
+        ds_fix = ds[index]
 
-    #Loads events
-    eeg_ds = load_eeg_events(subname, expname)
-    meg_ds = load_meg_events(subname, expname, voiceproblem)
-    if 't_edf' in meg_ds:
-        del meg_ds['t_edf']
+        ds_fix = self.make_proj(ds_fix)
 
-    #Removes the fixations to match the eeg
-    index = meg_ds['experiment'] != 'fixation'
-    meg_ds = meg_ds[index]
+        epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(None, 0), reject={'mag':2e-12}, tstart= -.2, tstop=.2)
+        cov = mne.cov.compute_covariance(epochs)
 
-    #Converts to milliseconds/original sampling rate then rezeros
-    meg = (meg_ds['i_start'] - meg_ds['i_start'][0]) * 2
+        if write == True:
+            cov.save(self.get('cov'))
+            self.logger('cov: %s: Covariance Matrix written to file'
+                        %self.get('subject'))
 
-    #Rezeros events.
-    eeg = eeg_ds['i_start'] - eeg_ds['i_start'][0]
+        return cov
 
-    #Initializes Iter count, flags and loop.
-    i = 0
-    j = 0
+    def make_fwd(self, fromfile=True, overwrite=False):
+        # create the forward solution
+        os.environ['SUBJECTS_DIR'] = self.get('mri_sdir')
 
-    flags = []
-    diff = []
-    notflags = []
-    in_the_file = 1
+        src = self.get('src')
+        trans = self.get('trans')
+        bem = self.get('bem')
+        fwd = self.get('fwd')
+        rawfif = self.get('rawfif')
+        mri_subject = self.get('mrisubject')
+        cwd = self.get('mne_bin')
 
-    #Compares the two data streams. Flags the extraneous events
-    while in_the_file:
-        check = (eeg[j] < meg[i] + 100) & (eeg[j] > meg[i] - 100)
-        if check:
-            diff.append(abs(meg[i] - eeg[j]))
-            notflags.append(j)
-            i = i + 1
-            j = j + 1
+        cmd = ['mne_do_forward_solution',
+           '--subject', mri_subject,
+           '--src', src,
+           '--bem', bem,
+           '--mri', trans, # MRI description file containing the MEG/MRI coordinate transformation.
+           '--meas', rawfif, # provides sensor locations and coordinate transformation between the MEG device coordinates and MEG head-based coordinates.
+           '--fwd', fwd, #'--destdir', target_file_dir, # optional 
+           '--megonly']
+
+        if overwrite:
+            cmd.append('--overwrite')
+        elif os.path.exists(fwd):
+            raise IOError("fwd file at %r already exists" % fwd)
+
+        sp = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = sp.communicate()
+
+        if stderr:
+            print '\n> ERROR:'
+            print stderr
+
+        if os.path.exists(fwd):
+            return fwd
+            self.logger(log = '%s: Forward Solution written to file'
+                        %self.get('subject'))
+
         else:
-            flags.append(j)
-            j = j + 1
+            err = "fwd-file not created"
+            err = os.linesep.join([err, "command out:", stdout])
+            raise RuntimeError(err)
 
-        if j >= len(eeg):
-            in_the_file = 0
-
-    #Removes the extra trigger events
-    index = np.ones(eeg_ds.N, dtype='Bool')
-    index[flags] = False
-    combined_ds = eeg_ds[index]
-
-    #Replaces the EEG triggers with ones from the MEG
-    combined_ds['eventID'] = meg_ds['eventID']
-    #Adds meg_ds['i_start']
-    combined_ds['i_start_meg'] = meg_ds['i_start']
-    #Adds eeg_ds['i_start']
-    combined_ds['i_start_eeg'] = combined_ds['i_start']
-    #Adds additional info
-    combined_ds.update(meg_ds)
-    combined_ds.info = eeg_ds.info
-
-    #Deletes i_start (unlabeled)
-    del combined_ds['i_start']
-
-    return combined_ds
-
-
-#This class is from Christian Brodbeck's subprocess in eelbrain
-
-
-
-class marker_avg_file:
-    def __init__(self, path):
-        # Parse marker file, based on Tal's pipeline:
-        regexp = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
-        output_lines = []
-        for line in open(path):
-            match = regexp.search(line)
-            if match:
-                output_lines.append('\t'.join(match.groups()))
-        txt = '\n'.join(output_lines)
-
-        fd, self.path = tempfile.mkstemp(suffix='hpi', text=True)
-        f = os.fdopen(fd, 'w')
-        f.write(txt)
-        f.close()
-
-    def __del__(self):
-        os.remove(self.path)
-
-
-
-def kit2fiff(subname, expname='NMG', aligntol=25, sfreq=500, lowpass=30, highpass=0, stimthresh=1, stim=xrange(168, 160, -1), add=None):
-
-    paramdir = os.path.join(os.path.expanduser('~'), 'data', expname, subname, 'parameters')
-
-    mrk = os.path.join(paramdir, '_'.join((subname, expname, 'marker-coregis.txt')))
-    elp = os.path.join(paramdir, '_'.join((subname, expname + '.elp')))
-    hsp = os.path.join(paramdir, '_'.join((subname, expname + '.hsp')))
-    if sfreq == 1000:
-            rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export.txt'))))
-    else:
-        rawtxt = os.path.abspath(os.path.join(paramdir, '..', 'rawdata', 'meg', '_'.join((subname, expname + '-export' + str(sfreq) + '.txt'))))
-    rawfif = os.path.abspath(os.path.join(paramdir, '..', 'myfif', '_'.join((subname, expname, 'raw.fif'))))
-    sns = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'tools', 'parameters', 'sns.txt')
-
-    # convert the marker file
-    mrk_file = marker_avg_file(mrk)
-    hpi = mrk_file.path
-
-    stim = ':'.join(map(str, stim))
-
-    cmd = ['/Applications/mne/bin/mne_kit2fiff',
-           '--elp', elp,
-           '--hsp', hsp,
-           '--sns', sns,
-           '--hpi', hpi,
-           '--aligntol', aligntol,
-           '--raw', rawtxt,
-           '--out', rawfif,
-           '--sfreq', sfreq,
-           '--lowpass', lowpass,
-           '--highpass', highpass,
-           '--stim', stim,
-           '--stimthresh', stimthresh]
-    cwd = '/Applications/mne/bin/'
-
-    if add:
-        add = ':'.join((add))
-        cmd = cmd + '--add %s' % add
-
-    cmd = [unicode(c) for c in cmd]
-    sp = subprocess.Popen(cmd, cwd=cwd,
-                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = sp.communicate()
-
-    if stderr:
-        print '\n> ERROR: %s\n%s' % (stderr, stdout)
-
-
-def load_meg_events(subname, expname='NMG', bad_channels=None):
-
-#Defines directories
-    root = os.path.join(os.path.expanduser('~'), 'data', expname, subname)
-    rawdata = os.path.join(root, 'rawdata')
-    fifdir = os.path.join(root, 'myfif')
-    datadir = os.path.join(root, 'data')
-
-#Specifies whether it calls the subject's MRI or the average brain
-
-    mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', subname))
-
-    if not os.path.lexists(mridir):
-        mridir = os.path.abspath(os.path.join(root, '..', '..', 'MRI', '00'))
-        hasMRI = False
-    else:
-        hasMRI = True
-
-#Finds the file    
-    logfile = os.path.join(rawdata, 'behavioral', 'logs', '_'.join((subname, 'log.txt')))
-    fif_file = os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif')))
-    proj_file = os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif')))
-#Loads the triggerlist from the log file   
-    #log = _logread(logfile)
-
-#Loads the triggers from the fif and makes a dataset
-    if os.path.lexists(proj_file):
-        meg_ds = E.load.fiff.events(fif_file, proj=proj_file)
-    else:
-        meg_ds = E.load.fiff.events(fif_file)
-#Adds bad channel to list if provided
-    if bad_channels:
-        meg_ds.info['raw'].info['bads'].extend(bad_channels)
-
-#Compares the log file to the triggerlist. Adds variable of boolean comparison
-    #log = np.array(log)
-#Asserts that the right value of triggers is given. Experimentally determined.
-#For NMG: 4 trigger events per trial, 240 trials per list, 4 lists    
-    #assert meg_ds.N == 3840
-#This assures that the trigger values are equivalent to the ones in PTB
-    #assert all(meg_ds['eventID'].x == log)
-
-#Adds directory to rawfif    
-    meg_ds.info['expdir'] = os.path.join(os.path.expanduser('~'), 'data', expname)
-    meg_ds.info['mridir'] = mridir
-    meg_ds.info['labeldir'] = os.path.join(mridir, 'label')
-    meg_ds.info['fifdir'] = fifdir
-
-#Adds the raw fif info used in epoching data.    
-#    meg_ds.info['raw'] = mne.fiff.Raw(os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif')))), verbose=False)
-    meg_ds.info['rawfif'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'raw.fif'))))
-    meg_ds.info['proj'] = os.path.abspath(os.path.join(fifdir, '_'.join((subname, expname, 'proj.fif'))))
-    meg_ds.info['subname'] = subname
-    meg_ds.info['expname'] = expname
-    meg_ds.info['datadir'] = datadir
-    meg_ds.info['mne_bin'] = os.path.join('/Applications/mne/bin')
-
-#Adds filenames for the source transformation
-    meg_ds.info['fwd'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-fwd.fif')))
-    meg_ds.info['cov'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-cov.fif')))
-    meg_ds.info['inv'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-inv.fif')))
-    meg_ds.info['trans'] = os.path.join(fifdir, '_'.join((subname, expname, 'raw-trans.fif')))
-
-#Specifies filenames according for either subject's MRI or common average brain
-    meg_ds.info['hasMRI'] = hasMRI
-
-    if meg_ds.info['hasMRI'] == True:
-        meg_ds.info['bem'] = os.path.join(mridir, 'bem', subname + '-5120-bem-sol.fif')
-        meg_ds.info['src'] = os.path.join(mridir, 'bem', subname + '-ico-4-src.fif')
-        meg_ds.info['mri_subname'] = subname
-    else:
-        meg_ds.info['bem'] = os.path.join(mridir, 'bem', '00-5120-bem-sol.fif')
-        meg_ds.info['src'] = os.path.join(mridir, 'bem', '00-ico-4-src.fif')
-        meg_ds.info['mri_subname'] = '00'
-
-
-
-#Loads the eyelink data
-    edf_path = os.path.join(rawdata, 'behavioral', 'eyelink', '*.edf')
-    if os.path.exists(os.path.dirname(edf_path)):
-        edf = E.load.eyelink.Edf(edf_path)
-        try:
-            edf.add_T_to(meg_ds)
-            meg_ds.info['edf'] = edf
-        except ValueError:
-            print 'Eyelink Module Not Working'
-    else:
-        print "%s%s This path does not exist. Please check your folder." % (edf_path, os.linesep)
-#    elif not ui.ask(title='Missing Files', message='Subject %s Eyelink files are missing. Okay to proceed?' % subname, cancel=False, default=True):
-#        raise RuntimeError('missing file')
-
-
-
-#For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
-#Repairs voice trigger value problem, if needed.
-    index = range(3, meg_ds.N, 4)
-    if all(meg_ds['eventID'][index].x > 128):
-        meg_ds['eventID'][index] = meg_ds['eventID'][index] - 128
-
-
-
-#Propagates itemID for all trigger events
-#Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
-    index = meg_ds['eventID'] < 64
-    scenario = map(int, meg_ds['eventID'][index])
-    meg_ds['scenario'] = E.var(np.repeat(scenario, 2))
-
-#Initialize lists    
-    eventID_bin = []
-    exp = []
-    target = []
-    cond = []
-    type = []
-
-#Decomposes the trigger
-    for v in meg_ds['eventID']:
-        binary_trig = bin(int(v))[2:]
-        eventID_bin.append(binary_trig)
-
-        if v > 128:
-            exp.append(int(binary_trig[0], 2))
-            target.append(int(binary_trig[1], 2))
-            type.append(int(binary_trig[2:5], 2))
-            cond.append(int(binary_trig[5:8], 2))
+    def make_stcs(self, ds, labels=None, force_fixed=True,
+                    stc_object=False, stc_type='epochs', lambda2=1. / 9):
+    
+        """Creates an stc object of transformed data from the ds
+    
+            Parameters
+            ----------
+            ds: dataset
+                data
+            labels: list of tuples
+                a list of ROIs
+            force_fixed: bool
+                True = Fixed orientation, False = Free orientation
+            stc_object: bool
+                True = mne.object, False = eelbrain.ndvar
+            stc_type: str
+                'epochs'
+                'evoked'
+    
+        """
+        rois = None
+        cov = mne.read_cov(self.get('cov'))
+        #there is currently no solution for creating the fwd as an object.
+        fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed)
+        inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
+                                                    forward=fwd, noise_cov=cov, 
+                                                    loose=None, verbose = False)
+    
+        #for ROI analyses
+        if labels:
+            rois = []
+            for label in labels:
+                rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
+                                            label + '.label')))
+    
+            if len(rois) > 1:
+                roi = rois.pop(0)
+                rois = sum(rois, roi)
+            elif len(rois) == 1:
+                rois = rois[0]
+    
+        #makes stc epochs or evoked
+    
+        if stc_type == 'epochs':
+        #a list of stcs within label per epoch.
+            stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
+                                                         label=rois,
+                                                         lambda2=lambda2,
+                                                         verbose = False) 
+                                                        
+        elif stc_type == 'evoked':
+            evoked = ds['epochs'].average()
+            stcs = mne.minimum_norm.apply_inverse(evoked, inv, 
+                                                  lambda2=lambda2,
+                                                  verbose = False)
         else:
-            exp.append(None)
-            target.append(None)
-            type.append(None)
-            cond.append(None)
-
-#Labels events    
-    meg_ds['experiment'] = E.factor(exp, labels={None: 'fixation', 1: 'experiment'})
-    meg_ds['target'] = E.factor(target, labels={None: 'fixation/voice', 0: 'prime', 1: 'target'})
-    meg_ds['wordtype'] = E.factor(type, labels={None: 'None', 1: 'transparent', 2: 'opaque', 3: 'novel', 4: 'ortho', 5:'ortho'})
-    meg_ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity', 2: 'identity', 3: 'control_constituent', 4: 'first_constituent'})
-    meg_ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
-#Labels the voice events
-#Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
-    index = np.arange(3, meg_ds.N, 4)
-    meg_ds['experiment'][index] = 'voice'
-#Add subject as a redundant variable to the dataset
-    meg_ds['subject'] = E.factor([meg_ds.info['subname']], rep=meg_ds.N, random = True)
-#Add block to the ds. 4 events per trial, 240 trials per block
-    #meg_ds['block'] = E.var(np.repeat([0, 1, 2, 3], repeats=960, axis=None))
-#Makes a temporary ds
-    temp = meg_ds[meg_ds['target'] == 'target']
-#Add itemID to uniquely identify each word    
-    itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
-    meg_ds['itemID'] = E.var(np.repeat(itemID, 4))
-
-#Load the stim info from mat file
-    stim_ds = _load_stims_info()
-
-    idx = []
-    for (scenario, wordtype) in zip(temp['scenario'], temp['wordtype']):
-        a = scenario == stim_ds['scenario']
-        b = wordtype == stim_ds['wordtype']
-        idx.append(np.where(a * b)[0][0])
-
-    stim_ds = stim_ds[idx].repeat(4)
-    meg_ds.update(stim_ds)
-
-#Load duration data and adds it to the dataset.
-  #  meg_ds = _load_dur_info(meg_ds)
-
-
-    return meg_ds
-
-
-
-def _logread(filename):
-
-#Initializes list
-    triggers = []
-    trigger_times = []
-
-#Reads the logfile and searches for the triggers
-    for line in open(filename):
-        if line.startswith('TRIGGER\tUSBBox'):
-            items = line.split()
-            triggers.append(int(items[2]))
-            trigger_times.append(items[3])
-
-    return triggers, trigger_times
-
-
-
-def _load_stims_info(stims_info='/Users/teon/data/NMG/stims/stims_info.mat'):
-    #Adds stim information
-
-    stims = scipy.io.loadmat(stims_info)['stims']
-    stim_ds = E.dataset()
-    stim_ds['c1_rating'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_rating']))))
-    stim_ds['c1_sd'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_sd']))))
-    stim_ds['c1'] = E.factor(np.hstack(np.hstack(stims['c1'])))
-    stim_ds['c1_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_freq']))))
-    stim_ds['elp_c1_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c1_nmg']))))
-    stim_ds['word'] = E.factor(np.hstack(np.hstack(stims['word'])))
-    stim_ds['word_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_freq']))))
-    stim_ds['word_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_nmg']))))
-    stim_ds['wordtype'] = E.factor(np.hstack(np.hstack(np.hstack(stims['wordtype']))), labels={0: 'opaque', 1: 'transparent', 2: 'novel', 3: 'ortho'})
-    stim_ds['scenario'] = E.var(np.hstack(np.hstack(np.hstack(stims['itemID']))))
-
-    stim_ds['c2_rating'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_rating']))))
-    stim_ds['c2_sd'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_sd']))))
-    stim_ds['c2'] = E.factor(np.hstack(np.hstack(stims['c2'])))
-    stim_ds['c2_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_freq']))))
-    stim_ds['elp_c2_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_nmg']))))
-
-    return stim_ds
-
-
-
-def _load_dur_info(meg_ds):
-    durations_file = os.path.join(meg_ds.info['expdir'], meg_ds.info['subname'], 'data', '_'.join((meg_ds.info['subname'], 'durations.txt')))
-    if os.path.lexists(durations_file):
-        ds = E.load.txt.tsv(durations_file)
-        index = sorted(range(ds.N), key=lambda x:ds['tsec'].x[x])
-        ds = ds[index].repeat(4)
-        assert all(ds['word'] == meg_ds['word'])
-    #This imports the segmentation information for the orthographic words. Their segmentation is not done in the mat file.
-        meg_ds['c1'] = ds['s1']
-        meg_ds['c2'] = ds['s2']
-        del ds['word'], ds['tsec'], ds['s1'], ds['s2']
-        meg_ds.update(ds)
-
-    return meg_ds
-
-
-
-def reject_blinks(meg_ds):
-
-    if 't_edf' in meg_ds:
-        meg_ds.info['edf'].mark(meg_ds, tstart= -0.2, tstop=0.4, good=None, bad=False, use=['EBLINK'], T='t_edf', target='accept')
-        meg = meg_ds.subset('accept')
-        del meg['t_edf'], meg['accept']
-    else:
-        print 'No Eyelink data'
-        meg = meg_ds
-
-    return meg
+            raise TypeError('Currently only implemented for epochs and evoked')
+    
+        #makes stc object or ndvar
+        if not stc_object:
+            stcs = E.load.fiff.stc_ndvar(stcs, subject=self.get('mrisubject'))
+    
+        return stcs
+    
+    def logger(self, log):
+        """
+        A simple logger for actions done in an experiment session.
+        
+        Parameters
+        ----------
+        
+        log: str
+            log entry. takes the syntax, key: message
+            e.g. edf: 98% of trials remain
+            
+        """
+        
+        entry = log.split(':',1)
+        self.log[entry[0]].append(entry[1])
+        print log
+        
+        
