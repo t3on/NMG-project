@@ -6,13 +6,16 @@ Created on Nov 25, 2012
 
 import os
 from eelbrain import eellab as E
-from eelbrain.vessels import experiment 
+from eelbrain.vessels import experiment
 import numpy as np
 import mne
 from subprocess import Popen, PIPE
 from collections import defaultdict
+import time
 
-
+#################
+#    bad chs    #
+################# 
 bad_channels = defaultdict(lambda: ['MEG 065'])
 bad_channels['R0095'].extend(['MEG 151'])
 bad_channels['R0498'].extend(['MEG 066'])
@@ -21,36 +24,46 @@ bad_channels['R0547'].extend(['MEG 002'])
 bad_channels['R0569'].extend(['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084'])
 bad_channels['R0576'].extend(['MEG 143'])
 
+rois = {}
+rois['lh.fusiform'] = ('lh.fusiform',)
+rois['vmPFC'] = ('lh.vmPFC', 'rh.vmPFC')
+rois['LATL'] = ('lh.LATL',)
+rois['lh.inferiortemporal'] = ('lh.inferiortemporal',)
+rois['LPTL'] = ('lh.LPTL',)
+rois['cuneus'] = ('lh.cuneus', 'rh.cuneus')
+rois['lh.cuneus'] = ('lh.cuneus',)
+
+
 class NMG(experiment.mne_experiment):
     _common_brain = '00'
     _exp = 'NMG'
     _subject_loc = 'exp_dir'  # location of subject folders
     _mri_loc = 'mri_dir'
-        #################
-        #    bad chs    #
-        #################    
-    def __init__(self, subject = None, root='~/data'):
-        super(NMG, self).__init__(root=root, subject = subject)
+   
+    def __init__(self, subject=None, root='~/data'):
+        super(NMG, self).__init__(root=root, subject=subject)
         self.bad_channels = bad_channels
         self.log = defaultdict(list)
-
+        self.exclude['subject'] = ['R0224', 'R0498', 'R0499', 'R0575']
+        self.rois = rois
     def get_templates(self):
         t = {
 
             #experiment
             'experiment': self._exp,
             'mne_bin': os.path.join('/Applications/mne/bin'),
-             
+
             # basic dir
             'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
             'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
             'fif_sdir': os.path.join('{exp_sdir}', 'myfif'),
 
             # mri dir
-            'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
+            'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
             'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
             'label_sdir': os.path.join('{mri_sdir}', 'label'),
-            
+
+
             # raw folders
             'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
             'raw_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
@@ -58,11 +71,11 @@ class NMG(experiment.mne_experiment):
             'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
             'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
-            
+
             # fif files
             'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'), # for subp.kit2fiff
             'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
-            
+
             # fif files derivatives
             'fwd': os.path.join('{fif_sdir}', '{s_e}_raw-fwd.fif'),
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
@@ -73,41 +86,40 @@ class NMG(experiment.mne_experiment):
             'bem': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-5120-bem-sol.fif'),
             'src': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-ico-4-src.fif'),
             'bem_head': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-head.fif'),
-            
+
             # parameter files
             'mrk': os.path.join('{param_sdir}', '{s_e}_marker-coregis.txt'),
             'elp': os.path.join('{param_sdir}', '{s_e}.elp'),
             'hsp': os.path.join('{param_sdir}', '{s_e}.hsp'),
-            
+
             # raw files
             'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'), # legacy. looks in the fif folder for file pattern
             's_e': '{subject}_{experiment}',
             'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '_export*.txt'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
             'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
-            
+
             # eye-tracker
             'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
             'edf': os.path.join('{edf_sdir}', '*.edf'),
-                         
+
             # EEG
             'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
             'eegfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
-            
+
             # BESA
             #'besa_triggers': os.path.join('{exp_sdir}', 'besa', '{s_e}_{analysis}_triggers.txt'),
             #'besa_evt': os.path.join('{exp_sdir}', 'besa', '{s_e}_{analysis}.evt'),
             }
-        
+
         return t
 
     #################
     #    process    #
     #################
 
-    def load_events(self, subject=None, experiment=None,
-                    remove_bad_chs=True,
-                    proj=True, edf=True, raw=None):
+    def load_events(self, subject = None, experiment = None,
+                    remove_bad_chs=True, proj=True, edf=True, treject=25):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -119,7 +131,7 @@ class NMG(experiment.mne_experiment):
             Loads edf and add it to the info dict.
 
         """
-        self.set(subject=subject, experiment=experiment, raw=raw)
+        self.set(subject=subject, experiment=experiment)
         raw_file = self.get('rawfif')
         if isinstance(proj, str):
             proj = self.get('proj', projname=proj)
@@ -130,37 +142,35 @@ class NMG(experiment.mne_experiment):
             bad_chs = self.bad_channels[(self.state['subject'], self.state['experiment'])]
             raw.info['bads'].extend(bad_chs)
 
-        if subject is None:
-            subject = self.state['subject']
-        if experiment is None:
-            experiment = self.state['experiment']
 
-        self.label_events(ds, experiment, subject)
+        self.label_events(ds)
 
         # add edf
         if edf:
             if os.path.lexists(self.get('edf_sdir')):
                 edf = self.load_edf()
+                if edf.triggers.size != ds.N:
+                    self.logger('edf: dimension mismatch, eyelink disabled')
                 #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
                 #Repairs voice trigger value problem, if needed.
-                index = range(3, edf.triggers.size, 4)
-                for trial,idx in zip(edf.triggers[index], index):
-                    a = trial[0]
-                    b = trial[1] - 128 if trial[1] > 128 else trial[1]
-                    edf.triggers[idx] = (a,b)
-                            
-                edf.add_T_to(ds)
-                ds.info['edf'] = edf
-            self._reject_blinks(ds)
+                else:
+                    index = range(3, edf.triggers.size, 4)
+                    for trial, idx in zip(edf.triggers[index], index):
+                        a = trial[0]
+                        b = trial[1] - 128 if trial[1] > 128 else trial[1]
+                        edf.triggers[idx] = (a, b)
+
+                    edf.add_T_to(ds)
+                    ds.info['edf'] = edf
+                ds = self._reject_blinks(ds, treject=treject)
         return ds
-    
-    def load_edf(self, subject=None, experiment=None, match = False):
-        src = self.get('edf', subject=subject, 
-                       experiment=experiment, match = match)
+
+    def load_edf(self, match=False):
+        src = self.get('edf', match=match)
         edf = E.load.eyelink.Edf(src)
         return edf
 
-    def label_events(self, ds, subject=None, experiment=None):
+    def label_events(self, ds):
         #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
         #Repairs voice trigger value problem, if needed.
         index = range(3, ds.N, 4)
@@ -220,10 +230,10 @@ class NMG(experiment.mne_experiment):
         #Loads the stim info from txt file and adds it to the ds
         stim_ds = self._load_stim_info(ds)
         ds.update(stim_ds)
-        
+
         #Loads logfile and adds it to the ds
-#        ds = self._logread()
-#        ds.update(ds)
+        log_ds = self._logread()
+        ds.update(log_ds)
 
         #Load duration data and adds it to the dataset.
         #  ds = _load_dur_info(ds)
@@ -231,32 +241,31 @@ class NMG(experiment.mne_experiment):
 
         return ds
 
-    def _reject_blinks(self, ds):
+    def _reject_blinks(self, ds, treject=25):
 
         if 't_edf' in ds:
             ds.info['edf'].mark(ds, tstart= -0.2, tstop=0.4,
                                 good=None, bad=False, use=['EBLINK'],
                                 T='t_edf', target='accept')
             dsx = ds.subset('accept')
-            rejected = (ds.N-dsx.N)*100/ds.N
-            remains = dsx.N*100/ds.N
-            if rejected > 25:
-                self.logger(log = 'edf: %s: %d' %(self.get('subject'), rejected) 
-                            + r'% ' + 'rejected, eyelink disabled')
+            rejected = (ds.N - dsx.N) * 100 / ds.N
+            remainder = dsx.N * 100 / ds.N
+            if rejected > treject:
+                self.logger(log='edf: %d' % rejected + r'% ' + 
+                            'rejected, eyelink disabled')
             else:
-                self.logger(log = 'edf: %s: %d' %(self.get('subject'), remains) 
-                            + r'% ' + 'remains')
+                self.logger(log='edf: %d' % remainder + r'% ' + 'remains')
                 ds = dsx
-            del ds['t_edf'], ds['accept']
+            del ds['t_edf']
+            del ds['accept']
         else:
-            self.logger(log = 'edf: %s: has no Eyelink data' 
-                        % self.get('subject'))
+            self.logger(log='edf: has no Eyelink data')
             ds = ds
 
         return ds
 
-    def _logread(self, subject=None, experiment=None):
-        logfile = self.get('logfile', subject=subject, experiment=experiment)
+    def _logread(self):
+        logfile = self.get('logfile')
 
     #Initializes list
         displays = []
@@ -275,22 +284,30 @@ class NMG(experiment.mne_experiment):
                     continue
                 elif any('The end.' in item for item in items):
                     continue
+                elif any('Saving Data...' in item for item in items):
+                    continue
                 elif any('Text' in item for item in items):
                     displays.append(items[2])
                 elif any('Response_Catcher' in item for item in items):
                     displays.append(items[2])
 
+        times = np.array(trigger_times)
+        times = np.diff(times)
+        latencies = times[2::4]
+
+        latency = E.var(latencies, name='latency').repeat(4)
+        latency.properties = 'Time (s)'
         trigger = E.var(triggers, name='trigger')
         trigger_time = E.var(trigger_times, name='trigger_time')
         display = E.factor(displays, name='display')
 
-        ds = E.dataset(display, trigger, trigger_time)
+        ds = E.dataset(display, latency, trigger, trigger_time)
         ds['word_length'] = E.var(map(len, ds['display']))
 
         return ds
 
-    def _load_stim_info(self, ds, subject=None, experiment=None):
-        stims = self.get('stims_info', subject=subject, experiment=experiment)
+    def _load_stim_info(self, ds):
+        stims = self.get('stims_info')
         stim_ds = E.load.txt.tsv(stims)
 
         temp = ds[ds['target'] == 'target']
@@ -307,13 +324,13 @@ class NMG(experiment.mne_experiment):
     #    source    #
     ################
 
-    def make_proj(self, write=True, overwrite = False):
-        ds = self.load_events(proj = False, edf = False)
+    def make_proj(self, write=True, overwrite=False, proj_object=False):
+        ds = self.load_events(proj=False, edf=False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
-                raise IOError("proj file at %r already exists" 
+                raise IOError("proj file at %r already exists"
                               % self.get('proj'))
-        
+
         #add the projections to this object by using 
 
         ds_fix = ds[ds['experiment'] == 'fixation']
@@ -324,36 +341,34 @@ class NMG(experiment.mne_experiment):
         if write == True:
             first_proj = [proj[0]]
             mne.write_proj(self.get('proj'), first_proj)
-            self.logger(log = 'proj: %s: Projection written to file' 
-                        %self.get('subject'))
+            self.logger(log='proj: Projection written to file')
 
-    
+
         pc = [proj[0]]
-    
-        return pc
-    
-    def make_cov(self, write=True, overwrite = False):
-        ds = self.load_events(proj = True, edf = False)
+
+        if proj_object:
+            return pc
+
+    def make_cov(self, write=True, overwrite=False, cov_object=False):
+        ds = self.load_events(proj=True, edf=False)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
-                raise IOError("cov file at %r already exists" 
+                raise IOError("cov file at %r already exists"
                               % self.get('cov'))
-        
+
         # create covariance matrix
         index = ds['experiment'] == 'fixation'
         ds_fix = ds[index]
-
-        ds_fix = self.make_proj(ds_fix)
 
         epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(None, 0), reject={'mag':2e-12}, tstart= -.2, tstop=.2)
         cov = mne.cov.compute_covariance(epochs)
 
         if write == True:
             cov.save(self.get('cov'))
-            self.logger('cov: %s: Covariance Matrix written to file'
-                        %self.get('subject'))
+            self.logger('cov: Covariance Matrix written to file')
 
-        return cov
+        if cov_object:
+            return cov
 
     def make_fwd(self, fromfile=True, overwrite=False):
         # create the forward solution
@@ -389,9 +404,8 @@ class NMG(experiment.mne_experiment):
             print stderr
 
         if os.path.exists(fwd):
+            self.logger(log='fwd: Forward Solution written to file')
             return fwd
-            self.logger(log = '%s: Forward Solution written to file'
-                        %self.get('subject'))
 
         else:
             err = "fwd-file not created"
@@ -400,9 +414,9 @@ class NMG(experiment.mne_experiment):
 
     def make_stcs(self, ds, labels=None, force_fixed=True,
                     stc_object=False, stc_type='epochs', lambda2=1. / 9):
-    
+
         """Creates an stc object of transformed data from the ds
-    
+
             Parameters
             ----------
             ds: dataset
@@ -416,67 +430,83 @@ class NMG(experiment.mne_experiment):
             stc_type: str
                 'epochs'
                 'evoked'
-    
+
         """
         rois = None
         cov = mne.read_cov(self.get('cov'))
         #there is currently no solution for creating the fwd as an object.
         fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
-                                                    forward=fwd, noise_cov=cov, 
-                                                    loose=None, verbose = False)
-    
+                                                    forward=fwd, noise_cov=cov,
+                                                    loose=None, verbose=False)
+
         #for ROI analyses
         if labels:
             rois = []
             for label in labels:
                 rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
                                             label + '.label')))
-    
+
             if len(rois) > 1:
                 roi = rois.pop(0)
                 rois = sum(rois, roi)
             elif len(rois) == 1:
                 rois = rois[0]
-    
+
         #makes stc epochs or evoked
-    
+
         if stc_type == 'epochs':
         #a list of stcs within label per epoch.
             stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
                                                          label=rois,
                                                          lambda2=lambda2,
-                                                         verbose = False) 
-                                                        
+                                                         verbose=False)
+
         elif stc_type == 'evoked':
             evoked = ds['epochs'].average()
-            stcs = mne.minimum_norm.apply_inverse(evoked, inv, 
+            stcs = mne.minimum_norm.apply_inverse(evoked, inv,
                                                   lambda2=lambda2,
-                                                  verbose = False)
+                                                  verbose=False)
         else:
-            raise TypeError('Currently only implemented for epochs and evoked')
-    
+            error = 'Currently only implemented for epochs and evoked'
+            self.logger('stc: %s' % error)
+            raise TypeError(error)
         #makes stc object or ndvar
         if not stc_object:
             stcs = E.load.fiff.stc_ndvar(stcs, subject=self.get('mrisubject'))
-    
+
         return stcs
-    
-    def logger(self, log):
+
+    def logger(self, log, verbose = True):
         """
         A simple logger for actions done in an experiment session.
-        
+
         Parameters
         ----------
-        
+
         log: str
             log entry. takes the syntax, key: message
             e.g. edf: 98% of trials remain
-            
+
         """
-        
-        entry = log.split(':',1)
+
+        entry = log.split(':', 1)
         self.log[entry[0]].append(entry[1])
-        print log
+        log = '%s: %s: %s' %(entry[0], self.get('subject'), entry[1])
+        if verbose:
+            print log
+
+    def print_log(self, dest):
+        dest, ext = os.path.splitext(dest)
+        date = time.localtime()
+        date = '-%d.%d.%d' %(date[1], date[2], date[0])
+        if ext:
+            dest = dest + date + ext
+        else:
+            dest = dest + date + '.txt' 
+        with open(dest, 'w') as FILE:
+            for key in self.log.keys():
+                for comment in self.log[key]:
+                    FILE.write('%s: %s' %(key, comment) + os.linesep)
         
-        
+                
