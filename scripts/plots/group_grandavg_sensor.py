@@ -1,3 +1,9 @@
+'''
+Created on Nov 30, 2012
+
+@author: teon
+'''
+
 import eelbrain.eellab as E
 import os
 import basic.process as process
@@ -28,7 +34,8 @@ else:
 
         #add epochs to the dataset after excluding bad channels
         meg_ds = E.load.fiff.add_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                        baseline=(tstart, 0), reject=reject)
+                                        baseline=(tstart, 0), reject=reject,
+                                        mult=1e12, unit='pT')
 
         meg_ds = meg_ds.compress(meg_ds['target'], drop_bad=True)
 
