@@ -558,7 +558,7 @@ def _logread(filename):
 #    return trigger, trigger_time, display
 
 
-def _load_stims_info(stims_info='/Users/teon/data/NMG/stims/stims_info.mat'):
+def _load_stims_info(stims_info='/Users/teon/Dropbox/Experiments/NMG/stim_creation/stims/stims_data.mat'):
     #Adds stim information
 
     stims = scipy.io.loadmat(stims_info)['stims']
@@ -571,7 +571,8 @@ def _load_stims_info(stims_info='/Users/teon/data/NMG/stims/stims_info.mat'):
     stim_ds['word'] = E.factor(np.hstack(np.hstack(stims['word'])))
     stim_ds['word_freq'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_freq']))))
     stim_ds['word_nmg'] = E.var(np.hstack(np.hstack(np.hstack(stims['word_nmg']))))
-    stim_ds['wordtype'] = E.factor(np.hstack(np.hstack(np.hstack(stims['wordtype']))), labels={0: 'opaque', 1: 'transparent', 2: 'novel', 3: 'ortho'})
+    stim_ds['wordtype'] = E.factor(np.hstack(np.hstack(np.hstack(stims['wordtype']))), labels={0: 'opaque', 1: 'transparent', 2: 'novel',
+                                                                                               3: 'ortho-1', 4: 'ortho-2'})
     stim_ds['scenario'] = E.var(np.hstack(np.hstack(np.hstack(stims['itemID']))))
 
     stim_ds['c2_rating'] = E.var(np.hstack(np.hstack(np.hstack(stims['c2_rating']))))

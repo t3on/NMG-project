@@ -137,9 +137,24 @@ class NMG(experiment.mne_experiment):
             proj = self.get('proj', projname=proj)
         ds = E.load.fiff.events(raw_file, proj=proj)
 
+        #Add subject as a redundant variable to the dataset
+        ds['subject'] = E.factor([self.get('subject')], rep=ds.N, random=True)
+
+        #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
+        #Repairs voice trigger value problem, if needed.
+        index = range(3, ds.N, 4)
+        if all(ds['eventID'][index].x > 128):
+            ds['eventID'][index] = ds['eventID'][index] - 128
+
+        #Propagates itemID for all trigger events
+        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
+        index = ds['eventID'] < 64
+        scenario = map(int, ds['eventID'][index])
+        ds['scenario'] = E.var(np.repeat(scenario, 2))
+
         raw = ds.info['raw']
         if remove_bad_chs:
-            bad_chs = self.bad_channels[(self.state['subject'], self.state['experiment'])]
+            bad_chs = self.bad_channels[self.state['subject']]
             raw.info['bads'].extend(bad_chs)
 
 
@@ -171,17 +186,6 @@ class NMG(experiment.mne_experiment):
         return edf
 
     def label_events(self, ds):
-        #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
-        #Repairs voice trigger value problem, if needed.
-        index = range(3, ds.N, 4)
-        if all(ds['eventID'][index].x > 128):
-            ds['eventID'][index] = ds['eventID'][index] - 128
-
-        #Propagates itemID for all trigger events
-        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
-        index = ds['eventID'] < 64
-        scenario = map(int, ds['eventID'][index])
-        ds['scenario'] = E.var(np.repeat(scenario, 2))
 
         #Initialize lists    
         eventID_bin = []
@@ -208,32 +212,39 @@ class NMG(experiment.mne_experiment):
 
         #Labels events    
         ds['experiment'] = E.factor(exp, labels={None: 'fixation', 1: 'experiment'})
-        ds['target'] = E.factor(target, labels={None: 'fixation/voice', 0: 'prime', 1: 'target'})
-        ds['wordtype'] = E.factor(wtype, labels={None: 'None', 1: 'transparent', 2: 'opaque', 3: 'novel', 4: 'ortho', 5:'ortho'})
-        ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity', 2: 'identity', 3: 'control_constituent', 4: 'first_constituent'})
+        ds['target'] = E.factor(target, labels={None: 'fixation/voice',
+                                                0: 'prime', 1: 'target'})
+        ds['wordtype'] = E.factor(wtype, labels={None: 'None', 1: 'transparent',
+                                                 2: 'opaque', 3: 'novel',
+                                                 4: 'ortho-1', 5:'ortho-2'})
+        ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity',
+                                                 2: 'identity', 3: 'control_constituent',
+                                                 4: 'first_constituent'})
         ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
-        #Labels the voice events
-        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
-        index = np.arange(3, ds.N, 4)
-        ds['experiment'][index] = 'voice'
-        #Add subject as a redundant variable to the dataset
-        ds['subject'] = E.factor([self.get('subject')], rep=ds.N, random=True)
-        #Add block to the ds. 4 events per trial, 240 trials per block
-        ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
-                                      axis=None))
+
         #Makes a temporary ds
         temp = ds[ds['target'] == 'target']
         #Add itemID to uniquely identify each word    
         itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
         ds['itemID'] = E.var(np.repeat(itemID, 4))
 
-        #Loads the stim info from txt file and adds it to the ds
-        stim_ds = self._load_stim_info(ds)
-        ds.update(stim_ds)
-
         #Loads logfile and adds it to the ds
         log_ds = self._logread()
         ds.update(log_ds)
+
+        #Labels the voice events
+        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
+        index = np.arange(3, ds.N, 4)
+        ds['experiment'][index] = 'voice'
+        #Add block to the ds. 4 events per trial, 240 trials per block
+        ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
+                                      axis=None))
+
+        #Loads the stim info from txt file and adds it to the ds
+        stim_ds = self._load_stim_info(ds)
+        ds.update(stim_ds)
+        idx = ds['wordtype'].isany('ortho-1', 'ortho-2')
+        ds['wordtype'][idx] = 'ortho'
 
         #Load duration data and adds it to the dataset.
         #  ds = _load_dur_info(ds)
