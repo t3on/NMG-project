@@ -10,9 +10,9 @@ import os
 
 root = os.path.join(os.path.expanduser('~'),'Dropbox', 'Experiments', 'NMG')
 corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
-stats_dir = os.path.join(root, 'results', 'meg', 'stats')
+stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'group_ds_corr.pickled')
+saved_data = os.path.join(root, 'data', 'group_ds_wl_corr.pickled')
 roilabels = ['lh.fusiform', 'cuneus']
 
 if os.path.lexists(saved_data):
@@ -27,7 +27,6 @@ else:
     reject = 3e-12
     
     for _ in e.iter_vars(['subject']):
-        e.logger('subject: ')
         meg_ds = e.load_events()
         index = meg_ds['target'].isany('prime', 'target')
         meg_ds = meg_ds[index]
@@ -72,11 +71,12 @@ for roilabel in roilabels:
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['word_length'],
                               norm=group_ds['subject'], tstart=cstart, 
                               tstop=cstop, tp=ctp)
-    with open(os.path.join(stats_dir, 'group_wordlength_%s.txt' %roilabel) ,'w') as FILE:
+    with open(os.path.join(stats_dir,
+                'group_wordlength_%s.txt' %roilabel) ,'w') as FILE:
         FILE.write(title + '\r\n'*2)
         FILE.write(str(a.as_table()))
     p = E.plot.uts.clusters(a, figtitle = title, axtitle = False, 
-                            ls = 'dashed', tcolor = 'g')
+                            t={'linestyle': 'dashed', 'color': 'g'})
     p.figure.savefig(os.path.join(corrs_dir,
         'group_wordlength_corr_%s.pdf' % roilabel))
     

@@ -6,10 +6,11 @@ Created on Dec 2, 2012
 
 import basic.process as process
 import eelbrain.eellab as E
+from eelbrain.vessels.structure import celltable
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-plots_dir = os.path.join(root, 'results', 'plots', 'behavioral')
-stats_dir = os.path.join(root, 'results', 'stats', 'behavioral')
+plots_dir = os.path.join(root, 'results', 'behavioral',  'stats')
+stats_dir = os.path.join(root, 'results', 'behavioral', 'stats')
 constituent_stats = os.path.join(stats_dir, 'group_latency_constituent.txt')
 identity_stats = os.path.join(stats_dir, 'group_latency_identity.txt')
 log_file = os.path.join(root, 'results', 'logs', 'group_latency_log.txt')
@@ -34,6 +35,27 @@ for _ in e.iter_vars(['subject']):
 
 e.print_log(log_file)
 group_ds = E.combine(group_ds)
+group_ds = group_ds.compress(group_ds['condition'] % group_ds['wordtype'] %
+                             group_ds['subject'], drop_bad=True)
+
+
+############################
+##    constituent anova    #
+############################
+#
+#group = group_ds.compress(group_ds['wordtype'] % group_ds['subject'], drop_bad=True)
+#idx = group_ds['condition'].isany('control_constituent', 'first_constituent')
+#
+#table = celltable(Y='latency', X='condition', match='subject', sub=idx,
+#          match_func=np.mean, ds=group_ds)
+#priming = table.data['first_constituent'] - table.data['control_constituent']
+#wordtype = table.groups
+#subject = table.match
+###a1 = E.test.anova(Y=group_ds['first_constituent']['latency'], X=group_ds['subject'] *
+###                  group_ds['wordtype'] * group_ds['condition'], sub = idx)
+
+
+
 
 ###########################
 #    constituent anova    #
@@ -60,12 +82,25 @@ group_ds['condition'][idz] = 'f_c'
 constituent_cells = (group_ds['wordtype'] % group_ds['condition'])
 p1 = E.plot.uv.boxplot(Y = group_ds['latency'], X = constituent_cells, 
                        match = group_ds['subject'], figsize=(10,5), sub = idx,
-                  title = "Constituent Condition Group Latency Means")
+                  bottom=.4, title="Constituent Condition Group Latency Means")
 p1.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
 p1a = E.plot.uv.barplot(Y = group_ds['latency'], X = constituent_cells, 
                        match = group_ds['subject'], figsize=(10,5), sub = idx,
-                  title = "Constituent Condition Group Latency Means")
+                  bottom=.4, title="Constituent Condition Group Latency Means")
 p1a.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_constituent.pdf'))
+
+
+# plot constituent conditions
+constituent_cells = (group_ds['wordtype'] % group_ds['condition'])
+p1 = E.plot.uv.boxplot(Y = group_ds['latency'], X = constituent_cells, 
+                       match = group_ds['subject'], figsize=(10,5), sub = idx,
+                  bottom=.4, title="Constituent Condition Group Latency Means")
+p1.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
+p1a = E.plot.uv.barplot(Y = group_ds['latency'], X = constituent_cells, 
+                       match = group_ds['subject'], figsize=(10,5), sub = idx,
+                  bottom=.4, title="Constituent Condition Group Latency Means")
+p1a.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_constituent.pdf'))
+
 
 ########################
 #    identity anova    #
@@ -93,9 +128,9 @@ group_ds['condition'][idz] = 'i'
 identity_cells = (group_ds['wordtype'] % group_ds['condition'])
 p2 = E.plot.uv.boxplot(Y = group_ds['latency'], X = identity_cells, sub = idx,
                        match = group_ds['subject'], figsize=(10,5),
-                       title = "Identity Condtition Group Latency Means")
+                       bottom=.4, title="Identity Condtition Group Latency Means")
 p2.fig.savefig(os.path.join(plots_dir, 'group_box_latency_identity.pdf'))
 p2a = E.plot.uv.barplot(Y = group_ds['latency'], X = identity_cells, sub = idx,
                         match = group_ds['subject'], figsize=(10,5), 
-                        title = "Identity Condtition Group Latency Means")
+                        bottom=.4, title="Identity Condtition Group Latency Means")
 p2a.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_identity.pdf'))
