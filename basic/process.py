@@ -18,11 +18,14 @@ import time
 ################# 
 bad_channels = defaultdict(lambda: ['MEG 065'])
 bad_channels['R0095'].extend(['MEG 151'])
+bad_channels['R0224'].extend(['MEG 030', 'MEG 031', 'MEG 064',
+                              'MEG 138'])
 bad_channels['R0498'].extend(['MEG 066'])
-bad_channels['R0504'].extend(['MEG 031'])
-bad_channels['R0547'].extend(['MEG 002'])
+bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 138'])
 bad_channels['R0569'].extend(['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084'])
 bad_channels['R0576'].extend(['MEG 143'])
+bad_channels['R0580'].extend(['MEG 001', 'MEG 084', 'MEG 143',
+                              'MEG 160', 'MEG161'])
 
 rois = {}
 rois['lh.fusiform'] = ('lh.fusiform',)
@@ -33,25 +36,33 @@ rois['LPTL'] = ('lh.LPTL',)
 rois['cuneus'] = ('lh.cuneus', 'rh.cuneus')
 rois['lh.cuneus'] = ('lh.cuneus',)
 
-
+fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
+exclude = ['R0338a', 'R0338b', 'R0414']
+#'R0498','R0569', 'R0575', 'R0576'
 class NMG(experiment.mne_experiment):
-    _common_brain = '00'
+    _common_brain = 'fsaverage'
     _exp = 'NMG'
+    #_experiments = ['NMG']
     _subject_loc = 'exp_dir'  # location of subject folders
     _mri_loc = 'mri_dir'
-   
-    def __init__(self, subject=None, root='~/data'):
-        super(NMG, self).__init__(root=root, subject=subject)
-        self.bad_channels = bad_channels
+
+    def __init__(self, subject='{name}', subjects=[], root='~/data'):
+        super(NMG, self).__init__(root=root, subjects=subjects)
+#       self.bad_channels = bad_channels
         self.log = defaultdict(list)
-        self.exclude['subject'] = ['R0224', 'R0498', 'R0499', 'R0575']
+        self.exclude['subject'] = exclude
+        self.fake_mris = fake_mris
         self.rois = rois
+        self.set(subject=subject)
     def get_templates(self):
         t = {
 
             #experiment
             'experiment': self._exp,
             'mne_bin': os.path.join('/Applications/mne/bin'),
+            'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
+                                    'Experiments'),
+            'results': os.path.join('{exp_db}', 'NMG', 'results'),
 
             # basic dir
             'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
@@ -81,23 +92,31 @@ class NMG(experiment.mne_experiment):
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
             'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
             'cov': os.path.join('{fif_sdir}', '{s_e}_raw-cov.fif'),
+            'proj_plot': os.path.join('{results}', 'meg', 'plots', '{s_e}' +
+                                      '-proj.pdf'),
 
             # fwd model
-            'bem': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-5120-bem-sol.fif'),
-            'src': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-ico-4-src.fif'),
-            'bem_head': os.path.join('{mri_sdir}', 'bem', '{mrisubject}-head.fif'),
+            'bem': os.path.join('{mri_sdir}', 'bem',
+                                '{mrisubject}-5120-bem-sol.fif'),
+            'src': os.path.join('{mri_sdir}', 'bem',
+                                '{mrisubject}-ico-4-src.fif'),
+            'bem_head': os.path.join('{mri_sdir}', 'bem',
+                                     '{mrisubject}-head.fif'),
 
             # parameter files
-            'mrk': os.path.join('{param_sdir}', '{s_e}_marker-coregis.txt'),
+            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
             'elp': os.path.join('{param_sdir}', '{s_e}.elp'),
             'hsp': os.path.join('{param_sdir}', '{s_e}.hsp'),
+            'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
 
             # raw files
             'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'), # legacy. looks in the fif folder for file pattern
             's_e': '{subject}_{experiment}',
-            'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '_export*.txt'),
+            'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '-export*.txt'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
             'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
+            'plot_png': os.path.join('{results}', 'visuals', 'helmet',
+                                     '{name}', '{s_e}' + '_'),
 
             # eye-tracker
             'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
@@ -118,7 +137,63 @@ class NMG(experiment.mne_experiment):
     #    process    #
     #################
 
-    def load_events(self, subject = None, experiment = None,
+    def kit2fiff(self, aligntol=25, sfreq=500, lowpass=30, highpass=0, stimthresh=1,
+                 stim=xrange(168, 160, -1), add=None, **rawfiles):
+        import subprocess
+        sns = self.get('sns')
+        mrk = self.get('mrk')
+        elp = self.get('elp')
+        hsp = self.get('hsp')
+        rawtxt = self.get('rawtxt')
+        rawfif = self.get('rawfif')
+
+        if 'mrk' in rawfiles:
+            mrk = rawfiles['mrk']
+        if 'elp' in rawfiles:
+            elp = rawfiles['elp']
+        if 'hsp' in rawfiles:
+            hsp = rawfiles['hsp']
+        if 'rawtxt' in rawfiles:
+            rawtxt = rawfiles['rawtxt']
+        if 'rawfif' in rawfiles:
+            rawfif = rawfiles['rawfif']
+
+        # convert the marker file  
+        mrk_file = E.load.kit.marker_avg_file(mrk)
+        hpi = mrk_file.path
+
+        stim = ':'.join(map(str, stim))
+
+        cmd = ['/Applications/mne/bin/mne_kit2fiff',
+               '--elp', elp,
+               '--hsp', hsp,
+               '--sns', sns,
+               '--hpi', hpi,
+               '--aligntol', aligntol,
+               '--raw', rawtxt,
+               '--out', rawfif,
+               '--sfreq', sfreq,
+               '--lowpass', lowpass,
+               '--highpass', highpass,
+               '--stim', stim,
+               '--stimthresh', stimthresh]
+        cwd = self.get('mne_bin')
+
+        if add:
+            add = ':'.join((add))
+            cmd = cmd + '--add %s' % add
+
+        cmd = [unicode(c) for c in cmd]
+        sp = subprocess.Popen(cmd, cwd=cwd,
+                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = sp.communicate()
+
+        if stderr:
+            print '\n> ERROR: %s\n%s' % (stderr, stdout)
+
+
+
+    def load_events(self, subject=None, experiment=None, #load_stim_info = True,
                     remove_bad_chs=True, proj=True, edf=True, treject=25):
         """
 
@@ -132,13 +207,17 @@ class NMG(experiment.mne_experiment):
 
         """
         self.set(subject=subject, experiment=experiment)
+        self.logger('subject: ')
         raw_file = self.get('rawfif')
         if isinstance(proj, str):
             proj = self.get('proj', projname=proj)
+        if proj:
+            proj = os.path.lexists(self.get('proj'))
         ds = E.load.fiff.events(raw_file, proj=proj)
 
         #Add subject as a redundant variable to the dataset
         ds['subject'] = E.factor([self.get('subject')], rep=ds.N, random=True)
+        ds.info['subject'] = self.get('subject')
 
         #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
         #Repairs voice trigger value problem, if needed.
@@ -242,10 +321,12 @@ class NMG(experiment.mne_experiment):
 
         #Loads the stim info from txt file and adds it to the ds
         stim_ds = self._load_stim_info(ds)
-        ds.update(stim_ds)
-        idx = ds['wordtype'].isany('ortho-1', 'ortho-2')
-        ds['wordtype'][idx] = 'ortho'
-
+        try:
+            ds.update(stim_ds)
+            idx = ds['wordtype'].isany('ortho-1', 'ortho-2')
+            ds['wordtype'][idx] = 'ortho'
+        except ValueError:
+            e.log('ds: Dimension Mismatch. No Stimuli Info')
         #Load duration data and adds it to the dataset.
         #  ds = _load_dur_info(ds)
 
@@ -262,7 +343,7 @@ class NMG(experiment.mne_experiment):
             rejected = (ds.N - dsx.N) * 100 / ds.N
             remainder = dsx.N * 100 / ds.N
             if rejected > treject:
-                self.logger(log='edf: %d' % rejected + r'% ' + 
+                self.logger(log='edf: %d' % rejected + r'% ' +
                             'rejected, eyelink disabled')
             else:
                 self.logger(log='edf: %d' % remainder + r'% ' + 'remains')
@@ -383,7 +464,7 @@ class NMG(experiment.mne_experiment):
 
     def make_fwd(self, fromfile=True, overwrite=False):
         # create the forward solution
-        os.environ['SUBJECTS_DIR'] = self.get('mri_sdir')
+        os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
 
         src = self.get('src')
         trans = self.get('trans')
@@ -488,7 +569,7 @@ class NMG(experiment.mne_experiment):
 
         return stcs
 
-    def logger(self, log, verbose = True):
+    def logger(self, log, verbose=True):
         """
         A simple logger for actions done in an experiment session.
 
@@ -502,22 +583,22 @@ class NMG(experiment.mne_experiment):
         """
 
         entry = log.split(':', 1)
-        self.log[entry[0]].append(entry[1])
-        log = '%s: %s: %s' %(entry[0], self.get('subject'), entry[1])
+        log = '%s: %s: %s' % (entry[0], self.get('subject'), entry[1])
+        self.log[entry[0]].append(log)
         if verbose:
             print log
 
     def print_log(self, dest):
         dest, ext = os.path.splitext(dest)
         date = time.localtime()
-        date = '-%d.%d.%d' %(date[1], date[2], date[0])
+        date = '-%d.%d.%d' % (date[1], date[2], date[0])
         if ext:
             dest = dest + date + ext
         else:
-            dest = dest + date + '.txt' 
+            dest = dest + date + '.txt'
         with open(dest, 'w') as FILE:
             for key in self.log.keys():
                 for comment in self.log[key]:
-                    FILE.write('%s: %s' %(key, comment) + os.linesep)
-        
-                
+                    FILE.write('%s: %s' % (key, comment) + os.linesep)
+
+
