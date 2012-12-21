@@ -13,7 +13,7 @@ e = process.NMG()
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_stcs_activation.pickled')
-plots_dir = os.path.join(root, 'results', 'plots', 'meg', 'activation')
+plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'activation')
 
 if os.path.lexists(saved_data):
     group_stcs = pickle.load(open(saved_data))
@@ -48,7 +48,7 @@ else:
         stc = stc.summary('source', name='stc')
         group_stcs.append(stc)
     stcs = E.combine(group_stcs)
-    subjects = E.factor(subs, name = 'subject')
+    subjects = E.factor(subs, name='subject')
     group_stcs = E.dataset(stcs, subjects)
     E.save.pickle(group_stcs, saved_data)
 
