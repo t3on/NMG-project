@@ -10,23 +10,21 @@ import mne
 
 e = process.NMG()
 
-for _ in e.iter_vars('mrisubject'):
-    meg_ds = e.load_events()
-    
-    lmedial = mne.read_label(os.path.join(meg_ds.info['labeldir'], 
+for _ in e.iter_vars(['subject']):
+    lmedial = mne.read_label(os.path.join(e.get('label_sdir'),
                                           'lh.lateralorbitofrontal.label'))
-    llateral = mne.read_label(os.path.join(meg_ds.info['labeldir'], 
+    llateral = mne.read_label(os.path.join(e.get('label_sdir'),
                                            'lh.medialorbitofrontal.label'))
     lvmPFC = lmedial + llateral
 
-    rmedial = mne.read_label(os.path.join(meg_ds.info['labeldir'], 
+    rmedial = mne.read_label(os.path.join(e.get('label_sdir'),
                                           'rh.lateralorbitofrontal.label'))
-    rlateral = mne.read_label(os.path.join(meg_ds.info['labeldir'], 
+    rlateral = mne.read_label(os.path.join(e.get('label_sdir'),
                                            'rh.medialorbitofrontal.label'))
     rvmPFC = rmedial + rlateral
 
 
-    mne.write_label(os.path.join(meg_ds.info['labeldir'], 
+    mne.write_label(os.path.join(e.get('label_sdir'),
                                  'lh.vmPFC.label'), lvmPFC)
-    mne.write_label(os.path.join(meg_ds.info['labeldir'], 
+    mne.write_label(os.path.join(e.get('label_sdir'),
                                  'rh.vmPFC.label'), rvmPFC)

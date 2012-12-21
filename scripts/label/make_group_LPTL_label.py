@@ -11,18 +11,16 @@ import mne
 
 e = process.NMG()
 
-for _ in e.iter_vars('mrisubject'):
-    meg_ds = e.load_events()
-    
+for _ in e.iter_vars(['subject']):
     pos_super = kit.split_label(mne.read_label(os.path.join(
-                meg_ds.info['labeldir'], 'lh.superiortemporal.label')), 
-                meg_ds.info['fwd'])[0]
+                e.get('label_sdir'), 'lh.superiortemporal.label')),
+                e.get('fwd'))[0]
     pos_mid = kit.split_label(mne.read_label(os.path.join(
-                meg_ds.info['labeldir'], 'lh.middletemporal.label')), 
-                meg_ds.info['fwd'])[0]
+                e.get('label_sdir'), 'lh.middletemporal.label')),
+                e.get('fwd'))[0]
     pos_inf = kit.split_label(mne.read_label(os.path.join(
-                meg_ds.info['labeldir'], 'lh.inferiortemporal.label')), 
-                meg_ds.info['fwd'])[0]
+                e.get('label_sdir'), 'lh.inferiortemporal.label')),
+                e.get('fwd'))[0]
     LPTL = pos_super + pos_mid + pos_inf
 
-    mne.write_label(os.path.join(meg_ds.info['labeldir'], 'lh.LPTL.label'), LPTL)
+    mne.write_label(os.path.join(e.get('label_sdir'), 'lh.LPTL.label'), LPTL)
