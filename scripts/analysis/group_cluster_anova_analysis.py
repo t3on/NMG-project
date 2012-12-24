@@ -25,7 +25,6 @@ reject = 3e-12
 cstart = .2
 wcstart = 0
 
-
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
@@ -91,7 +90,8 @@ constituent_clusters = {}
 identity_clusters = {}
 wordtype_clusters = {}
 
-for roilabel in roilabels:
+
+for roilabel in roilabels:
     # test constituent effect
     title = 'Cluster ANOVA of Wordtype by Constituent Priming in %s' % roilabel
     a = E.testnd.cluster_anova(Y=group_target_constituent[roilabel],
