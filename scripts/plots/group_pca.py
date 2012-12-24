@@ -25,6 +25,7 @@ e = process.NMG(root='~/data')
 #    del p, meg_ds
 for _ in e.iter_vars(['subject']):
     ds = e.load_events(proj = False)
+    ds = ds[ds['target'] == 'target']
     ds = E.load.fiff.add_mne_epochs(ds, tstart= -0.2, tstop=0.6,
                                     baseline=(-.2, 0))
-    e.make_proj_for_epochs(ds['epochs'], save = False)
+    e.make_proj_for_epochs(ds['epochs'], save = False, save_plot = e.get('proj_plot'))

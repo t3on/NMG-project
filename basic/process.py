@@ -92,7 +92,7 @@ class NMG(experiment.mne_experiment):
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
             'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
             'cov': os.path.join('{fif_sdir}', '{s_e}_raw-cov.fif'),
-            'proj_plot': os.path.join('{results}', 'meg', 'plots', '{s_e}' +
+            'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                                       '-proj.pdf'),
 
             # fwd model

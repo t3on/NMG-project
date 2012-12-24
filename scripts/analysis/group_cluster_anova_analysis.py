@@ -29,6 +29,7 @@ if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
     e = process.NMG()
+    e.exclude = {'subject': 'R0580'}
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events(edf=True)
         index = meg_ds['target'].isany('prime', 'target')
@@ -87,6 +88,7 @@ group_prime_wordtype = group_ds[prime * wordtype_condition]
 constituent_clusters = {}
 identity_clusters = {}
 wordtype_clusters = {}
+
 for roilabel in roilabels:
     # test constituent effect
     title = 'Cluster ANOVA of Wordtype by Constituent Priming in %s' % roilabel
