@@ -11,7 +11,7 @@
 #
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_ds_stcs.pickled')
-plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'activation')
+plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'activation', 'conditions')
 roilabels = ['lh.fusiform', 'vmPFC', 'LATL', 'lh.inferiortemporal', 'LPTL']
 
 #e = process.NMG()
