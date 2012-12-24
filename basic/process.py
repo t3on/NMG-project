@@ -427,7 +427,7 @@ class NMG(experiment.mne_experiment):
 
         ds_fix = ds[ds['experiment'] == 'fixation']
         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6, baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=5, n_eeg=0)
+        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=1, n_eeg=0)
 
 
         if write == True:
