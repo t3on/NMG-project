@@ -14,6 +14,7 @@ saved_data = os.path.join(root, 'data', 'group_ds_stcs.pickled')
 plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'clusters')
 stats_dir = os.path.join(root, 'results', 'meg', 'stats')
 roilabels = ['lh.fusiform', 'vmPFC', 'LATL', 'lh.inferiortemporal', 'LPTL']
+log_file = os.path.join(root, 'results', 'logs', 'group_cluster_anova_log.txt')
 
 datasets = []
 
@@ -63,6 +64,7 @@ else:
     #combines the datasets for group
     group_ds = E.combine(datasets)
     E.save.pickle(group_ds, saved_data)
+    e.print_log(log_file)
 
 #creates indices for prime and target
 prime = group_ds['target'] == 'prime'
