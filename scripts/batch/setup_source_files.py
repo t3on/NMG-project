@@ -10,9 +10,9 @@ log_file = os.path.join(root, 'results', 'logs', 'group_proj_log.txt')
 
 
 e = process.NMG()
-e.exclude = {'subject': ['R0576', 'R0580']}
+#e.exclude = {'subject': ['R0576', 'R0580']}
 for _ in e.iter_vars(['subject']):
-    e.make_proj(overwrite = True)
-#    e.make_cov(overwrite=True)
+#    e.make_proj(overwrite = True)
+    e.make_cov(overwrite=True)
 #    e.make_fwd(overwrite=True)
 e.print_log(log_file)

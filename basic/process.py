@@ -441,7 +441,8 @@ class NMG(experiment.mne_experiment):
         if proj_object:
             return pc
 
-    def make_cov(self, write=True, overwrite=False, cov_object=False):
+    def make_cov(self, write=True, overwrite=False, cov_object=False,
+                 remove_bad_chs = False):
         ds = self.load_events(proj=True, edf=False)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
