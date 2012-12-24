@@ -207,7 +207,7 @@ class NMG(experiment.mne_experiment):
 
         """
         self.set(subject=subject, experiment=experiment)
-        self.logger('subject: ')
+        self.logger('subject: ', write = False)
         raw_file = self.get('rawfif')
         if isinstance(proj, str):
             proj = self.get('proj', projname=proj)
@@ -417,7 +417,7 @@ class NMG(experiment.mne_experiment):
     ################
 
     def make_proj(self, write=True, overwrite=False, proj_object=False):
-        ds = self.load_events(proj=False, edf=False)
+        ds = self.load_events(proj=False, edf=False, remove_bad_chs = False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
                 raise IOError("proj file at %r already exists"
@@ -569,7 +569,7 @@ class NMG(experiment.mne_experiment):
 
         return stcs
 
-    def logger(self, log, verbose=True):
+    def logger(self, log, verbose=True, write = True):
         """
         A simple logger for actions done in an experiment session.
 
@@ -584,7 +584,8 @@ class NMG(experiment.mne_experiment):
 
         entry = log.split(':', 1)
         log = '%s: %s: %s' % (entry[0], self.get('subject'), entry[1])
-        self.log[entry[0]].append(log)
+        if write:
+            self.log[entry[0]].append(log)
         if verbose:
             print log
 
