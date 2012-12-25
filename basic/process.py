@@ -37,7 +37,7 @@ rois['cuneus'] = ('lh.cuneus', 'rh.cuneus')
 rois['lh.cuneus'] = ('lh.cuneus',)
 
 fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
-exclude = ['R0338a', 'R0338b', 'R0414']
+exclude = ['R0338a', 'R0338b', 'R0414', 'R0576', 'R0580']
 #'R0498','R0569', 'R0575', 'R0576'
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
@@ -416,7 +416,7 @@ class NMG(experiment.mne_experiment):
     #    source    #
     ################
 
-    def make_proj(self, write=True, overwrite=False, proj_object=False):
+    def make_proj(self, write=True, overwrite=False):
         ds = self.load_events(proj=False, edf=False, remove_bad_chs = False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
@@ -435,11 +435,8 @@ class NMG(experiment.mne_experiment):
             mne.write_proj(self.get('proj'), first_proj)
             self.logger(log='proj: Projection written to file')
 
-
-        pc = [proj[0]]
-
-        if proj_object:
-            return pc
+        if write == False:
+            return first_proj
 
     def make_cov(self, write=True, overwrite=False, cov_object=False,
                  remove_bad_chs = False):

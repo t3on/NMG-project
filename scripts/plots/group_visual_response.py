@@ -22,10 +22,7 @@ morphed_stcs = []
 subjects_list = []
 condition = []
 
-subjects = ['R0569', 'R0574', 'R0575', 'R0576', 'R0580']
-#for _ in e.iter_vars(['subject']):
-for subject in subjects:    
-    e.set(subject)
+for _ in e.iter_vars(['subject']):
     meg_ds = e.load_events()
     index = meg_ds['target'] == 'prime'
     meg_ds = meg_ds[index]
