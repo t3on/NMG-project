@@ -28,13 +28,13 @@ bad_channels['R0580'].extend(['MEG 001', 'MEG 084', 'MEG 143',
                               'MEG 160', 'MEG161'])
 
 rois = {}
-rois['lh.fusiform'] = ('lh.fusiform',)
-rois['vmPFC'] = ('lh.vmPFC', 'rh.vmPFC')
-rois['LATL'] = ('lh.LATL',)
-rois['lh.inferiortemporal'] = ('lh.inferiortemporal',)
-rois['LPTL'] = ('lh.LPTL',)
-rois['cuneus'] = ('lh.cuneus', 'rh.cuneus')
-rois['lh.cuneus'] = ('lh.cuneus',)
+rois['lh.fusiform'] = ['lh.fusiform']
+rois['vmPFC'] = ['lh.vmPFC', 'rh.vmPFC']
+rois['LATL'] = ['lh.LATL']
+rois['lh.inferiortemporal'] = ['lh.inferiortemporal']
+rois['LPTL'] = ['lh.LPTL']
+rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
+rois['lh.cuneus'] = ['lh.cuneus']
 
 fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
 exclude = ['R0338a', 'R0338b', 'R0414', 'R0576', 'R0580']
@@ -535,7 +535,7 @@ class NMG(experiment.mne_experiment):
             rois = []
             for label in labels:
                 rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
-                                            label + '.label')))
+                                                        label + '.label')))
 
             if len(rois) > 1:
                 roi = rois.pop(0)
