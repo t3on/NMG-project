@@ -2,7 +2,8 @@
 Created on Dec 27, 2012
 
 @author: teon
-Adapted from Yoshi's Meginfo2.cpp and sqdread's getdata.m
+sqd_params class is adapted from Yoshiaki Adachi's Meginfo2.cpp and sqdread's getdata.m
+
 '''
 
 from mne.fiff.raw import Raw
@@ -13,6 +14,7 @@ import numpy as np
 import time
 import sys
 import logging
+import coreg
 
 class sqd_params(object):
     '''
@@ -41,9 +43,11 @@ class sqd_params(object):
         self.nchan = unpack('i', fid.read(4))[0]
         self.nmegchan = 157
         self.nrefchan = 3
-        self.nmiscchan = self.nchan - self.nmegchan - self.nrefchan
+        self.ntrigchan = 8
+        self.nmiscchan = self.nchan - self.nmegchan - self.nrefchan - self.ntrigchan
         self.ch_names = ['MEG %03d' % ch for ch in range(self.nmegchan + 1)]
         self.ch_names.extend(['REF %03d' % ch for ch in range(self.nrefchan + 1)])
+        self.ch_names.extend(['TRIG %03d' % ch for ch in range(self.ntrigchan + 1)])
         self.ch_names.extend(['MISC %03d' % ch for ch in range(self.nmiscchan + 1)])
         self.lowpass = lowpass
         self.highpass = highpass
@@ -127,8 +131,8 @@ class RawKIT(Raw):
     ----------
     data_fname : str
         absolute path to the sqd file.
-    hpi_fname : str
-        absolute path to hpi marker coils file.
+    mrk_fname : str
+        absolute path to marker coils file.
     elp_fname : str
         absolute path to elp digitizer points file.
     data : bool | array-like
@@ -143,12 +147,15 @@ class RawKIT(Raw):
 
     """
     @verbose
-    def __init__(self, data_fname, hpi_fname, elp_fname, hsp_fname,
+    def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
                  data=None, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname)
         self._data_file = data_fname
+        self.mrk_fname = mrk_fname
+        self.elp_fname = elp_fname
+        self.hsp_fname = hsp_fname
 
         logger.info('Creating Raw.info structure ...')
         info = self._create_raw_info()
@@ -202,17 +209,17 @@ class RawKIT(Raw):
         info['dev_ctf_t'] = []
         info['filenames'] = []
 
-        # ???
+        # there is some transformation done to the digitization data that I have not figured out yet.
         # digitizer points
-        info['dig']
+        info['dig'] = self._get_dig()
 
         # dev-head transformation dict
         info['dev_head_t'] = {}
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        # ???
+
         # transformation matrix
-        info['dev_head_t']['trans']
+        info['dev_head_t']['trans'] = self._create_coreg()
 
         logger.info('Done.')
         return info
@@ -246,8 +253,16 @@ class RawKIT(Raw):
         stim_ch = 'STIM 014'
         self.ch_names.append(stim_ch)
 
+
         # create a synthetic channel
 
+    def _create_coreg(self):
+        coreg_data = coreg.coreg(mrk_fname=self.mrk_fname, elp_fname=self.elp_fname)
+        dev_head_t = coreg_data.fit()
+        return dev_head_t
+    def _get_dig(self):
+        dig_data = coreg.dig(hsp_fname=self.hsp_fname)
+        return dig_data.hsp_points
 
 
 
