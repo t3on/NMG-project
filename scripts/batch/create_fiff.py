@@ -5,9 +5,8 @@ Created on Aug 17, 2012
 '''
 
 import basic.process as process
- 
+
 e = process.NMG()
 
 for _ in e.iter_vars('subject'):
     e.kit2fiff()
-    

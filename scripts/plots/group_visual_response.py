@@ -37,7 +37,7 @@ else:
         meg = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
                             reject={'mag':reject}, preload=True, decim=4)
         stc = e.make_stcs(meg, force_fixed=False,
-                               stc_object=True, stc_type='evoked')
+                               mne_stc=True, stc_type='evoked')
 
         morphed = mne.morph_data(subject_from=e.get('mrisubject'),
                                  subject_to=e._common_brain, stc_from=stc,
