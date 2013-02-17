@@ -89,7 +89,7 @@ class NMG(experiment.mne_experiment):
                                      '{mrisubject}-head.fif'),
 
             # parameter files
-            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
+            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.sqd'),
             'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
             'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
             'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
@@ -99,6 +99,7 @@ class NMG(experiment.mne_experiment):
             'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
             's_e': '{subject}_{experiment}',
             'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '-export*.txt'), #to be deprecated
+            'rawsqd': os.path.join('{meg_sdir}', '{s_e}' + '*.sqd'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
             'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
@@ -120,14 +121,15 @@ class NMG(experiment.mne_experiment):
     #    process    #
     #################
 
-    def kit2fiff(self, **rawfiles):
+    def kit2fiff(self, stim=range(167, 159, -1), mne_raw=False, verbose=False,
+                 **rawfiles):
         sns = self.get('sns')
         mrk = self.get('mrk')
         elp = self.get('elp')
         hsp = self.get('hsp')
         rawsqd = self.get('rawsqd')
         rawfif = self.get('rawfif')
-        stim = self.get('stim')
+        stim = stim
 
         if 'mrk' in rawfiles:
             mrk = rawfiles['mrk']
@@ -140,10 +142,14 @@ class NMG(experiment.mne_experiment):
         if 'rawfif' in rawfiles:
             rawfif = rawfiles['rawfif']
 
-        raw = kit.read_raw_kit(input_fname=rawsqd, mrk_fname=mrk,
-                               elp_fname=elp, hsp_fname=hsp,
-                               sns_fname=sns, stim=stim)
-        raw.save(rawfif)
+        if not os.path.lexists(rawfif):
+            raw = kit.read_raw_kit(input_fname=rawsqd, mrk_fname=mrk,
+                               elp_fname=elp, hsp_fname=hsp, sns_fname=sns,
+                               stim=stim, verbose=verbose)
+            if mne_raw:
+                return raw
+            else:
+                raw.save(rawfif)
 
 
     def load_events(self, subject=None, experiment=None, #load_stim_info = True,
