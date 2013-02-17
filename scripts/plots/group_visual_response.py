@@ -45,47 +45,26 @@ else:
 
         orig = E.load.fiff.stc_ndvar(stc, e.get('mrisubject'), 'orig')
         orig -= orig.summary(time=(tstart, 0))
-
-
-        morphed = E.load.fiff.stc_ndvar(morphed, e._common_brain, 'morphed')
-        morphed -= morphed.summary(time=(tstart, 0))
-
         # Individual subjects plots    
         a = E.plot.brain.activation(orig, hemi='lh')
-#        a.lh.show_view('lateral')
-#        a.animate(save_mov=os.path.join(movie_dir, 'orig',
-#                    '%s-orig-lateral.mov' % e.get('subject')))
+        tt = E.testnd.ttest(Y=orig)
+        a = E.plot.brain.stat(tt.p, hemi='lh')
         a.lh.show_view('medial')
         a.animate(save_mov=os.path.join(movie_dir, 'orig',
                     '%s-orig-medial.mov' % e.get('subject')))
 
-        b = E.plot.brain.activation(morphed, hemi='lh')
-#        b.lh.show_view('lateral')
-#        b.animate(save_mov=os.path.join(movie_dir, 'morphed',
-#                    '%s-morphed-lateral.mov' % e.get('subject')))
-        b.lh.show_view('medial')
-        b.animate(save_mov=os.path.join(movie_dir, 'morphed',
-                    '%s-morphed-medial.mov' % e.get('subject')))
-
+        morphed = E.load.fiff.stc_ndvar(morphed, e._common_brain, 'morphed')
+        morphed -= morphed.summary(time=(tstart, 0))
         morphed_stcs.append(morphed)
         subjects_list.append(e.get('subject'))
-        condition.append('prime')
-
 
     subjects_list = E.factor(subjects_list, name='subject', random=True)
-    condition = E.factor(condition, name='condition')
     stcs = E.combine(morphed_stcs)
-    E.save.pickle(stcs, saved_data)
-    e.print_log(log_file)
+    group_ds = E.dataset(subjects_list, stcs)
+    E.save.pickle(group_ds, saved_data)
 
-for i in xrange(len(stcs.x)):
-    stcs.x[i] = stats.mstats.zscore(stcs.x[i], axis=None)
-
-stcs -= stcs.summary(time=(tstart, 0))
-
-group_ds = E.dataset(subjects_list, condition, stcs)
-tt = E.testnd.ttest(Y=group_ds['morphed'],
-                    X=group_ds['condition'], c1='prime')
+group_ds['stcs'] -= group_ds['stcs'].summary(time=(tstart, 0))
+tt = E.testnd.ttest(Y=group_ds['morphed'])
 
 a = E.plot.brain.stat(tt.p, hemi='lh')#, p0=.01, p1=.001)
 a.lh.show_view('lateral')

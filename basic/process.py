@@ -32,7 +32,7 @@ class NMG(experiment.mne_experiment):
 
     def __init__(self, subject='{name}', subjects=[], root='~/data'):
         super(NMG, self).__init__(root=root, subjects=subjects)
-#       self.bad_channels = bad_channels
+        self.bad_channels = bad_channels
         self.logger = logging.getLogger('mne')
         self.exclude['subject'] = exclude
         self.fake_mris = fake_mris
@@ -69,7 +69,8 @@ class NMG(experiment.mne_experiment):
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
             # fif files
-            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw_new.fif'), # for self.kit2fiff
+#            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw_new.fif'), # for self.kit2fiff
+            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
             'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
 
             # fif files derivatives
@@ -99,7 +100,7 @@ class NMG(experiment.mne_experiment):
             'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
             's_e': '{subject}_{experiment}',
             'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '-export*.txt'), #to be deprecated
-            'rawsqd': os.path.join('{meg_sdir}', '{s_e}' + '*.sqd'),
+            'rawsqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
             'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
@@ -122,7 +123,7 @@ class NMG(experiment.mne_experiment):
     #################
 
     def kit2fiff(self, stim=range(167, 159, -1), mne_raw=False, verbose=False,
-                 **rawfiles):
+                 overwrite=False, **rawfiles):
         sns = self.get('sns')
         mrk = self.get('mrk')
         elp = self.get('elp')
@@ -142,14 +143,15 @@ class NMG(experiment.mne_experiment):
         if 'rawfif' in rawfiles:
             rawfif = rawfiles['rawfif']
 
-        if not os.path.lexists(rawfif):
+        if not os.path.lexists(rawfif) or mne_raw or overwrite:
             raw = kit.read_raw_kit(input_fname=rawsqd, mrk_fname=mrk,
                                elp_fname=elp, hsp_fname=hsp, sns_fname=sns,
                                stim=stim, verbose=verbose)
             if mne_raw:
                 return raw
             else:
-                raw.save(rawfif)
+                raw.save(rawfif, overwrite=overwrite)
+                del raw
 
 
     def load_events(self, subject=None, experiment=None, #load_stim_info = True,
@@ -193,7 +195,7 @@ class NMG(experiment.mne_experiment):
 
         raw = ds.info['raw']
         if remove_bad_chs:
-            bad_chs = self.bad_channels[self.state['subject']]
+            bad_chs = self.bad_channels[self.state('subject')]
             raw.info['bads'].extend(bad_chs)
 
         self.label_events(ds)
@@ -238,11 +240,11 @@ class NMG(experiment.mne_experiment):
             wtype_mask = 2 ** 4 + 2 ** 4 + 2 ** 5; wtype_bit = 5
             cond_mask = 2 ** 0 + 2 ** 1 + 2 ** 2; cond_bit = 2
 
-            if v & exp_mask >> exp_bit:
-                exp.append(v & exp_mask >> exp_bit)
-                target.append(v & target_mask >> target_bit)
-                wtype.append(v & wtype_mask >> wtype_bit)
-                cond.append(v & cond_mask >> cond_bit)
+            if (v & exp_mask) >> exp_bit:
+                exp.append((v & exp_mask) >> exp_bit)
+                target.append((v & target_mask) >> target_bit)
+                wtype.append((v & wtype_mask) >> wtype_bit)
+                cond.append((v & cond_mask) >> cond_bit)
             else:
                 exp.append(None)
                 target.append(None)
@@ -250,7 +252,7 @@ class NMG(experiment.mne_experiment):
                 cond.append(None)
 
         #Labels events    
-        ds['experiment'] = E.factor(exp, labels={None: 'fixation/voice',
+        ds['experiment'] = E.factor(exp, labels={None: 'fixation',
                                                  1: 'experiment'})
         ds['target'] = E.factor(target, labels={None: 'fixation/voice',
                                                 0: 'prime', 1: 'target'})
@@ -275,12 +277,12 @@ class NMG(experiment.mne_experiment):
 
 #        #Labels the voice events
 #        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
-#        index = np.arange(3, ds.N, 4)
-#        ds['experiment'][index] = 'voice'
+        index = np.arange(3, ds.N, 4)
+        ds['experiment'][index] = 'voice'
 #        #Add block to the ds. 4 events per trial, 240 trials per block
-#        ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
-#                                      axis=None))
-#
+        ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
+                                      axis=None))
+
         #Loads the stim info from txt file and adds it to the ds
         stim_ds = self._load_stim_info(ds)
         try:
@@ -347,9 +349,9 @@ class NMG(experiment.mne_experiment):
         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
                                         baseline=(None, 0), reject={'mag':1.5e-11})
         proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=1, n_eeg=0)
+        first_proj = [proj[0]]
 
         if write == True:
-            first_proj = [proj[0]]
             mne.write_proj(self.get('proj'), first_proj)
             self.logger.info('proj: Projection written to file')
         else:
@@ -407,13 +409,13 @@ class NMG(experiment.mne_experiment):
         stdout, stderr = sp.communicate()
 
         if stderr:
-            print '\n> ERROR:'
             print stderr
 
         if os.path.exists(fwd):
             self.logger.info('fwd: Forward Solution written to file')
             return fwd
         else:
+            print '\n> ERROR:'
             err = "fwd-file not created"
             err = os.linesep.join([err, "command out:", stdout])
             raise RuntimeError(err)
@@ -442,8 +444,9 @@ class NMG(experiment.mne_experiment):
         #there is currently no solution for creating the fwd as an object directly.
         fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
-                                                    forward=fwd, noise_cov=cov,
-                                                    loose=None, verbose=False)
+                                                     depth=None,
+                                                     forward=fwd, noise_cov=cov,
+                                                     loose=None, verbose=False)
 
         #for ROI analyses
         if labels:
@@ -512,10 +515,10 @@ def logread(logfile):
 
     times = np.array(trigger_times)
     times = np.diff(times)
-#    latencies = times[2::4]
+    latencies = times[2::4]
 
-#    latency = E.var(latencies, name='latency').repeat(4)
-#    latency.properties = 'Time (s)'
+    latency = E.var(latencies, name='latency').repeat(4)
+    latency.properties = 'Time (s)'
     trigger = E.var(triggers, name='trigger')
     trigger_time = E.var(trigger_times, name='trigger_time')
     display = E.factor(displays, name='display')
