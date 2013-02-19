@@ -95,12 +95,12 @@ transparent = ct.data[('transparent', 'f_c')] - ct.data[('transparent', 'c_c')]
 Y = E.combine((novel, opaque, ortho, transparent))
 X = E.factor(('novel', 'opaque', 'ortho', 'transparent'), 
              rep=len(ds['subject'].cells), name='wordtype')
-sub = E.factor(group_ds['subject'].cells, rep=len(X.cells))
+sub = E.factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
 group_plot = E.dataset(sub, Y, X)
-p = E.plot.uv.boxplot(Y, X, match = sub, figsize=(10, 5), bottom=.4, 
+p = E.plot.uv.boxplot(Y, X, match = sub, figsize=(20, 5), 
                        title="Constituent Condition Group Latency Means")
 p.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
-p = E.plot.uv.barplot(Y, X, match=sub, figsize=(10, 5), bottom=.4, 
+p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5), 
                       title="Constituent Condition Group Latency Means")
 p.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_constituent.pdf'))
 
