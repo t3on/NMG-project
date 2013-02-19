@@ -105,6 +105,7 @@ class NMG(experiment.mne_experiment):
             'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
                                      '{name}', '{s_e}' + '_'),
+             'analysis': '',
 
             # eye-tracker
             'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
@@ -237,8 +238,8 @@ class NMG(experiment.mne_experiment):
 
             exp_mask = 2 ** 7; exp_bit = 7
             target_mask = 2 ** 6; target_bit = 6
-            wtype_mask = 2 ** 4 + 2 ** 4 + 2 ** 5; wtype_bit = 5
-            cond_mask = 2 ** 0 + 2 ** 1 + 2 ** 2; cond_bit = 2
+            wtype_mask = 2 ** 3 + 2 ** 4 + 2 ** 5; wtype_bit = 3
+            cond_mask = 2 ** 0 + 2 ** 1 + 2 ** 2; cond_bit = 0
 
             if (v & exp_mask) >> exp_bit:
                 exp.append((v & exp_mask) >> exp_bit)
@@ -336,7 +337,7 @@ class NMG(experiment.mne_experiment):
     #    source    #
     ################
 
-    def make_proj(self, write=True, overwrite=False):
+    def make_proj(self, write=True, overwrite=False, nprojs=1):
         ds = self.load_events(proj=False, edf=False, remove_bad_chs=False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
@@ -348,14 +349,14 @@ class NMG(experiment.mne_experiment):
         ds_fix = ds[ds['experiment'] == 'fixation']
         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
                                         baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=1, n_eeg=0)
-        first_proj = [proj[0]]
+        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs, n_eeg=0)
+        proj = [proj[:nprojs]]
 
         if write == True:
-            mne.write_proj(self.get('proj'), first_proj)
+            mne.write_proj(self.get('proj'), proj)
             self.logger.info('proj: Projection written to file')
         else:
-            return first_proj
+            return proj
 
     def make_cov(self, write=True, overwrite=False, remove_bad_chs=False):
         ds = self.load_events(proj=True, edf=False)
@@ -523,7 +524,7 @@ def logread(logfile):
     trigger_time = E.var(trigger_times, name='trigger_time')
     display = E.factor(displays, name='display')
 
-    ds = E.dataset(display, trigger, trigger_time)
+    ds = E.dataset(display, trigger, latency, trigger_time)
     ds['word_length'] = E.var(map(len, ds['display']))
 
     return ds
