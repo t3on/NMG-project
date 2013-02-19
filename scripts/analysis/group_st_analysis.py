@@ -29,11 +29,10 @@ else:
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events()
         meg_ds['st'] = E.var(meg_ds['c1_rating'].x + meg_ds['c2_rating'].x)
-        index = meg_ds['target'] == 'target'
-#        index2 = meg_ds['condition'].isany('identity')
-        index3 = np.isnan(meg_ds['st'].x) == False
-        index4 = meg_ds['st'].x != 0
-        meg_ds = meg_ds[index * index3 * index4]
+        idx = meg_ds['target'] == 'target'
+        idx2 = np.isnan(meg_ds['st'].x) == False
+        idx3 = meg_ds['st'].x != 0
+        meg_ds = meg_ds[idx * idx2 * idx3]
 
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N

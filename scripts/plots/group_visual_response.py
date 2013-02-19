@@ -47,9 +47,7 @@ else:
         orig -= orig.summary(time=(tstart, 0))
         # Individual subjects plots    
         a = E.plot.brain.activation(orig, hemi='lh')
-        tt = E.testnd.ttest(Y=orig)
-        a = E.plot.brain.stat(tt.p, hemi='lh')
-        a.lh.show_view('medial')
+        a.show_view('lh medial')
         a.animate(save_mov=os.path.join(movie_dir, 'orig',
                     '%s-orig-medial.mov' % e.get('subject')))
 

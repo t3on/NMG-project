@@ -37,7 +37,6 @@ else:
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
                                             #baseline=(tstart, 0), reject={'mag':reject}, preload=True)
                                             reject={'mag':reject}, preload=True)
-
         #do source transformation
         stcs.append(e.make_stcs(meg_ds, stc_type='evoked', force_fixed=False))
         del meg_ds['epochs']

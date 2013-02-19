@@ -13,7 +13,7 @@ corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
 stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
 logs_dir = os.path.join(root, 'results', 'logs')
 saved_data = os.path.join(root, 'data', 'group_ds_tp_corr.pickled')
-roilabels = ['lh.fusiform']
+roilabels = ['lh.fusiform', 'lh.inferiortemporal']
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
@@ -28,12 +28,17 @@ else:
 
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events()
-        meg_ds['tp'] = E.var(meg_ds['word_freq'].x / meg_ds['c1_freq'].x)
-        index = meg_ds['target'] == 'target'
-        index2 = np.isnan(meg_ds['tp'].x) == False
-        index3 = meg_ds['tp'].x != 0
-        index4 = meg_ds['condition'].isany('control_identity', 'control_constituent')
+        index = meg_ds['target'] == 'prime'
+        index2 = meg_ds['condition'].isany('identity')
+        meg_ds = meg_ds[index * index2]
+
+        index = meg_ds['c1_freq'] != 0
+        index2 = np.isnan(meg_ds['c1_freq']) == False
+        index3 = meg_ds['word_freq'] != 0
+        index4 = np.isnan(meg_ds['word_freq']) == False
         meg_ds = meg_ds[index * index2 * index3 * index4]
+
+        meg_ds['tp'] = meg_ds['word_freq'] / meg_ds['c1_freq']
 
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N
@@ -46,19 +51,17 @@ else:
         for roilabel in roilabels:
             meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
                                            force_fixed=False)
-
             #collapsing across sources
             meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
-
             #baseline correct source estimates
             meg_ds[roilabel] -= meg_ds[roilabel].summary(time=(tstart, 0))
         del meg_ds['epochs']
-
         #Append to group level datasets
         datasets.append(meg_ds)
-
+        del meg_ds
     #combines the datasets for group
     group_ds = E.combine(datasets)
+    del datasets
     E.save.pickle(group_ds, saved_data)
 
 
