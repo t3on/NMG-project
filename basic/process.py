@@ -155,6 +155,21 @@ class NMG(experiment.mne_experiment):
                 del raw
 
 
+    def do_raw(self, raw='hp1', redo=False, n_jobs=3):
+        """
+        Options
+        -------
+        'hp1'
+            Highpass at 1 Hz.
+        """
+        self.reset()
+        if raw == 'hp1':
+            self.make_filter(raw, hp=1, lp=None, n_jobs=n_jobs, src='lp40',
+                             redo=redo)
+        else:
+            raise ValueError('raw = %r' % raw)
+
+
     def load_events(self, subject=None, experiment=None, #load_stim_info = True,
                     remove_bad_chs=True, proj=True, edf=True, treject=25):
         """

@@ -10,6 +10,7 @@ import basic.process as process
 import pickle
 
 e = process.NMG()
+e.exclude = {}
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_stcs_activation.pickled')

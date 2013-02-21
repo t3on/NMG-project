@@ -71,6 +71,7 @@ constituent = group_ds['condition'].isany('control_constituent', 'first_constitu
 identity = group_ds['condition'].isany('control_identity', 'identity')
 #creates index for only the prime only identity conditions
 wtype = group_ds['condition'] == 'identity'
+exclude = ~group_ds['subject'].isany('R0574', 'R0575')
 
 constituent_clusters = {}
 identity_clusters = {}
@@ -81,7 +82,7 @@ for roilabel in roilabels:
     title = 'Cluster ANOVA of Wordtype by Constituent Priming in %s' % roilabel
     a = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                X=group_ds.eval('condition*wordtype*subject'),
-                               sub=target * constituent, tstart=cstart)
+                               sub=target * constituent *exclude, tstart=cstart)
     stat = os.path.join(stats_dir, 'group_target_constituent_%s.txt' % roilabel)
     with open(stat , 'w') as FILE:
         FILE.write(title + os.linesep * 2)
@@ -97,7 +98,7 @@ for roilabel in roilabels:
     title = 'Cluster ANOVA of Wordtype by Identity Priming in %s' % roilabel
     a = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                X=group_ds.eval('condition*wordtype*subject'),
-                               sub=target * identity, tstart=cstart)
+                               sub=target * identity *exclude, tstart=cstart)
     stat = os.path.join(stats_dir, 'group_target_identity_%s.txt' % roilabel)
     with open(stat , 'w') as FILE:
         FILE.write(title + os.linesep * 2)
@@ -108,19 +109,19 @@ for roilabel in roilabels:
                             t={'color': 'g', 'linestyle': 'dashed'})
     p.figure.savefig(os.path.join(plots_dir,
                             'group_target_identity_%s.pdf' % roilabel))
-#
-#    # test wordtype effect
-#    title = 'Cluster ANOVA of Wordtype in %s' % roilabel
-#    c = E.testnd.cluster_anova(Y=group_ds[roilabel],
-#                               X=group_ds.eval('wordtype*subject'),
-#                               sub=prime * identity, tstart=wcstart)
-#    stat = os.path.join(stats_dir, 'group_prime_wordtype_%s.txt' % roilabel)
-#    with open(stat , 'w') as FILE:
-#        FILE.write(title + os.linesep * 2)
-#        FILE.write(str(c.as_table()))
-#    wordtype_clusters[roilabel] = c
-#
-#    p = E.plot.uts.clusters(c, figtitle=title,
-#                            t={'color': 'g', 'linestyle': 'dashed'})
-#    p.figure.savefig(os.path.join(plots_dir,
-#                            'group_prime_wordtype_%s.pdf' % roilabel))
+
+    # test wordtype effect
+    title = 'Cluster ANOVA of Wordtype in %s' % roilabel
+    c = E.testnd.cluster_anova(Y=group_ds[roilabel],
+                               X=group_ds.eval('wordtype*subject'),
+                               sub=prime * identity *exclude, tstart=wcstart)
+    stat = os.path.join(stats_dir, 'group_prime_wordtype_%s.txt' % roilabel)
+    with open(stat , 'w') as FILE:
+        FILE.write(title + os.linesep * 2)
+        FILE.write(str(c.as_table()))
+    wordtype_clusters[roilabel] = c
+
+    p = E.plot.uts.clusters(c, figtitle=title,
+                            t={'color': 'g', 'linestyle': 'dashed'})
+    p.figure.savefig(os.path.join(plots_dir,
+                            'group_prime_wordtype_%s.pdf' % roilabel))
