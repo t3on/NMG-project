@@ -12,8 +12,8 @@ root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
 stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'group_ds_st_corr.pickled')
-roilabels = ['lh.middletemporal', 'lh.LPTL']
+saved_data = os.path.join(root, 'data', 'group_ds_sf_corr.pickled')
+roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
@@ -28,11 +28,17 @@ else:
 
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events()
-        meg_ds['st'] = E.var(meg_ds['c1_rating'].x + meg_ds['c2_rating'].x)
-        idx = meg_ds['target'] == 'target'
-        idx2 = np.isnan(meg_ds['st'].x) == False
-        idx3 = meg_ds['st'].x != 0
-        meg_ds = meg_ds[idx * idx2 * idx3]
+        meg_ds = meg_ds[meg_ds['experiment'] == 'experiment']
+        meg_ds['sf'] = E.var(np.zeros(meg_ds.N), name='surface frequency')
+        idx = (meg_ds['target'] == 'prime') * (meg_ds['condition'] == 'first_constituent')
+        meg_ds['sf'][idx] = meg_ds['c1_freq'][idx]
+        idx = meg_ds['condition'] == 'identity'
+        meg_ds['sf'][idx] = meg_ds['word_freq'][idx]
+        idx = (meg_ds['condition'] == 'control_identity') * (meg_ds['target'] == 'target')
+        meg_ds['sf'][idx] = meg_ds['word_freq'][idx]
+        #eliminate certain trials
+        idx = (meg_ds['sf'] != 0) * (np.isnan(meg_ds['sf']) == False)
+        meg_ds = meg_ds[idx]
 
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N
@@ -54,14 +60,14 @@ else:
             else:
                 meg_ds[roilabel] = e.make_stcs(meg_ds, labels=[roilabel],
                                                force_fixed=False)
-
-            #collapsing across sources using a root-mean squared
+            #collapsing across sources
             meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
             #baseline correct source estimates
             meg_ds[roilabel] -= meg_ds[roilabel].summary(time=(tstart, 0))
         del meg_ds['epochs']
         #Append to group level datasets
         datasets.append(meg_ds)
+        del meg_ds
     #combines the datasets for group
     group_ds = E.combine(datasets)
     del datasets
@@ -74,15 +80,16 @@ cstart = 0
 cstop = None
 ctp = .05
 for roilabel in roilabels:
-    title = 'Correlation of Semantic Transparency and Brain Activity in %s' % roilabel
-    a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['st'],
+    title = 'Correlation of Surface Frequency and ' \
+            'Brain Activity in %s' % roilabel
+    a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['sf'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)
-    file = os.path.join(stats_dir, 'group_st_%s.txt' % roilabel)
+    file = os.path.join(stats_dir, 'group_sf_%s.txt' % roilabel)
     with open(file, 'w') as FILE:
         FILE.write(title + os.linesep * 4)
         FILE.write(str(a.as_table()))
     p = E.plot.uts.clusters(a, figtitle=title, axtitle=False,
                             t={'linestyle': 'dashed', 'color': 'g'})
-    p.figure.savefig(os.path.join(corrs_dir, 'group_st_%s.pdf' % roilabel),
+    p.figure.savefig(os.path.join(corrs_dir, 'group_sf_%s.pdf' % roilabel),
                      orientation='landscape')

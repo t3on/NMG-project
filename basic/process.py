@@ -15,16 +15,11 @@ from eelbrain import eellab as E
 from eelbrain.vessels import experiment
 
 rois = {}
-rois['lh.fusiform'] = ['lh.fusiform']
 rois['vmPFC'] = ['lh.vmPFC', 'rh.vmPFC']
-rois['LATL'] = ['lh.LATL']
-rois['lh.inferiortemporal'] = ['lh.inferiortemporal']
-rois['LPTL'] = ['lh.LPTL']
 rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
-rois['lh.cuneus'] = ['lh.cuneus']
 
 fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
-exclude = ['R0338a', 'R0338b', 'R0414', 'R0576', 'R0580']
+#exclude = ['R0224', 'R0338a', 'R0338b', 'R0414', 'R0576', 'R0580']
 #'R0498','R0569', 'R0575', 'R0576'
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
@@ -34,7 +29,7 @@ class NMG(experiment.mne_experiment):
         super(NMG, self).__init__(root=root, subjects=subjects)
         self.bad_channels = bad_channels
         self.logger = logging.getLogger('mne')
-        self.exclude['subject'] = exclude
+#        self.exclude['subject'] = exclude
         self.fake_mris = fake_mris
         self.rois = rois
         self.set(subject=subject)
@@ -69,15 +64,16 @@ class NMG(experiment.mne_experiment):
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
             # fif files
-#            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw_new.fif'), # for self.kit2fiff
-            'rawfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
+            'raw': 'hp1',
+            'raw-base': os.path.join('{fif_sdir}', '{subject}_{experiment}_{raw}'),
+            'raw-file': '{raw-base}-raw.fif',
             'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
 
             # fif files derivatives
             'fwd': os.path.join('{fif_sdir}', '{s_e}_raw-fwd.fif'),
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
             'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
-            'cov': os.path.join('{fif_sdir}', '{s_e}_raw-cov.fif'),
+            'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
             'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                                       '-proj.pdf'),
 
@@ -130,7 +126,7 @@ class NMG(experiment.mne_experiment):
         elp = self.get('elp')
         hsp = self.get('hsp')
         rawsqd = self.get('rawsqd')
-        rawfif = self.get('rawfif')
+        rawfif = self.get('raw-file')
         stim = stim
 
         if 'mrk' in rawfiles:
@@ -164,14 +160,15 @@ class NMG(experiment.mne_experiment):
         """
         self.reset()
         if raw == 'hp1':
-            self.make_filter(raw, hp=1, lp=None, n_jobs=n_jobs, src='lp40',
+            self.make_filter(raw, hp=1, lp=None, n_jobs=n_jobs, src='raw',
                              redo=redo)
+            self.reset()
         else:
             raise ValueError('raw = %r' % raw)
 
 
-    def load_events(self, subject=None, experiment=None, #load_stim_info = True,
-                    remove_bad_chs=True, proj=True, edf=True, treject=25):
+    def load_events(self, subject=None, experiment=None,
+                    remove_bad_chs=True, proj=False, edf=True, treject=25):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -185,7 +182,7 @@ class NMG(experiment.mne_experiment):
         """
         self.set(subject=subject, experiment=experiment)
         self.logger.info('subject: %s' % self.get('subject'))
-        raw_file = self.get('rawfif')
+        raw_file = self.get('raw-file')
         if isinstance(proj, str):
             proj = self.get('proj', projname=proj)
         if proj:
@@ -211,7 +208,7 @@ class NMG(experiment.mne_experiment):
 
         raw = ds.info['raw']
         if remove_bad_chs:
-            bad_chs = self.bad_channels[self.state('subject')]
+            bad_chs = self.bad_channels[self.get('subject')]
             raw.info['bads'].extend(bad_chs)
 
         self.label_events(ds)
@@ -291,11 +288,11 @@ class NMG(experiment.mne_experiment):
         log_ds = logread(self.get('logfile'))
         ds.update(log_ds)
 
-#        #Labels the voice events
-#        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
+        #Labels the voice events
+        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
         index = np.arange(3, ds.N, 4)
         ds['experiment'][index] = 'voice'
-#        #Add block to the ds. 4 events per trial, 240 trials per block
+        #Add block to the ds. 4 events per trial, 240 trials per block
         ds['block'] = E.var(np.repeat(xrange(ds.N / 960), repeats=960,
                                       axis=None))
 
@@ -352,7 +349,7 @@ class NMG(experiment.mne_experiment):
     #    source    #
     ################
 
-    def make_proj(self, write=True, overwrite=False, nprojs=1):
+    def make_proj(self, write=True, overwrite=False, nprojs=1, verbose=False):
         ds = self.load_events(proj=False, edf=False, remove_bad_chs=False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
@@ -364,7 +361,8 @@ class NMG(experiment.mne_experiment):
         ds_fix = ds[ds['experiment'] == 'fixation']
         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
                                         baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs, n_eeg=0)
+        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs,
+                                            n_eeg=0, verbose=verbose)
         proj = [proj[:nprojs]]
 
         if write == True:
@@ -373,8 +371,9 @@ class NMG(experiment.mne_experiment):
         else:
             return proj
 
-    def make_cov(self, write=True, overwrite=False, remove_bad_chs=False):
-        ds = self.load_events(proj=True, edf=False)
+    def make_cov(self, write=True, overwrite=False, remove_bad_chs=False,
+                 verbose=False):
+        ds = self.load_events(proj=False, edf=False, remove_bad_chs=remove_bad_chs)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
                 raise IOError("cov file at %r already exists"
@@ -385,8 +384,9 @@ class NMG(experiment.mne_experiment):
         ds_fix = ds[index]
 
         epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(None, 0),
-                                        reject={'mag':2e-12}, tstart= -.2, tstop=.2)
-        cov = mne.cov.compute_covariance(epochs)
+                                        reject={'mag':2e-12}, tstart= -.2,
+                                        tstop=.2, verbose=verbose)
+        cov = mne.cov.compute_covariance(epochs, verbose=verbose)
 
         if write == True:
             cov.save(self.get('cov'))
@@ -403,7 +403,7 @@ class NMG(experiment.mne_experiment):
         trans = self.get('trans')
         bem = self.get('bem')
         fwd = self.get('fwd')
-        rawfif = self.get('rawfif')
+        rawfif = self.get('raw-file')
         mri_subject = self.get('mrisubject')
         cwd = self.get('mne_bin')
 
@@ -438,7 +438,8 @@ class NMG(experiment.mne_experiment):
 
 
     def make_stcs(self, ds, labels=None, force_fixed=True,
-                    mne_stc=False, stc_type='epochs', lambda2=1. / 9):
+                    mne_stc=False, stc_type='epochs', lambda2=1. / 9,
+                    verbose=False):
 
         """Creates an stc object of transformed data from the ds
 
@@ -458,11 +459,12 @@ class NMG(experiment.mne_experiment):
         """
         cov = mne.read_cov(self.get('cov'))
         #there is currently no solution for creating the fwd as an object directly.
-        fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed)
+        fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed,
+                                        verbose=verbose)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
                                                      depth=None,
                                                      forward=fwd, noise_cov=cov,
-                                                     loose=None, verbose=False)
+                                                     loose=None, verbose=verbose)
 
         #for ROI analyses
         if labels:
@@ -485,12 +487,12 @@ class NMG(experiment.mne_experiment):
             stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
                                                          label=rois,
                                                          lambda2=lambda2,
-                                                         verbose=False)
+                                                         verbose=verbose)
         elif stc_type == 'evoked':
             evoked = ds['epochs'].average()
             stcs = mne.minimum_norm.apply_inverse(evoked, inv,
                                                   lambda2=lambda2,
-                                                  verbose=False)
+                                                  verbose=verbose)
         else:
             error = 'Currently only implemented for epochs and evoked'
             self.logger.info('stc: %s' % error)

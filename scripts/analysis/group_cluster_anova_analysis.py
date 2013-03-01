@@ -11,8 +11,8 @@ import basic.process as process
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_ds_stcs.pickled')
-plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'clusters')
-stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'clusters')
+plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'anovas')
+stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'anovas')
 roilabels = ['lh.fusiform', 'vmPFC', 'LATL', 'lh.inferiortemporal', 'LPTL']
 log_file = os.path.join(root, 'results', 'logs', 'group_cluster_anova_log.txt')
 
@@ -40,12 +40,19 @@ else:
                                             reject={'mag':reject}, preload=True)
         remainder = meg_ds.N * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-
+        if remainder < 80:
+            e.logger.info('subject %s is excluded due to large number '
+                          % e.get('subject') + 'of rejections')
+            del meg_ds
+            continue
         #do source transformation
         for roilabel in roilabels:
-            meg_ds[roilabel] = e.make_stcs(meg_ds,
-                                           labels=tuple(e.rois[roilabel]),
-                                           force_fixed=False)
+            if roilabel in e.rois:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
+                                               force_fixed=False)
+            else:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=roilabel,
+                               force_fixed=False)
             #mean source activity
             meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
             #baseline correct source estimates
@@ -71,18 +78,16 @@ constituent = group_ds['condition'].isany('control_constituent', 'first_constitu
 identity = group_ds['condition'].isany('control_identity', 'identity')
 #creates index for only the prime only identity conditions
 wtype = group_ds['condition'] == 'identity'
-exclude = ~group_ds['subject'].isany('R0574', 'R0575')
 
-constituent_clusters = {}
-identity_clusters = {}
-wordtype_clusters = {}
+sub = len(group_ds['subject'].cells)
+e.logger.info('%d subjects entered into stats.' % sub)
 
 for roilabel in roilabels:
     # test constituent effect
     title = 'Cluster ANOVA of Wordtype by Constituent Priming in %s' % roilabel
     a = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                X=group_ds.eval('condition*wordtype*subject'),
-                               sub=target * constituent *exclude, tstart=cstart)
+                               sub=target * constituent, tstart=cstart)
     stat = os.path.join(stats_dir, 'group_target_constituent_%s.txt' % roilabel)
     with open(stat , 'w') as FILE:
         FILE.write(title + os.linesep * 2)
@@ -98,7 +103,7 @@ for roilabel in roilabels:
     title = 'Cluster ANOVA of Wordtype by Identity Priming in %s' % roilabel
     a = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                X=group_ds.eval('condition*wordtype*subject'),
-                               sub=target * identity *exclude, tstart=cstart)
+                               sub=target * identity, tstart=cstart)
     stat = os.path.join(stats_dir, 'group_target_identity_%s.txt' % roilabel)
     with open(stat , 'w') as FILE:
         FILE.write(title + os.linesep * 2)
@@ -114,7 +119,7 @@ for roilabel in roilabels:
     title = 'Cluster ANOVA of Wordtype in %s' % roilabel
     c = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                X=group_ds.eval('wordtype*subject'),
-                               sub=prime * identity *exclude, tstart=wcstart)
+                               sub=prime * identity, tstart=wcstart)
     stat = os.path.join(stats_dir, 'group_prime_wordtype_%s.txt' % roilabel)
     with open(stat , 'w') as FILE:
         FILE.write(title + os.linesep * 2)
@@ -123,5 +128,5 @@ for roilabel in roilabels:
 
     p = E.plot.uts.clusters(c, figtitle=title,
                             t={'color': 'g', 'linestyle': 'dashed'})
-    p.figure.savefig(os.path.join(plots_dir,
-                            'group_prime_wordtype_%s.pdf' % roilabel))
+    p.figure.savefig(os.path.join(plots_dir, 'group_prime_wordtype_%s.pdf' % roilabel),
+                     orienation='landscape')

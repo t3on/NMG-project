@@ -15,11 +15,10 @@ logs_dir = os.path.join(root, 'results', 'logs')
 saved_data = os.path.join(root, 'data', 'group_ds_tp_corr.pickled')
 roilabels = ['lh.fusiform', 'lh.inferiortemporal']
 
+e = process.NMG()
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
-    e = process.NMG()
-
     datasets = []
 
     tstart = -0.1
@@ -28,9 +27,9 @@ else:
 
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events()
-        index = meg_ds['target'] == 'prime'
-        index2 = meg_ds['condition'].isany('identity')
-        meg_ds = meg_ds[index * index2]
+        index = meg_ds['condition'].isany('identity')
+        index2 = meg_ds['target'] == 'target'
+        meg_ds = meg_ds[index]
 
         index = meg_ds['c1_freq'] != 0
         index2 = np.isnan(meg_ds['c1_freq']) == False
@@ -47,10 +46,19 @@ else:
                                             reject={'mag':reject}, preload=True)
         remainder = meg_ds.N * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
+        if remainder < 80:
+            e.logger.info('subject %s is excluded due to large number '
+                          % e.get('subject') + 'of rejections')
+            del meg_ds
+            continue
         #do source transformation
         for roilabel in roilabels:
-            meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
-                                           force_fixed=False)
+            if roilabel in e.rois:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
+                                               force_fixed=False)
+            else:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=[roilabel],
+                                               force_fixed=False)
             #collapsing across sources
             meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
             #baseline correct source estimates
@@ -64,6 +72,8 @@ else:
     del datasets
     E.save.pickle(group_ds, saved_data)
 
+sub = len(group_ds['subject'].cells)
+e.logger.info('%d subjects entered into stats.' % sub)
 
 cstart = 0
 cstop = None
@@ -74,12 +84,11 @@ for roilabel in roilabels:
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['tp'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)
-    file = os.path.join(stats_dir, 'group_transition_probability_%s.txt'
-                        % roilabel)
+    file = os.path.join(stats_dir, 'group_tp_%s.txt' % roilabel)
     with open(file, 'w') as FILE:
-        FILE.write(title + '\r\n' * 2)
+        FILE.write(title + os.linesep * 4)
         FILE.write(str(a.as_table()))
     p = E.plot.uts.clusters(a, figtitle=title, axtitle=False,
                             t={'linestyle': 'dashed', 'color': 'g'})
-    p.figure.savefig(os.path.join(corrs_dir,
-        'group_transition_probability_corr_%s.pdf' % roilabel))
+    p.figure.savefig(os.path.join(corrs_dir, 'group_tp_%s.pdf' % roilabel),
+                     orientation='landscape')

@@ -34,17 +34,20 @@ else:
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            #baseline=(tstart, 0), reject={'mag':reject}, preload=True)
-                                            reject={'mag':reject}, preload=True)
+                                            baseline=(tstart, 0), reject={'mag':reject}, preload=True)
+#                                            reject={'mag':reject}, preload=True)
         remainder = meg_ds.N * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
         #do source transformation
         for roilabel in roilabels:
-            meg_ds[roilabel] = e.make_stcs(meg_ds, labels=tuple(e.rois[roilabel]),
-                                           force_fixed=False)
+            if roilabel in e.rois:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
+                                               force_fixed=False)
+            else:
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=[roilabel],
+                                               force_fixed=False)
             #collapsing across sources using a root-mean squared
-            meg_ds[roilabel] = meg_ds[roilabel].summary('source',
-                                name='stc')
+            meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
             #baseline correct source estimates
             meg_ds[roilabel] -= meg_ds[roilabel].summary(time=(tstart, 0))
         del meg_ds['epochs']
@@ -55,6 +58,9 @@ else:
     del datasets
     E.save.pickle(group_ds, saved_data)
 
+sub = len(group_ds['subject'].cells)
+e.logger.info('%d subjects entered into stats.' % sub)
+
 cstart = 0
 cstop = None
 ctp = .05
@@ -63,11 +69,11 @@ for roilabel in roilabels:
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['word_length'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)
-    with open(os.path.join(stats_dir,
-                'group_wordlength_%s.txt' % roilabel) , 'w') as FILE:
-        FILE.write(title + '\r\n' * 2)
+    file = os.path.join(stats_dir, 'group_wl_%s.txt' % roilabel)
+    with open(file, 'w') as FILE:
+        FILE.write(title + os.linesep * 4)
         FILE.write(str(a.as_table()))
     p = E.plot.uts.clusters(a, figtitle=title, axtitle=False,
                             t={'linestyle': 'dashed', 'color': 'g'})
-    p.figure.savefig(os.path.join(corrs_dir,
-        'group_wordlength_corr_%s.pdf' % roilabel))
+    p.figure.savefig(os.path.join(corrs_dir, 'group_wl_%s.pdf' % roilabel),
+                     orientation='landscape')
