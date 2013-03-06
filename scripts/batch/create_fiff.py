@@ -7,7 +7,8 @@ Created on Aug 17, 2012
 import basic.process as process
 
 e = process.NMG()
-
+e.exclude = {}
 for _ in e.iter_vars('subject'):
     print e.get('subject')
-    e.kit2fiff()
+    if not os.path.lexists(e.get('raw-file')):
+        e.kit2fiff()

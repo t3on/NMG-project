@@ -24,6 +24,7 @@ fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
     _exp = 'NMG'
+    _experiments = ['NMG']
 
     def __init__(self, subject='{name}', subjects=[], root='~/data'):
         super(NMG, self).__init__(root=root, subjects=subjects)
@@ -37,7 +38,7 @@ class NMG(experiment.mne_experiment):
         t = {
 
             #experiment
-            'experiment': self._exp,
+            'experiment': self._experiments[0],
             'mne_bin': os.path.join('/Applications/mne/bin'),
             'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
                                     'Experiments'),
@@ -64,12 +65,13 @@ class NMG(experiment.mne_experiment):
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
             # fif files
-            'raw': 'hp1',
+            'raw': 'raw',
             'raw-base': os.path.join('{fif_sdir}', '{subject}_{experiment}_{raw}'),
             'raw-file': '{raw-base}-raw.fif',
             'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
 
             # fif files derivatives
+            'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
             'fwd': os.path.join('{fif_sdir}', '{s_e}_raw-fwd.fif'),
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
             'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
@@ -86,7 +88,7 @@ class NMG(experiment.mne_experiment):
                                      '{mrisubject}-head.fif'),
 
             # parameter files
-            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.sqd'),
+            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
             'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
             'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
             'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
@@ -96,9 +98,9 @@ class NMG(experiment.mne_experiment):
             'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
             's_e': '{subject}_{experiment}',
             'rawtxt': os.path.join('{meg_sdir}', '{s_e}' + '-export*.txt'), #to be deprecated
-            'rawsqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
+            'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
-            'stims_info': os.path.join('{exp_dir}', 'stims', 'stims_info.txt'),
+            'stims_info': os.path.join('{exp_db}', 'NMG', 'stims', 'stims_info.txt'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
                                      '{name}', '{s_e}' + '_'),
              'analysis': '',
@@ -119,15 +121,17 @@ class NMG(experiment.mne_experiment):
     #    process    #
     #################
 
-    def kit2fiff(self, stim=range(167, 159, -1), mne_raw=False, verbose=False,
+    def kit2fiff(self, stim='<', mne_raw=False, verbose=False, stimthresh=3.5,
                  overwrite=False, **rawfiles):
+        self.set(raw='raw')
         sns = self.get('sns')
         mrk = self.get('mrk')
         elp = self.get('elp')
         hsp = self.get('hsp')
-        rawsqd = self.get('rawsqd')
+        rawsqd = self.get('raw-sqd')
         rawfif = self.get('raw-file')
         stim = stim
+        stimthresh = stimthresh
 
         if 'mrk' in rawfiles:
             mrk = rawfiles['mrk']
@@ -135,14 +139,14 @@ class NMG(experiment.mne_experiment):
             elp = rawfiles['elp']
         if 'hsp' in rawfiles:
             hsp = rawfiles['hsp']
-        if 'rawsqd' in rawfiles:
-            rawsqd = rawfiles['rawsqd']
-        if 'rawfif' in rawfiles:
-            rawfif = rawfiles['rawfif']
+        if 'raw-sqd' in rawfiles:
+            rawsqd = rawfiles['raw-sqd']
+        if 'raw-file' in rawfiles:
+            rawfif = rawfiles['raw-file']
 
-        if not os.path.lexists(rawfif) or mne_raw or overwrite:
-            raw = kit.read_raw_kit(input_fname=rawsqd, mrk_fname=mrk,
-                               elp_fname=elp, hsp_fname=hsp, sns_fname=sns,
+        if not os.path.lexists(rawfif) or not mne_raw or not overwrite:
+            raw = kit.read_raw_kit(input_fname=rawsqd, mrk=mrk,
+                               elp=elp, hsp=hsp, sns_fname=sns,
                                stim=stim, verbose=verbose)
             if mne_raw:
                 return raw
@@ -151,21 +155,35 @@ class NMG(experiment.mne_experiment):
                 del raw
 
 
-    def do_raw(self, raw='hp1', redo=False, n_jobs=3):
+    def do_raw(self, lp=40, hp=1, redo=False, n_jobs=3):
         """
-        Options
+        Parameters
+        ----------
+        lp : int
+            Lowpass filter.
+        hp : int
+            Highpass filter.
+
+        Returns
         -------
-        'hp1'
-            Highpass at 1 Hz.
+        raw : fif-file
+            New fif-file with filter settings named with template.
         """
         self.reset()
-        if raw == 'hp1':
-            self.make_filter(raw, hp=1, lp=None, n_jobs=n_jobs, src='raw',
+        raw = 'lp-%dhp-%d' % (lp, hp)
+        self.make_filter(raw, hp=hp, lp=lp, n_jobs=n_jobs, src='raw',
                              redo=redo)
-            self.reset()
-        else:
-            raise ValueError('raw = %r' % raw)
+        self.reset()
 
+    def make_fiducials(self):
+        mne.gui.fiducials(self.get('subject'),
+                          subjects_dir=self.get('mri_dir'),
+                          fid_file=self.get('fids'))
+
+    def make_coreg(self):
+        mne.gui.coregistration(raw=self.get('raw-file'),
+                               trans_fname=self.get('trans'),
+                               subjects_dir=self.get('mri_dir'))
 
     def load_events(self, subject=None, experiment=None,
                     remove_bad_chs=True, proj=False, edf=True, treject=25):
@@ -250,8 +268,8 @@ class NMG(experiment.mne_experiment):
 
             exp_mask = 2 ** 7; exp_bit = 7
             target_mask = 2 ** 6; target_bit = 6
-            wtype_mask = 2 ** 3 + 2 ** 4 + 2 ** 5; wtype_bit = 3
-            cond_mask = 2 ** 0 + 2 ** 1 + 2 ** 2; cond_bit = 0
+            wtype_mask = 2 ** 5 + 2 ** 4 + 2 ** 3; wtype_bit = 3
+            cond_mask = 2 ** 2 + 2 ** 1 + 2 ** 0; cond_bit = 0
 
             if (v & exp_mask) >> exp_bit:
                 exp.append((v & exp_mask) >> exp_bit)
