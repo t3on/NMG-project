@@ -12,10 +12,11 @@ import pickle
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_ds_epochs.pickled')
 log_file = os.path.join(root, 'results', 'logs', 'group_ds_epochs')
-plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'sensor')
+plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'qualitative')
 
 e = process.NMG(root='~/data')
 e.exclude = {}
+e.set(raw='hp1_lp40')
 
 tstart = -0.1
 tstop = 0.6

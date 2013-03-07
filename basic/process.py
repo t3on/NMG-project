@@ -568,12 +568,10 @@ def logread(logfile):
 
 # bad chs
 bad_channels = defaultdict(lambda: ['MEG 065'])
-bad_channels['R0095'].extend(['MEG 151'])
 bad_channels['R0224'].extend(['MEG 030', 'MEG 031', 'MEG 064',
-                              'MEG 138'])
+                              'MEG 075', 'MEG 110' 'MEG 138'])
 bad_channels['R0498'].extend(['MEG 066'])
 bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 138'])
-bad_channels['R0569'].extend(['MEG 143', 'MEG 090', 'MEG 151', 'MEG 084'])
 bad_channels['R0576'].extend(['MEG 143'])
 bad_channels['R0580'].extend(['MEG 001', 'MEG 084', 'MEG 143',
                               'MEG 160', 'MEG161'])
