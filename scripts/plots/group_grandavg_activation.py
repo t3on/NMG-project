@@ -15,7 +15,7 @@ e.set(raw='hp1_lp40')
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_stcs_activation.pickled')
-plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'qualitative')
+plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
 
 if os.path.lexists(saved_data):
     group_stcs = pickle.load(open(saved_data))
@@ -37,7 +37,7 @@ else:
 
         #add epochs to the dataset after excluding bad channels
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=(tstart, 0), reject={'mag':reject}, preload=True)
+                                            baseline=None, reject={'mag':reject}, preload=True)
 #                                            reject={'mag':reject}, preload=True)
         #do source transformation
         stcs.append(e.make_stcs(meg_ds, stc_type='evoked',

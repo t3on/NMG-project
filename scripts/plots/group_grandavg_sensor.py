@@ -10,9 +10,8 @@ import basic.process as process
 import pickle
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-saved_data = os.path.join(root, 'data', 'group_ds_epochs.pickled')
-log_file = os.path.join(root, 'results', 'logs', 'group_ds_epochs')
-plots_dir = os.path.join(root, 'results', 'meg', 'plots', 'qualitative')
+saved_data = os.path.join(root, 'data', 'group_epochs_plots.pickled')
+plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
 
 e = process.NMG(root='~/data')
 e.exclude = {}

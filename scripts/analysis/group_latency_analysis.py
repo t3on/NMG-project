@@ -16,7 +16,7 @@ stats_dir = os.path.join(root, 'results', 'behavioral', 'stats')
 constituent_stats = os.path.join(stats_dir, 'group_latency_constituent.txt')
 identity_stats = os.path.join(stats_dir, 'group_latency_identity.txt')
 log_file = os.path.join(root, 'results', 'logs', 'group_latency_log.txt')
-saved_data = os.path.join(root, 'data', 'group_ds_latency.pickled')
+saved_data = os.path.join(root, 'data', 'latency.pickled')
 
 group_ds = []
 e = process.NMG()
@@ -28,17 +28,17 @@ else:
         ds = e.load_events(proj=False)
         ds = ds[ds['target'] == 'target']
         orig_N = ds.N
-    
+
         # outlier rejection
         devs = np.abs(ds['latency'].x - ds['latency'].x.mean())
         criterion = 2 * ds['latency'].x.std().repeat(ds.N)
         good = devs < criterion
         ds = ds[good]
-    
+
         remainder = ds.N * 100. / orig_N
         e.logger.info('latency: %d' % remainder + r'% ' + 'remain after outlier rejection')
         group_ds.append(ds)
-    
+
     group_ds = E.combine(group_ds)
     group_ds = group_ds.compress(group_ds['condition'] % group_ds['wordtype'] %
                                  group_ds['subject'], drop_bad=True)
@@ -85,22 +85,22 @@ idz = group_ds['condition'] == 'first_constituent'
 group_ds['condition'][idz] = 'f_c'
 
 # plot constituent conditions
-ct = E.celltable(group_ds['latency'], 
-                 group_ds['wordtype'] % group_ds['condition'], 
+ct = E.celltable(group_ds['latency'],
+                 group_ds['wordtype'] % group_ds['condition'],
                  match=group_ds['subject'])
 novel = ct.data[('novel', 'f_c')] - ct.data[('novel', 'c_c')]
 opaque = ct.data[('opaque', 'f_c')] - ct.data[('opaque', 'c_c')]
 ortho = ct.data[('ortho', 'f_c')] - ct.data[('ortho', 'c_c')]
 transparent = ct.data[('transparent', 'f_c')] - ct.data[('transparent', 'c_c')]
 Y = E.combine((novel, opaque, ortho, transparent))
-X = E.factor(('novel', 'opaque', 'ortho', 'transparent'), 
+X = E.factor(('novel', 'opaque', 'ortho', 'transparent'),
              rep=len(ds['subject'].cells), name='wordtype')
 sub = E.factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
 group_plot = E.dataset(sub, Y, X)
-p = E.plot.uv.boxplot(Y, X, match = sub, figsize=(20, 5), 
+p = E.plot.uv.boxplot(Y, X, match=sub, figsize=(20, 5),
                        title="Constituent Condition Group Latency Means")
 p.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
-p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5), 
+p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5),
                       title="Constituent Condition Group Latency Means")
 p.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_constituent.pdf'))
 

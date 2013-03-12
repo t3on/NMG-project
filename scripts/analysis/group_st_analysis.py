@@ -9,17 +9,18 @@ import basic.process as process
 import os
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
-stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
+corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
+stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'group_ds_st_corr.pickled')
+saved_data = os.path.join(root, 'data', 'st_corr.pickled')
 roilabels = ['lh.middletemporal', 'lh.LPTL']
+
+e = process.NMG()
+e.set(raw='hp1_lp40')
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
-    e = process.NMG()
-
     datasets = []
 
     tstart = -0.1

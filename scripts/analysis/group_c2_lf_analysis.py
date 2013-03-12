@@ -9,17 +9,18 @@ import basic.process as process
 import os
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
-stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
+corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
+stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'group_ds_c2_sf_corr.pickled')
+saved_data = os.path.join(root, 'data', 'c2_sf_corr.pickled')
 roilabels = ['lh.fusiform', 'lh.inferiortemporal']
+
+e = process.NMG()
+e.set(raw='hp1_lp40')
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
-    e = process.NMG()
-
     datasets = []
 
     tstart = -0.1
@@ -56,7 +57,7 @@ else:
                 meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
                                                force_fixed=False)
             else:
-                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=roilabel,
+                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=[roilabel],
                                force_fixed=False)
             #collapsing across sources
             meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')

@@ -8,11 +8,13 @@ import os
 import mne
 import scipy.stats as stats
 import basic.process as process
+import cPickle as pickle
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 saved_data = os.path.join(root, 'data', 'group_visual_response_morphed_stcs.pickled')
 
 e = process.NMG(root='~/data')
+e.set(raw='hp1_lp40')
 
 movie_dir = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments',
                           'NMG', 'results', 'visuals', 'movies')
@@ -61,10 +63,10 @@ else:
     group_ds = E.dataset(subjects_list, stcs)
     E.save.pickle(group_ds, saved_data)
 
-group_ds['stcs'] -= group_ds['stcs'].summary(time=(tstart, 0))
+group_ds['morphed'] -= group_ds['morphed'].summary(time=(tstart, 0))
 tt = E.testnd.ttest(Y=group_ds['morphed'])
 
-a = E.plot.brain.stat(tt.p, hemi='lh')#, p0=.01, p1=.001)
+a = E.plot.brain.stat(tt.p, hemi='lh')  #, p0=.01, p1=.001)
 a.lh.show_view('lateral')
 a.animate(save_mov=os.path.join(movie_dir, 'group-lateral.mov'))
 

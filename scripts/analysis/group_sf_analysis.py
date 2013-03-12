@@ -9,16 +9,18 @@ import basic.process as process
 import os
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-corrs_dir = os.path.join(root, 'results', 'meg', 'plots', 'corrs')
-stats_dir = os.path.join(root, 'results', 'meg', 'stats', 'corrs')
+corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
+stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'group_ds_sf_corr.pickled')
+saved_data = os.path.join(root, 'data', 'sf_corr.pickled')
 roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
+
+e = process.NMG()
+e.set(raw='hp1_lp40')
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
 else:
-    e = process.NMG()
 
     datasets = []
 
@@ -43,8 +45,8 @@ else:
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=(tstart, 0), reject={'mag':reject}, preload=True)
-#                                            reject={'mag':reject}, preload=True)
+                                            baseline=(tstart, 0),
+                                            reject={'mag':reject}, preload=True)
         remainder = meg_ds.N * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
         if remainder < 80:

@@ -14,13 +14,7 @@ import mne.fiff.kit as kit
 from eelbrain import eellab as E
 from eelbrain.vessels import experiment
 
-rois = {}
-rois['vmPFC'] = ['lh.vmPFC', 'rh.vmPFC']
-rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
 
-fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
-#exclude = ['R0224', 'R0338a', 'R0338b', 'R0414', 'R0576', 'R0580']
-#'R0498','R0569', 'R0575', 'R0576'
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
     _exp = 'NMG'
@@ -30,14 +24,13 @@ class NMG(experiment.mne_experiment):
         super(NMG, self).__init__(root=root, subjects=subjects)
         self.bad_channels = bad_channels
         self.logger = logging.getLogger('mne')
-#        self.exclude['subject'] = exclude
+        self.exclude['subject'] = exclude
         self.fake_mris = fake_mris
         self.rois = rois
         self.set(subject=subject)
     def get_templates(self):
         t = {
-
-            #experiment
+            # experiment
             'experiment': self._experiments[0],
             'mne_bin': os.path.join('/Applications/mne/bin'),
             'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
@@ -47,14 +40,13 @@ class NMG(experiment.mne_experiment):
             # basic dir
             'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
             'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
-            'fif_sdir': os.path.join('{exp_sdir}', 'myfif'),
+            'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
             'meg_dir': os.path.join('{root}', '{experiment}'),
 
             # mri dir
             'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
             'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
             'label_sdir': os.path.join('{mri_sdir}', 'label'),
-
 
             # raw folders
             'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
@@ -68,13 +60,13 @@ class NMG(experiment.mne_experiment):
             'raw': 'raw',
             'raw-base': os.path.join('{fif_sdir}', '{subject}_{experiment}_{raw}'),
             'raw-file': '{raw-base}-raw.fif',
-            'trans': os.path.join('{fif_sdir}', '{s_e}_raw-trans.fif'), # mne p. 196
+            'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
 
             # fif files derivatives
             'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
-            'fwd': os.path.join('{fif_sdir}', '{s_e}_raw-fwd.fif'),
+            'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
             'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
-            'inv': os.path.join('{fif_sdir}', '{s_e}_raw-inv.fif'),
+            'inv': os.path.join('{fif_sdir}', '{s_e}_{raw}-inv.fif'),
             'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
             'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                                       '-proj.pdf'),
@@ -102,7 +94,7 @@ class NMG(experiment.mne_experiment):
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
             'stims_info': os.path.join('{exp_db}', 'NMG', 'stims', 'stims_info.txt'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
-                                     '{name}', '{s_e}' + '_'),
+                                     '{s_e}' + '.png'),
              'analysis': '',
 
             # eye-tracker
@@ -112,7 +104,6 @@ class NMG(experiment.mne_experiment):
             # EEG
             'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
             'eegfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
-
             }
 
         return t
@@ -170,7 +161,7 @@ class NMG(experiment.mne_experiment):
             New fif-file with filter settings named with template.
         """
         self.reset()
-        raw = 'lp-%dhp-%d' % (lp, hp)
+        raw = 'hp%d_lp%d' % (hp, lp)
         self.make_filter(raw, hp=hp, lp=lp, n_jobs=n_jobs, src='raw',
                              redo=redo)
         self.reset()
@@ -225,6 +216,7 @@ class NMG(experiment.mne_experiment):
         ds['scenario'] = E.var(np.repeat(scenario, 2))
 
         raw = ds.info['raw']
+        raw.verbose = False
         if remove_bad_chs:
             bad_chs = self.bad_channels[self.get('subject')]
             raw.info['bads'].extend(bad_chs)
@@ -480,7 +472,7 @@ class NMG(experiment.mne_experiment):
         fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed,
                                         verbose=verbose)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
-                                                     depth=None,
+                                                     depth=None, fixed=force_fixed,
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
 
@@ -575,4 +567,11 @@ bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 138'])
 bad_channels['R0576'].extend(['MEG 143'])
 bad_channels['R0580'].extend(['MEG 001', 'MEG 084', 'MEG 143',
                               'MEG 160', 'MEG161'])
-
+# rois
+rois = {}
+rois['vmPFC'] = ['lh.vmPFC', 'rh.vmPFC']
+rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
+# fake mris
+fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
+#subject to exclude
+exclude = ['R0224', 'R0414', 'R0576', 'R0580']
