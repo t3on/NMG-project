@@ -8,15 +8,16 @@ import eelbrain.eellab as E
 import basic.process as process
 import os
 
+filter = 'hp1_lp40'
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
 stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'tp_corr.pickled')
+saved_data = os.path.join(root, 'data', 'tp_corr_%s.pickled' % filter)
 roilabels = ['lh.fusiform', 'lh.inferiortemporal']
 
 e = process.NMG()
-e.set(raw='hp1_lp40')
+e.set(raw=filter)
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
@@ -29,27 +30,28 @@ else:
 
     for _ in e.iter_vars(['subject']):
         meg_ds = e.load_events()
-        index = meg_ds['condition'].isany('identity')
-        index2 = meg_ds['target'] == 'target'
-        meg_ds = meg_ds[index]
+        index = meg_ds['wordtype'].isany('transparent', 'opaque')
+        index2 = meg_ds['condition'].isany('control_identity', 'identity')
+#        index2 = meg_ds['condition'] == 'control_constituent'
+#        index3 = meg_ds['target'] == 'target'
+        meg_ds = meg_ds[index * index2]
 
         index = meg_ds['c1_freq'] != 0
-        index2 = np.isnan(meg_ds['c1_freq']) == False
+        index2 = ~np.isnan(meg_ds['c1_freq'])
         index3 = meg_ds['word_freq'] != 0
-        index4 = np.isnan(meg_ds['word_freq']) == False
+        index4 = ~np.isnan(meg_ds['word_freq'])
         meg_ds = meg_ds[index * index2 * index3 * index4]
 
         meg_ds['tp'] = meg_ds['word_freq'] / meg_ds['c1_freq']
 
         #add epochs to the dataset after excluding bad channels
-        orig_N = meg_ds.N
+        orig_N = meg_ds.n_cases
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            #baseline=(tstart, 0), reject={'mag':reject},
-                                            reject={'mag':reject},
-                                            preload=True, verbose=False)
-        remainder = meg_ds.N * 100 / orig_N
+                                            baseline=(tstart, 0),
+                                            reject={'mag':reject}, preload=True)
+        remainder = meg_ds.n_cases * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-        if remainder < 80:
+        if remainder < 50:
             e.logger.info('subject %s is excluded due to large number '
                           % e.get('subject') + 'of rejections')
             del meg_ds
@@ -80,8 +82,7 @@ cstart = 0
 cstop = None
 ctp = .05
 for roilabel in roilabels:
-    title = 'Correlation of Transition Probability and ' \
-            'Brain Activity in %s' % roilabel
+    title = 'Correlation of Transition Probability in %s' % roilabel
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['tp'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)

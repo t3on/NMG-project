@@ -11,7 +11,7 @@ import eelbrain.eellab as E
 from eelbrain.vessels.structure import celltable
 
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-plots_dir = os.path.join(root, 'results', 'behavioral', 'stats')
+plots_dir = os.path.join(root, 'results', 'behavioral')
 stats_dir = os.path.join(root, 'results', 'behavioral', 'stats')
 constituent_stats = os.path.join(stats_dir, 'group_latency_constituent.txt')
 identity_stats = os.path.join(stats_dir, 'group_latency_identity.txt')
@@ -27,15 +27,15 @@ else:
     for _ in e.iter_vars(['subject']):
         ds = e.load_events(proj=False)
         ds = ds[ds['target'] == 'target']
-        orig_N = ds.N
+        orig_N = ds.n_cases
 
         # outlier rejection
         devs = np.abs(ds['latency'].x - ds['latency'].x.mean())
-        criterion = 2 * ds['latency'].x.std().repeat(ds.N)
+        criterion = 2 * ds['latency'].x.std().repeat(ds.n_cases)
         good = devs < criterion
         ds = ds[good]
 
-        remainder = ds.N * 100. / orig_N
+        remainder = ds.n_cases * 100. / orig_N
         e.logger.info('latency: %d' % remainder + r'% ' + 'remain after outlier rejection')
         group_ds.append(ds)
 
@@ -94,13 +94,14 @@ ortho = ct.data[('ortho', 'f_c')] - ct.data[('ortho', 'c_c')]
 transparent = ct.data[('transparent', 'f_c')] - ct.data[('transparent', 'c_c')]
 Y = E.combine((novel, opaque, ortho, transparent))
 X = E.factor(('novel', 'opaque', 'ortho', 'transparent'),
-             rep=len(ds['subject'].cells), name='wordtype')
+             rep=len(group_ds['subject'].cells), name='wordtype')
 sub = E.factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
 group_plot = E.dataset(sub, Y, X)
-p = E.plot.uv.boxplot(Y, X, match=sub, figsize=(20, 5),
-                       title="Constituent Condition Group Latency Means")
-p.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
+#p = E.plot.uv.boxplot(Y, X, match=sub, figsize=(20, 5),
+#                       title="Constituent Condition Group Latency Means")
+#p.fig.savefig(os.path.join(plots_dir, 'group_box_latency_constituent.pdf'))
 p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5),
+                      ylabel='Latency Difference in s',
                       title="Constituent Condition Group Latency Means")
 p.fig.savefig(os.path.join(plots_dir, 'group_bar_latency_constituent.pdf'))
 

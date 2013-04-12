@@ -9,13 +9,14 @@ import os
 import basic.process as process
 import pickle
 
+filter = 'hp1_lp40'
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-saved_data = os.path.join(root, 'data', 'group_epochs_plots.pickled')
+saved_data = os.path.join(root, 'data', 'group_epochs_%s_plots.pickled' % filter)
 plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
 
 e = process.NMG(root='~/data')
 e.exclude = {}
-e.set(raw='hp1_lp40')
+e.set(raw=filter)
 
 tstart = -0.1
 tstop = 0.6
@@ -53,6 +54,8 @@ for i, _ in enumerate(group_ds):
     target.append(group_ds[i][idx][subject])
 
 #prime
-E.plot.utsnd.butterfly(prime).figure.savefig(os.path.join(plots_dir, 'primes_grandavg_epochs.pdf'))
+p = E.plot.utsnd.butterfly(prime)
+p.figure.savefig(os.path.join(plots_dir, 'primes_grandavg_%s_epochs.pdf' % filter))
 #target
-E.plot.utsnd.butterfly(target).figure.savefig(os.path.join(plots_dir, 'target_grandavg_epochs.pdf'))
+p = E.plot.utsnd.butterfly(target)
+p.figure.savefig(os.path.join(plots_dir, 'targets_grandavg_%s_epochs.pdf' % filter))

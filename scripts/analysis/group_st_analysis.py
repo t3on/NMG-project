@@ -31,18 +31,19 @@ else:
         meg_ds = e.load_events()
         meg_ds['st'] = E.var(meg_ds['c1_rating'].x + meg_ds['c2_rating'].x)
         idx = meg_ds['target'] == 'target'
+        idy = meg_ds['condition'] == 'identity'
         idx2 = np.isnan(meg_ds['st'].x) == False
         idx3 = meg_ds['st'].x != 0
-        meg_ds = meg_ds[idx * idx2 * idx3]
+        meg_ds = meg_ds[(idx | idy) * idx2 * idx3]
 
         #add epochs to the dataset after excluding bad channels
         orig_N = meg_ds.N
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=(tstart, 0), reject={'mag':reject}, preload=True)
-#                                            reject={'mag':reject}, preload=True)
+                                            baseline=(tstart, 0),
+                                            reject={'mag':reject}, preload=True)
         remainder = meg_ds.N * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-        if remainder < 80:
+        if remainder < 50:
             e.logger.info('subject %s is excluded due to large number '
                           % e.get('subject') + 'of rejections')
             del meg_ds
@@ -69,13 +70,14 @@ else:
     E.save.pickle(group_ds, saved_data)
 
 sub = len(group_ds['subject'].cells)
-e.logger.info('%d subjects entered into stats.' % sub)
+e.logger.info('%d subjects entered into stats.\n %s'
+              % (sub, group_ds['subject'].cells))
 
 cstart = 0
 cstop = None
 ctp = .05
 for roilabel in roilabels:
-    title = 'Correlation of Semantic Transparency and Brain Activity in %s' % roilabel
+    title = 'Correlation of Semantic Transparency in %s' % roilabel
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['st'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)

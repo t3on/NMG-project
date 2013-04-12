@@ -8,15 +8,16 @@ import eelbrain.eellab as E
 import basic.process as process
 import os
 
+filter = 'hp1_lp40'
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
 stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'wl_corr.pickled')
+saved_data = os.path.join(root, 'data', 'wl_corr_%s.pickled' % filter)
 roilabels = ['lh.fusiform', 'cuneus']
 
 e = process.NMG()
-e.set(raw='hp1_lp40')
+e.set(raw=filter)
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))
@@ -33,13 +34,13 @@ else:
         meg_ds = meg_ds[index]
 
         #add epochs to the dataset after excluding bad channels
-        orig_N = meg_ds.N
+        orig_N = meg_ds.n_cases
         meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=(tstart, 0), reject={'mag':reject}, preload=True)
-#                                            reject={'mag':reject}, preload=True)
-        remainder = meg_ds.N * 100 / orig_N
+                                            baseline=(tstart, 0),
+                                            reject={'mag':reject}, preload=True)
+        remainder = meg_ds.n_cases * 100 / orig_N
         e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-        if remainder < 80:
+        if remainder < 50:
             e.logger.info('subject %s is excluded due to large number '
                           % e.get('subject') + 'of rejections')
             del meg_ds
@@ -65,13 +66,14 @@ else:
     E.save.pickle(group_ds, saved_data)
 
 sub = len(group_ds['subject'].cells)
-e.logger.info('%d subjects entered into stats.' % sub)
+e.logger.info('%d subjects entered into stats.\n %s'
+              % (sub, group_ds['subject'].cells))
 
 cstart = 0
 cstop = None
 ctp = .05
 for roilabel in roilabels:
-    title = 'Correlation of Word Length and Brain Activity in %s' % roilabel
+    title = 'Correlation of Word Length in %s' % roilabel
     a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['word_length'],
                               norm=group_ds['subject'], tstart=cstart,
                               tstop=cstop, tp=ctp)
