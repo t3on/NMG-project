@@ -28,7 +28,6 @@ class NMG(experiment.mne_experiment):
         self.logger = logging.getLogger('mne')
         self.exclude['subject'] = exclude
         self.fake_mris = fake_mris
-        self.rois = rois
         self.cm = cm
         self.set(subject=subject)
     def get_templates(self):
@@ -61,12 +60,12 @@ class NMG(experiment.mne_experiment):
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
             # fif files
-            'raw': 'calm',
+            'raw': 'hp1_lp40',
             'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
             'raw-file': '{raw-base}-raw.fif',
             'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
 
-            'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.fif'),
+            'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pydat'),
 
             # fif files derivatives
             'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
@@ -109,6 +108,14 @@ class NMG(experiment.mne_experiment):
             # EEG
             'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
             'eegfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
+
+            # BESA
+            'besa_fsg': os.path.join('{BESA_dir}', '{s_e}_epochs_av.fsg'),
+            'besa_elv': os.path.join('{BESA_dir}', '{s_e}_epochs_av.elv'),
+            'besa_pdg': os.path.join('{BESA_dir}', '{exp}.PDG'),
+            'besa_dat': os.path.join('{BESA_dir}', '{s_e}_*-*.dat'),
+            'besa_cfg': os.path.join('{BESA_dir}', 'BESA_MN.cfg'),
+
             }
 
         return t
@@ -469,7 +476,7 @@ class NMG(experiment.mne_experiment):
 
 
     def make_stcs(self, ds, labels=None, force_fixed=True,
-                    mne_stc=False, stc_type='epochs', verbose=False):
+                  stc_type='evoked', verbose=False):
 
         """Creates an stc object of transformed data from the ds
 
@@ -488,7 +495,6 @@ class NMG(experiment.mne_experiment):
             'evoked'
         """
         cov = mne.read_cov(self.get('cov'))
-        #there is currently no solution for creating the fwd as an object directly.
         fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed,
                                         verbose=verbose)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
@@ -497,19 +503,7 @@ class NMG(experiment.mne_experiment):
                                                      loose=None, verbose=verbose)
 
         #for ROI analyses
-        if labels:
-            rois = []
-            for label in labels:
-                rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
-                                                        label + '.label')))
-
-            if len(rois) > 1:
-                roi = rois.pop(0)
-                rois = sum(rois, roi)
-            elif len(rois) == 1:
-                rois = rois[0]
-        else:
-            rois = None
+        rois = self.read_label(labels)
 
         #makes stc epochs or evoked
         if stc_type == 'epochs':
@@ -518,22 +512,31 @@ class NMG(experiment.mne_experiment):
                                                          label=rois,
                                                          lambda2=1. / 2 ** 2,
                                                          verbose=verbose)
+            stcs = E.load.fiff.stc_ndvar(stcs, subject=self.get('mrisubject'))
+            return stcs
         elif stc_type == 'evoked':
-            evoked = ds['epochs'].average()
-            stcs = mne.minimum_norm.apply_inverse(evoked, inv,
+            stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
                                                   lambda2=1. / 3 ** 2,
                                                   verbose=verbose)
+            return stcs
         else:
             error = 'Currently only implemented for epochs and evoked'
             self.logger.info('stc: %s' % error)
             raise TypeError(error)
 
-        #makes stc object or ndvar
-        if not mne_stc:
-            stcs = E.load.fiff.stc_ndvar(stcs, subject=self.get('mrisubject'))
+    def read_label(self, labels):
+        "label: list"
+        rois = []
+        for label in labels:
+            rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
+                                                    label + '.label')))
 
-        return stcs
-
+        if len(rois) > 1:
+            roi = rois.pop(0)
+            rois = sum(rois, roi)
+        elif len(rois) == 1:
+            rois = rois[0]
+        return rois
 
 def read_log(logfile):
 
@@ -634,9 +637,7 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 114'])
 ###############################
 
 # rois
-rois = {}
-rois['vmPFC'] = ['lh.vmPFC', 'rh.vmPFC']
-rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
+#rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
 
 # fake mris
 fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
