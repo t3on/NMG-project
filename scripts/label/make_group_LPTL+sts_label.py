@@ -21,6 +21,8 @@ for _ in e.iter_vars(['subject']):
     post_inf = kit.split_label(mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.inferiortemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[0]
-    LPTL = post_super + post_mid + post_inf
+    sts = mne.read_label(os.path.join(e.get('label_sdir'),
+                                      'lh.bankssts.label'))
+    LPTL = post_super + post_mid + post_inf + sts
 
-    mne.write_label(os.path.join(e.get('label_sdir'), 'lh.LPTL.label'), LPTL)
+    mne.write_label(os.path.join(e.get('label_sdir'), 'lh.LPTL+sts.label'), LPTL)
