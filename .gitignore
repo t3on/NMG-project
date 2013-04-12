@@ -30,3 +30,7 @@ basic/.DS_Store
 basic/.DS_Store
 
 basic.egg-info/SOURCES.txt
+
+*.m
+
+/scripts/besa
