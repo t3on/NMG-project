@@ -13,98 +13,44 @@ import basic.process as process
 filter = 'hp1_lp40'
 tstart = -0.1
 tstop = 0.6
-reject = 3e-12
+reject = {'mag': 3e-12}
 
-# analysis parameter
+# analysis parameters
 orient = 'fixed'
 e_type = 'evoked'
+test = 'target_analysis'
 conditions = ['constituent', 'identity']
 
-root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-plots_dir = os.path.join(root, 'results', 'meg', 'anovas', 'targets', orient)
-stats_dir = os.path.join(root, 'results', 'meg', 'anovas', 'targets', orient, 'stats')
-wf_dir = os.path.join(root, 'results', 'meg', 'waveforms', 'targets', orient)
-
-# rois
-vmPFC = ['lh.vmPFC', 'rh.vmPFC']
-#roilabels = ['lh.ant_fusiform', 'lh.post_fusiform']
-#roilabels = ['lh.inferiortemporal', vmPFC, 'lh.LATL', 'lh.LPTL']
-roilabels = ['lh.LPTL']
-roititles = ['Posterior Temporal Gyrii']
-
+# initialize experiment
+e = process.NMG()
 datasets = []
 
-e = process.NMG()
-e.set(raw=filter)
-e.set(analysis='_'.join((e_type, filter, str(tstart), str(tstop))))
+# directory info
+plots_dir = e.get('plots_dir', dtype='meg', stat='anovas', orient=orient, mkdir=True)
+wf_dir = e.get('wf_dir', dtype='meg', stat='waveforms', orient=orient, mkdir=True)
+stats_dir = e.get('stats_dir', dtype='meg', stat='anovas', orient=orient, mkdir=True)
 
-if orient == 'free':
-    fixed = False
-elif orient == 'fixed':
-    fixed = True
-else:
-    raise ValueError
+# rois
+rois = [['lh.vmPFC', 'rh.vmPFC'], 'lh.ant_fusiform', 'lh.post_fusiform',
+        'lh.LATL', 'lh.LPTL']
+roilabels = ['vmPFC', 'ant_fusiform', 'post_fusiform', 'LATL', 'LPTL']
+roititles = ['vmPFC', 'anterior Fusiform', 'posterior Fusiform', 'LATL',
+             'Posterior Temporal Gyrii']
 
 for _ in e.iter_vars(['subject']):
-    if os.path.lexists(e.get('data-file')):
-        print e.get('subject')
-        meg_ds = pickle.load(open(e.get('data-file')))
-    else:
-        meg_ds = e.load_events(edf=True)
-        index = meg_ds['target'].isany('prime', 'target')
-        meg_ds = meg_ds[index]
-
-        #add epochs to the dataset after excluding bad channels
-        orig_N = meg_ds.n_cases
-        meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            reject={'mag':reject},
-                                            baseline=None,
-                                            preload=True, verbose=False)
-        remainder = meg_ds.n_cases * 100 / orig_N
-        e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-        if remainder < 50:
-            e.logger.info('subject %s is excluded due to large number '
-                          % e.get('subject') + 'of rejections')
-            del meg_ds
-            continue
-        #do source transformation
-        meg_ds = meg_ds.compress(meg_ds['condition'] % meg_ds['wordtype'] %
-                                 meg_ds['target'], drop_bad=True)
-        E.save.pickle(meg_ds, e.get('data-file', mkdir=True))
-
+    meg_ds = e.process_evoked(raw=raw, e_type=e_type, tstart=tstart,
+                              tstop=tstop, reject=reject)
+    if meg_ds is None:
+        continue
     # filter
     meg_ds = meg_ds[meg_ds['target'] == 'target']
     # source computation
-    stcs = []
-    for ds in meg_ds.itercases():
-        stcs.append(e.make_stcs(ds, force_fixed=fixed, stc_type=e_type))
-    del meg_ds['epochs']
-    # extract rois
-    for roilabel in roilabels:
-        stc_rois = []
-        for stc in stcs:
-            if roilabel in e.rois:
-                roi = e.read_label(e.rois[roilabel])
-                roi = stc.in_label(roi)
-                mri = e.get('mrisubject')
-                roi = E.load.fiff.stc_ndvar(roi, subject=mri)
-                roi = roi.summary('source', name='stc')
-                roi.x -= roi.summary(time=(tstart, 0))
-                stc_rois.append(roi)
-            else:
-                roi = e.read_label([roilabel])
-                roi = stc.in_label(roi)
-                mri = e.get('mrisubject')
-                roi = E.load.fiff.stc_ndvar(roi, subject=mri)
-                roi = roi.summary('source', name='stc')
-                roi.x -= roi.summary(time=(tstart, 0))
-                stc_rois.append(roi)
-        meg_ds[roilabel] = E.combine(stc_rois)
+    meg_ds = e.source_evoked(meg_ds, rois, roilabels, tstart, tstop)
     # append to group level datasets
     datasets.append(meg_ds)
-
 # combines the datasets for group
 group_ds = E.combine(datasets)
+E.save.pickle(group_ds, e.get('group-file', test=test, orient=orient))
 del datasets
 
 #create index for only the constituent conditions
