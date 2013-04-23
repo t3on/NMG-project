@@ -8,13 +8,15 @@ import os
 import logging
 from subprocess import Popen, PIPE
 from collections import defaultdict
+import cPickle as pickle
 import numpy as np
 from numpy import hstack as nphs
 import scipy.io as sio
 import mne
-import mne.fiff.kit as kit
+import mne.fiff.kit as KIT
 from eelbrain import eellab as E
 from eelbrain.vessels import experiment
+import eelbrain.utils.kit as kit
 
 
 class NMG(experiment.mne_experiment):
@@ -35,9 +37,17 @@ class NMG(experiment.mne_experiment):
             # experiment
             'experiment': self._experiments[0],
             'mne_bin': os.path.join('/Applications/mne/bin'),
+
+            # db dirs
             'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                                    'Experiments'),
-            'results': os.path.join('{exp_db}', 'NMG', 'results'),
+                                    'Experiments', '{experiment}'),
+            'results': os.path.join('{exp_db}', 'results'),
+            'plots_dir': os.path.join('{results}', '{dtype}', '{stat}',
+                                      '{orient}', ''),
+            'stats_dir': os.path.join('{results}', '{dtype}', '{stat}',
+                                      '{orient}', 'stats', ''),
+            'wf_dir': os.path.join('{results}', '{dtype}', '{stat}',
+                                   '{orient}', ''),
 
             # basic dir
             'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
@@ -45,6 +55,7 @@ class NMG(experiment.mne_experiment):
             'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
             'data_sdir': os.path.join('{exp_sdir}', 'data'),
             'meg_dir': os.path.join('{root}', '{experiment}'),
+            'group_dir': os.path.join('{meg_dir}', 'group'),
 
             # mri dir
             'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
@@ -60,12 +71,13 @@ class NMG(experiment.mne_experiment):
             'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
             # fif files
-            'raw': 'hp1_lp40',
             'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
             'raw-file': '{raw-base}-raw.fif',
             'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
 
+            # saved data
             'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pydat'),
+            'group-file': os.path.join('{group_dir}', 'group_{test}-{orient}.pydat'),
 
             # fif files derivatives
             'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
@@ -92,14 +104,21 @@ class NMG(experiment.mne_experiment):
 
             # raw files
             # legacy. looks in the fif folder for file pattern
-            'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
-            's_e': '{subject}_{experiment}',
             'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
             'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
-            'stims_info': os.path.join('{exp_db}', 'NMG', 'stims', 'stims_info.mat'),
+            'stim_info': os.path.join('{exp_db}', 'stims', 'stims_info.mat'),
             'plot_png': os.path.join('{results}', 'visuals', 'helmet',
                                      '{s_e}' + '.png'),
-             'analysis': '',
+
+            # keywords
+            'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
+            's_e': '{subject}_{experiment}',
+            'raw': 'hp1_lp40',
+            'analysis': '',
+            'orient': '',
+            'test': '',
+            'dtype': '',
+            'stat': '',
 
             # eye-tracker
             'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
@@ -126,7 +145,7 @@ class NMG(experiment.mne_experiment):
 
     def kit2fiff(self, stim='>', slope='-', mne_raw=False, verbose=False,
                  stimthresh=3.5, overwrite=False, **rawfiles):
-        self.set(raw='raw')
+        self.set(raw='calm')
         sns = self.get('sns')
         mrk = self.get('mrk')
         elp = self.get('elp')
@@ -149,7 +168,7 @@ class NMG(experiment.mne_experiment):
         if not os.path.lexists(rawfif) or not mne_raw or not overwrite:
             if not os.path.lexists(fifdir):
                 os.mkdir(fifdir)
-            raw = kit.read_raw_kit(input_fname=rawsqd, mrk=mrk,
+            raw = KIT.read_raw_kit(input_fname=rawsqd, mrk=mrk,
                                elp=elp, hsp=hsp, sns_fname=sns,
                                stim=stim, slope=slope, verbose=verbose)
             if mne_raw:
@@ -362,7 +381,7 @@ class NMG(experiment.mne_experiment):
 
 
     def _load_stim_info(self, ds):
-        stims = self.get('stims_info')
+        stims = self.get('stim_info')
         stim_ds = read_stim_info(stims)
 
         c1 = E.factor(stim_ds['c1'], name='word')
@@ -475,7 +494,7 @@ class NMG(experiment.mne_experiment):
             raise RuntimeError(err)
 
 
-    def make_stcs(self, ds, labels=None, force_fixed=True,
+    def make_stcs(self, ds, labels=None, orient='fixed',
                   stc_type='evoked', verbose=False):
 
         """Creates an stc object of transformed data from the ds
@@ -486,33 +505,36 @@ class NMG(experiment.mne_experiment):
             data
         labels: list of tuples
             a list of ROIs
-        force_fixed: bool
-            True = Fixed orientation, False = Free orientation
-        mne_stc: bool
-            True = mne.object, False = eelbrain.ndvar
-        stc_type: str
-            'epochs'
-            'evoked'
+        orient: 'fixed' | 'free'
+            'fixed' = Fixed orientation, 'free' = Free orientation
+        stc_type: 'epochs' | 'evoked'
         """
         cov = mne.read_cov(self.get('cov'))
-        fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=force_fixed,
+
+        if orient == 'free':
+            fixed = False
+        elif orient == 'fixed':
+            fixed = True
+        else:
+            raise ValueError
+
+        fwd = mne.read_forward_solution(self.get('fwd'), force_fixed=fixed,
                                         verbose=verbose)
         inv = mne.minimum_norm.make_inverse_operator(info=ds['epochs'].info,
-                                                     depth=None, fixed=force_fixed,
+                                                     depth=None, fixed=fixed,
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
 
-        #for ROI analyses
-        rois = self.read_label(labels)
 
         #makes stc epochs or evoked
         if stc_type == 'epochs':
-        #a list of stcs within label per epoch.
+            #for ROI analyses
+            rois = self.read_label(labels)
+            #a list of stcs within label per epoch.
             stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
                                                          label=rois,
                                                          lambda2=1. / 2 ** 2,
                                                          verbose=verbose)
-            stcs = E.load.fiff.stc_ndvar(stcs, subject=self.get('mrisubject'))
             return stcs
         elif stc_type == 'evoked':
             stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
@@ -524,9 +546,64 @@ class NMG(experiment.mne_experiment):
             self.logger.info('stc: %s' % error)
             raise TypeError(error)
 
+    def make_LATL_label(self):
+        ant_super = kit.split_label(label=mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.superiortemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[1]
+        ant_mid = kit.split_label(mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.middletemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[1]
+        ant_inf = kit.split_label(mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.inferiortemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[1]
+        LATL = ant_super + ant_mid + ant_inf
+        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.LATL.label'), LATL)
+
+    def make_LPTL_label(self):
+        post_super = kit.split_label(label=mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.superiortemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[0]
+        post_mid = kit.split_label(mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.middletemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[0]
+        post_inf = kit.split_label(mne.read_label(os.path.join(
+                    self.get('label_sdir'), 'lh.inferiortemporal.label')),
+                    source_space=self.get('src'), axis=1, pieces=2)[0]
+        LPTL = post_super + post_mid + post_inf
+        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.LPTL.label'), LPTL)
+
+    def make_split_fusiform(self):
+        label = mne.read_label(os.path.join(self.get('label_sdir'), 'lh.fusiform.label'))
+        ant_fusiform = kit.split_label(label=label,
+                    source_space=self.get('src'),
+                    axis=1, pieces=2)[1]
+        post_fusiform = kit.split_label(label=label,
+                    source_space=self.get('src'),
+                    axis=1, pieces=2)[0]
+        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.ant_fusiform.label'),
+                        ant_fusiform)
+        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.post_fusiform.label'),
+                        post_fusiform)
+
+    def make_vmPFC_label(self):
+        lmedial = mne.read_label(os.path.join(self.get('label_sdir'),
+                                'lh.lateralorbitofrontal.label'))
+        llateral = mne.read_label(os.path.join(self.get('label_sdir'),
+                                'lh.medialorbitofrontal.label'))
+        lvmPFC = lmedial + llateral
+        rmedial = mne.read_label(os.path.join(self.get('label_sdir'),
+                                'rh.lateralorbitofrontal.label'))
+        rlateral = mne.read_label(os.path.join(self.get('label_sdir'),
+                                'rh.medialorbitofrontal.label'))
+        rvmPFC = rmedial + rlateral
+        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.vmPFC.label'), lvmPFC)
+        mne.write_label(os.path.join(self.get('label_sdir'), 'rh.vmPFC.label'), rvmPFC)
+
     def read_label(self, labels):
         "label: list"
         rois = []
+        if not isinstance(labels, list):
+            labels = [labels]
         for label in labels:
             rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
                                                     label + '.label')))
@@ -537,6 +614,60 @@ class NMG(experiment.mne_experiment):
         elif len(rois) == 1:
             rois = rois[0]
         return rois
+
+    def process_evoked(self, raw='hp1_lp40', e_type='evoked', tstart= -0.1,
+                       tstop=0.6, reject={'mag': 3e-12}):
+        if e_type != 'evoked':
+            raise ValueError('This method only works for evoked data.')
+        self.set(raw=raw)
+        self.set(analysis='_'.join((e_type, raw, str(tstart), str(tstop))))
+        data = self.get('data-file')
+        if os.path.lexists(data):
+            print self.get('subject')
+            meg_ds = pickle.load(open(data))
+        else:
+            meg_ds = self.load_events(edf=True)
+            index = meg_ds['target'].isany('prime', 'target')
+            meg_ds = meg_ds[index]
+
+            #add epochs to the dataset after excluding bad channels
+            orig_N = meg_ds.n_cases
+            meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart,
+                                                tstop=tstop,
+                                                reject=reject)
+            remainder = meg_ds.n_cases * 100 / orig_N
+            self.logger.info('epochs: %d' % remainder + r'% ' +
+                             'of trials remain')
+            if remainder < 50:
+                self.logger.info('subject %s is excluded due to large number '
+                                 % self.get('subject') + 'of rejections')
+                return
+            #do source transformation
+            meg_ds = meg_ds.compress(meg_ds['condition'] % meg_ds['wordtype'] %
+                                     meg_ds['target'], drop_bad=True)
+            E.save.pickle(meg_ds, self.get('data-file', mkdir=True))
+        return meg_ds
+
+    def source_evoked(self, meg_ds, rois, roilabels, tstart= -0.1, tstop=0.6):
+        e_type = 'evoked'
+        stcs = []
+        for ds in meg_ds.itercases():
+            stcs.append(self.make_stcs(ds, orient=self.get('orient'),
+                                       stc_type=e_type))
+        del meg_ds['epochs']
+
+        for fs_roi, roilabel in zip(rois, roilabels):
+            stc_rois = []
+            for stc in stcs:
+                roi = self.read_label(fs_roi)
+                roi = stc.in_label(roi)
+                mri = self.get('mrisubject')
+                roi = E.load.fiff.stc_ndvar(roi, subject=mri)
+                roi = roi.summary('source', name='stc')
+                roi.x -= roi.summary(time=(tstart, 0))
+                stc_rois.append(roi)
+            meg_ds[roilabel] = E.combine(stc_rois)
+        return meg_ds
 
 def read_log(logfile):
 
