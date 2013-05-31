@@ -7,7 +7,6 @@ Created on Nov 25, 2012
 import os
 import logging
 from subprocess import Popen, PIPE
-from collections import defaultdict
 import cPickle as pickle
 import numpy as np
 from numpy import hstack as nphs
@@ -17,127 +16,23 @@ import mne.fiff.kit as KIT
 from eelbrain import eellab as E
 from eelbrain.vessels import experiment
 import eelbrain.utils.kit as kit
+import template
 
 
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
     _exp = 'NMG'
     _experiments = ['NMG']
+    _templates = template.t
 
     def __init__(self, subject='{name}', subjects=[], root='~/data'):
         super(NMG, self).__init__(root=root, subjects=subjects)
-        self.bad_channels = bad_channels
+        self.bad_channels = template.bad_channels
         self.logger = logging.getLogger('mne')
-        self.exclude['subject'] = exclude
-        self.fake_mris = fake_mris
-        self.cm = cm
+        self.exclude['subject'] = template.exclude
+        self.cm = template.cm
         self.set(subject=subject)
-    def get_templates(self):
-        t = {
-            # experiment
-            'experiment': self._experiments[0],
-            'mne_bin': os.path.join('/Applications/mne/bin'),
 
-            # db dirs
-            'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                                    'Experiments', '{experiment}'),
-            'results': os.path.join('{exp_db}', 'results'),
-            'plots_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                                      '{orient}', ''),
-            'stats_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                                      '{orient}', 'stats', ''),
-            'wf_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                                   '{orient}', ''),
-
-            # basic dir
-            'exp_dir': os.path.join('{root}', '{experiment}'), #contains subject-name folders for MEG data
-            'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
-            'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
-            'data_sdir': os.path.join('{exp_sdir}', 'data'),
-            'meg_dir': os.path.join('{root}', '{experiment}'),
-            'group_dir': os.path.join('{meg_dir}', 'group'),
-
-            # mri dir
-            'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
-            'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
-            'label_sdir': os.path.join('{mri_sdir}', 'label'),
-
-            # raw folders
-            'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
-            'raw_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-            'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-            'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
-            'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
-            'log_sdir': os.path.join('{beh_sdir}', 'logs'),
-
-            # fif files
-            'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
-            'raw-file': '{raw-base}-raw.fif',
-            'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
-
-            # saved data
-            'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pydat'),
-            'group-file': os.path.join('{group_dir}', 'group_{test}-{orient}.pydat'),
-
-            # fif files derivatives
-            'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
-            'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
-            'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
-            'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
-            'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
-                                      '-proj.pdf'),
-
-            # fwd model
-            # replaces 5120-bem-sol.fif
-            'bem': os.path.join('{mri_sdir}', 'bem',
-                                '{mrisubject}-*-bem.fif'),
-            'src': os.path.join('{mri_sdir}', 'bem',
-                                '{mrisubject}-ico-4-src.fif'),
-            'bem_head': os.path.join('{mri_sdir}', 'bem',
-                                     '{mrisubject}-head.fif'),
-
-            # parameter files
-            'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
-            'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
-            'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
-            'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
-
-            # raw files
-            # legacy. looks in the fif folder for file pattern
-            'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
-            'logfile': os.path.join('{log_sdir}', '{subject}_log.txt'),
-            'stim_info': os.path.join('{exp_db}', 'stims', 'stims_info.mat'),
-            'plot_png': os.path.join('{results}', 'visuals', 'helmet',
-                                     '{s_e}' + '.png'),
-
-            # keywords
-            'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
-            's_e': '{subject}_{experiment}',
-            'raw': 'hp1_lp40',
-            'analysis': '',
-            'orient': '',
-            'test': '',
-            'dtype': '',
-            'stat': '',
-
-            # eye-tracker
-            'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
-            'edf': os.path.join('{edf_sdir}', '*.edf'),
-
-            # EEG
-            'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
-            'eegfif': os.path.join('{fif_sdir}', '{s_e}_raw.fif'),
-
-            # BESA
-            'besa_fsg': os.path.join('{BESA_dir}', '{s_e}_epochs_av.fsg'),
-            'besa_elv': os.path.join('{BESA_dir}', '{s_e}_epochs_av.elv'),
-            'besa_pdg': os.path.join('{BESA_dir}', '{exp}.PDG'),
-            'besa_dat': os.path.join('{BESA_dir}', '{s_e}_*-*.dat'),
-            'besa_cfg': os.path.join('{BESA_dir}', 'BESA_MN.cfg'),
-
-            }
-
-        return t
 
     #################
     #    process    #
@@ -146,7 +41,6 @@ class NMG(experiment.mne_experiment):
     def kit2fiff(self, stim='>', slope='-', mne_raw=False, verbose=False,
                  stimthresh=3.5, overwrite=False, **rawfiles):
         self.set(raw='calm')
-        sns = self.get('sns')
         mrk = self.get('mrk')
         elp = self.get('elp')
         hsp = self.get('hsp')
@@ -159,18 +53,18 @@ class NMG(experiment.mne_experiment):
             elp = rawfiles['elp']
         if 'hsp' in rawfiles:
             hsp = rawfiles['hsp']
-        if 'raw-sqd' in rawfiles:
-            rawsqd = rawfiles['raw-sqd']
-        if 'raw-file' in rawfiles:
-            rawfif = rawfiles['raw-file']
+        if 'rawsqd' in rawfiles:
+            rawsqd = rawfiles['rawsqd']
+        if 'rawfif' in rawfiles:
+            rawfif = rawfiles['rawfif']
         fifdir = os.path.dirname(rawfif)
 
         if not os.path.lexists(rawfif) or not mne_raw or not overwrite:
             if not os.path.lexists(fifdir):
                 os.mkdir(fifdir)
             raw = KIT.read_raw_kit(input_fname=rawsqd, mrk=mrk,
-                               elp=elp, hsp=hsp, sns_fname=sns,
-                               stim=stim, slope=slope, verbose=verbose)
+                                   elp=elp, hsp=hsp,
+                                   stim=stim, slope=slope, verbose=verbose)
             if mne_raw:
                 return raw
             else:
@@ -203,8 +97,16 @@ class NMG(experiment.mne_experiment):
             raw = 'hp%.1f_lp%.1f' % (hp, lp)
         else:
             TypeError('Must be int or float')
-        self.make_filter(raw, hp=hp, lp=lp, n_jobs=n_jobs, src='calm',
-                             redo=redo, verbose=False, **kwargs)
+
+        src_file = self.get('raw-file', raw='calm')
+        dest_file = self.get('raw-file', raw=raw)
+        if (not redo) and os.path.exists(dest_file):
+            return
+
+        raw = mne.fiff.Raw(src_file, preload=True)
+        raw.filter(hp, lp, n_jobs=n_jobs, **kwargs)
+        raw.save(dest_file, overwrite=True)
+
         self.reset()
 
     def make_fiducials(self):
@@ -243,26 +145,21 @@ class NMG(experiment.mne_experiment):
         ds['subject'] = E.factor([self.get('subject')], rep=ds.n_cases, random=True)
         ds.info['subject'] = self.get('subject')
 
-        #For the first five subjects in NMG, the voice trigger was mistakenly 
-        #overlapped with the prime triggers.
-        #Repairs voice trigger value problem, if needed.
-        index = range(3, ds.n_cases, 4)
-        if all(ds['eventID'][index].x > 128):
-            ds['eventID'][index] = ds['eventID'][index] - 128
-
-        #Propagates itemID for all trigger events
-        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
-        index = ds['eventID'] < 64
-        scenario = map(int, ds['eventID'][index])
-        ds['scenario'] = E.var(np.repeat(scenario, 2))
 
         raw = ds.info['raw']
         raw.verbose = False
         if remove_bad_chs:
             bad_chs = self.bad_channels[self.get('subject')]
             raw.info['bads'].extend(bad_chs)
+        else:
+            self.bad_channels = {}
+            raw.info['bads'] = []
 
-        self.label_events(ds)
+        #Loads logfile and adds it to the ds
+        log_ds = read_log(self.get('log-file'))
+        ds.update(log_ds)
+
+        self.label_events(self.get('stim_info'), ds)
 
         # add edf
         if edf:
@@ -284,6 +181,28 @@ class NMG(experiment.mne_experiment):
                 ds = self._reject_blinks(ds, treject=treject)
         return ds
 
+    def _reject_blinks(self, ds, treject=25):
+
+        if 't_edf' in ds:
+            ds.info['edf'].mark(ds, tstart= -0.2, tstop=0.4,
+                                good=None, bad=False, use=['EBLINK'],
+                                T='t_edf', target='accept')
+            dsx = ds.subset('accept')
+            rejected = (ds.n_cases - dsx.n_cases) * 100 / ds.n_cases
+            remainder = dsx.n_cases * 100 / ds.n_cases
+            if rejected > treject:
+                self.logger.info('edf: %d' % rejected + r'% ' +
+                                 'rejected, eyelink disabled')
+            else:
+                self.logger.info('edf: %d' % remainder + r'% ' + 'remains')
+                ds = dsx
+            del ds['t_edf']
+            del ds['accept']
+        else:
+            self.logger.info('edf: has no Eyelink data')
+            ds = ds
+
+        return ds
 
     def label_events(self, ds):
 
@@ -293,6 +212,16 @@ class NMG(experiment.mne_experiment):
         target = []
         cond = []
         wtype = []
+
+        if not 'eventID' in ds:
+            ds['eventID'] = ds['trigger']
+
+        #For the first five subjects in NMG, the voice trigger was mistakenly 
+        #overlapped with the prime triggers.
+        #Repairs voice trigger value problem, if needed.
+        index = range(3, ds.n_cases, 4)
+        if all(ds['eventID'][index].x > 128):
+            ds['eventID'][index] = ds['eventID'][index] - 128
 
         #Decomposes the trigger
         for v in ds['eventID']:
@@ -327,6 +256,12 @@ class NMG(experiment.mne_experiment):
                                                  2: 'identity', 3: 'control_constituent',
                                                  4: 'first_constituent'})
         ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
+        #Propagates itemID for all trigger events
+        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
+        index = ds['eventID'] < 64
+        scenario = map(int, ds['eventID'][index])
+        ds['scenario'] = E.var(np.repeat(scenario, 2))
+
 
         #Makes a temporary ds
         temp = ds[ds['target'] == 'target']
@@ -334,10 +269,6 @@ class NMG(experiment.mne_experiment):
         #There are sixty words in each of the four condition 
         itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
         ds['itemID'] = E.var(np.repeat(itemID, 4))
-
-        #Loads logfile and adds it to the ds
-        log_ds = read_log(self.get('logfile'))
-        ds.update(log_ds)
 
         #Labels the voice events
         #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
@@ -348,60 +279,15 @@ class NMG(experiment.mne_experiment):
                                       axis=None))
 
         #Loads the stim info from txt file and adds it to the ds
-        stim_ds = self._load_stim_info(ds)
+        stim_ds = load_stim_info(self.get('stim_info'), ds)
         try:
             ds.update(stim_ds)
+            freq = ds['word_freq'].x
+            freq[np.where(freq == 0)[0]] = 1
+            ds['log_freq'] = E.var(np.log(freq))
         except ValueError:
             self.logger.info('ds: Dimension Mismatch. No Stimuli Info')
         return ds
-
-
-    def _reject_blinks(self, ds, treject=25):
-
-        if 't_edf' in ds:
-            ds.info['edf'].mark(ds, tstart= -0.2, tstop=0.4,
-                                good=None, bad=False, use=['EBLINK'],
-                                T='t_edf', target='accept')
-            dsx = ds.subset('accept')
-            rejected = (ds.n_cases - dsx.n_cases) * 100 / ds.n_cases
-            remainder = dsx.n_cases * 100 / ds.n_cases
-            if rejected > treject:
-                self.logger.info('edf: %d' % rejected + r'% ' +
-                                 'rejected, eyelink disabled')
-            else:
-                self.logger.info('edf: %d' % remainder + r'% ' + 'remains')
-                ds = dsx
-            del ds['t_edf']
-            del ds['accept']
-        else:
-            self.logger.info('edf: has no Eyelink data')
-            ds = ds
-
-        return ds
-
-
-    def _load_stim_info(self, ds):
-        stims = self.get('stim_info')
-        stim_ds = read_stim_info(stims)
-
-        c1 = E.factor(stim_ds['c1'], name='word')
-        freq = E.var(stim_ds['c1_freq'], name='word_freq')
-        nmg = E.var(stim_ds['c1_nmg'], name='word_nmg')
-        c1 = E.dataset(c1, freq, nmg)
-
-        c2 = E.factor(stim_ds['c2'], name='word')
-        freq = E.var(stim_ds['c2_freq'], name='word_freq')
-        nmg = E.var(stim_ds['c2_nmg'], name='word_nmg')
-        c2 = E.dataset(c2, freq, nmg)
-
-        word = E.dataset(*stim_ds['word', 'word_freq', 'word_nmg',
-                                  'c1_rating', 'c1_sd', 'c1_freq',
-                                  'c2_rating', 'c2_sd', 'c2_freq'])
-        words = E.combine((c1, c2, word))
-        word_dict = {word: i for i, word in enumerate(words['word'])}
-        word_idx = [word_dict[word.lower()] for word in ds['display']]
-
-        return words[word_idx]
 
     ################
     #    source    #
@@ -494,8 +380,8 @@ class NMG(experiment.mne_experiment):
             raise RuntimeError(err)
 
 
-    def make_stcs(self, ds, labels=None, orient='fixed',
-                  stc_type='evoked', verbose=False):
+    def make_stcs(self, ds, labels=None, stc_type='evoked', verbose=False,
+                  **kwargs):
 
         """Creates an stc object of transformed data from the ds
 
@@ -511,6 +397,11 @@ class NMG(experiment.mne_experiment):
         """
         cov = mne.read_cov(self.get('cov'))
 
+        if 'orient' in kwargs:
+            orient = kwargs['orient']
+        else:
+            orient = self.get('orient')
+
         if orient == 'free':
             fixed = False
         elif orient == 'fixed':
@@ -524,8 +415,6 @@ class NMG(experiment.mne_experiment):
                                                      depth=None, fixed=fixed,
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
-
-
         #makes stc epochs or evoked
         if stc_type == 'epochs':
             #for ROI analyses
@@ -545,6 +434,15 @@ class NMG(experiment.mne_experiment):
             error = 'Currently only implemented for epochs and evoked'
             self.logger.info('stc: %s' % error)
             raise TypeError(error)
+
+    def make_BESA_epochs(self, ds):
+        # loads a epoch x sensor x time
+        ds = E.load.fiff.add_epochs(ds)
+        # makes a time x sensor x epoch
+        epochs = ds['MEG'].x.T
+        epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
+        epochs = np.vstack(epochs)
+        np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
 
     def make_LATL_label(self):
         ant_super = kit.split_label(label=mne.read_label(os.path.join(
@@ -624,18 +522,17 @@ class NMG(experiment.mne_experiment):
         data = self.get('data-file')
         if os.path.lexists(data):
             print self.get('subject')
-            meg_ds = pickle.load(open(data))
+            ds = pickle.load(open(data))
         else:
-            meg_ds = self.load_events(edf=True)
-            index = meg_ds['target'].isany('prime', 'target')
-            meg_ds = meg_ds[index]
+            ds = self.load_events(edf=True)
+            index = ds['experiment'] == 'experiment'
+            ds = ds[index]
 
             #add epochs to the dataset after excluding bad channels
-            orig_N = meg_ds.n_cases
-            meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart,
-                                                tstop=tstop,
-                                                reject=reject)
-            remainder = meg_ds.n_cases * 100 / orig_N
+            orig_N = ds.n_cases
+            ds = E.load.fiff.add_mne_epochs(ds, tstart=tstart, tstop=tstop,
+                                            reject=reject)
+            remainder = ds.n_cases * 100 / orig_N
             self.logger.info('epochs: %d' % remainder + r'% ' +
                              'of trials remain')
             if remainder < 50:
@@ -643,18 +540,25 @@ class NMG(experiment.mne_experiment):
                                  % self.get('subject') + 'of rejections')
                 return
             #do source transformation
-            meg_ds = meg_ds.compress(meg_ds['condition'] % meg_ds['wordtype'] %
-                                     meg_ds['target'], drop_bad=True)
-            E.save.pickle(meg_ds, self.get('data-file', mkdir=True))
-        return meg_ds
+            ds = ds.compress(ds['condition'] % ds['wordtype'] %
+                            ds['target'], drop_bad=True)
+            E.save.pickle(ds, self.get('data-file', mkdir=True))
+        return ds
 
-    def source_evoked(self, meg_ds, rois, roilabels, tstart= -0.1, tstop=0.6):
+    def source_evoked(self, ds, rois=None, roilabels=None,
+                      tstart= -0.1, tstop=0.6, **kwargs):
+
         e_type = 'evoked'
+
+        if 'orient' in kwargs:
+            orient = kwargs['orient']
+        else:
+            orient = self.get('orient')
+
         stcs = []
-        for ds in meg_ds.itercases():
-            stcs.append(self.make_stcs(ds, orient=self.get('orient'),
-                                       stc_type=e_type))
-        del meg_ds['epochs']
+        for d in ds.itercases():
+            stcs.append(self.make_stcs(d, orient=orient, stc_type=e_type))
+        del ds['epochs']
 
         for fs_roi, roilabel in zip(rois, roilabels):
             stc_rois = []
@@ -666,10 +570,12 @@ class NMG(experiment.mne_experiment):
                 roi = roi.summary('source', name='stc')
                 roi.x -= roi.summary(time=(tstart, 0))
                 stc_rois.append(roi)
-            meg_ds[roilabel] = E.combine(stc_rois)
-        return meg_ds
+            ds[roilabel] = E.combine(stc_rois)
+        return ds
 
-def read_log(logfile):
+
+
+def read_log(logfile, **kwargs):
 
 #Initializes list
     displays = []
@@ -706,7 +612,11 @@ def read_log(logfile):
     trigger_time = E.var(trigger_times, name='trigger_time')
     display = E.factor(displays, name='display')
 
-    ds = E.dataset(display, trigger, latency, trigger_time)
+    if 'subject' in kwargs:
+        subject = E.factor([kwargs['subject']], rep=len(latency), name='subject')
+        ds = E.dataset(subject, display, trigger, latency, trigger_time)
+    else:
+        ds = E.dataset(display, trigger, latency, trigger_time)
     ds['word_length'] = E.var(map(len, ds['display']))
 
     return ds
@@ -752,46 +662,26 @@ def read_stim_info(stim_info):
     return stim_ds
 
 
-# bad chs
-bad_channels = defaultdict(lambda: ['MEG 065'])
-bad_channels['R0224'].extend(['MEG 030', 'MEG 031', 'MEG 064',
-                              'MEG 075', 'MEG 110' 'MEG 138'])
-bad_channels['R0498'].extend(['MEG 066'])
-bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 138'])
-bad_channels['R0576'].extend(['MEG 143'])
-bad_channels['R0580'].extend(['MEG 001', 'MEG 084', 'MEG 143',
-                              'MEG 160', 'MEG161'])
-bad_channels['R0605'].extend(['MEG 041', 'MEG 114'])
+def load_stim_info(stim_info, ds):
+    stim_ds = read_stim_info(stim_info)
 
-###############################
-# Experiment class attributes #
-###############################
+    c1 = E.factor(stim_ds['c1'], name='word')
+    freq = E.var(stim_ds['c1_freq'], name='word_freq')
+    nmg = E.var(stim_ds['c1_nmg'], name='word_nmg')
+    c1 = E.dataset(c1, freq, nmg)
 
-# rois
-#rois['cuneus'] = ['lh.cuneus', 'rh.cuneus']
+    c2 = E.factor(stim_ds['c2'], name='word')
+    freq = E.var(stim_ds['c2_freq'], name='word_freq')
+    nmg = E.var(stim_ds['c2_nmg'], name='word_nmg')
+    c2 = E.dataset(c2, freq, nmg)
 
-# fake mris
-fake_mris = ['R0547', 'R0569', 'R0574', 'R0575', 'R0576', 'R0580']
+    word = E.dataset(*stim_ds['word', 'word_freq', 'word_nmg',
+                              'c1_rating', 'c1_sd', 'c1_freq',
+                              'c2_rating', 'c2_sd', 'c2_freq'])
+    words = E.combine((c1, c2, word))
+    word_dict = {word: i for i, word in enumerate(words['word'])}
+    word_idx = [word_dict[word.lower()] for word in ds['display']]
 
-# subject to exclude
-exclude = ['R0224', 'R0414', 'R0576', 'R0580']
+    return words[word_idx]
 
-# color palette
-cm = dict()
-cm['ortho'] = 'b'
-cm['transparent'] = 'g'
-cm['opaque'] = 'r'
-cm['novel'] = 'm'
 
-cm['control_identity'] = cm['control_constituent'] = 'b'
-cm['identity'] = cm['first_constituent'] = 'g'
-
-cm[('control_identity', 'novel')] = cm[('control_constituent', 'novel')] = (0.137, 0.07, 0.906)
-cm[('control_identity', 'transparent')] = cm[('control_constituent', 'transparent')] = (0.055, 0.25, 0.906)
-cm[('control_identity', 'opaque')] = cm[('control_constituent', 'opaque')] = (0.078, 0.594, 0.906)
-cm[('control_identity', 'ortho')] = cm[('control_constituent', 'ortho')] = (0.055, 0.832, 0.906)
-
-cm[('identity', 'novel')] = cm[('first_constituent', 'novel')] = (0.906, 0.0, 0.309)
-cm[('identity', 'transparent')] = cm[('first_constituent', 'transparent')] = (0.906, 0.031, 0.133)
-cm[('identity', 'opaque')] = cm[('first_constituent', 'opaque')] = (0.906, 0.23, 0.035)
-cm[('identity', 'ortho')] = cm[('first_constituent', 'ortho')] = (0.906, 0.453, 0.047)
