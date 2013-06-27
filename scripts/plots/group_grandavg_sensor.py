@@ -9,24 +9,31 @@ import os
 import basic.process as process
 import pickle
 
+# raw data parameters
 filter = 'hp1_lp40'
-root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-saved_data = os.path.join(root, 'data', 'group_epochs_%s_plots.pickled' % filter)
-plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
-
-e = process.NMG(root='~/data')
-e.exclude = {}
-e.set(raw=filter)
-
 tstart = -0.1
 tstop = 0.6
 reject = 3e-12
 
-if os.path.lexists(saved_data):
-    group_ds = pickle.load(open(saved_data))
-else:
-    group_ds = []
-    for _ in e.iter_vars(['subject']):
+# analysis parameters
+e_type = 'epochs'
+
+
+root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
+plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
+
+# experiment parameters
+e = process.NMG(root='~/data')
+e.set(raw=filter)
+e.set(analysis='_'.join((e_type, filter, str(tstart), str(tstop))))
+
+group_ds = []
+
+for _ in e.iter_vars(['subject']):
+    if os.path.lexists(e.get('data-file')):
+        print e.get('subject')
+        meg_ds = pickle.load(open(e.get('data-file')))
+    else:
         meg_ds = e.load_events()
         index = meg_ds['target'].isany('prime', 'target')
         meg_ds = meg_ds[index]
@@ -37,10 +44,10 @@ else:
                                         mult=1e12, unit='pT',
                                         target=e.get('subject'))
         meg_ds = meg_ds.compress(meg_ds['target'], drop_bad=True)
-        #Append to group level datasets
-        group_ds.append(meg_ds)
-#    group_ds = E.combine(group_ds)
-    E.save.pickle(group_ds, saved_data)
+        E.save.pickle(meg_ds, e.get('data-file', mkdir=True))
+
+    #Append to group level datasets
+    group_ds.append(meg_ds)
 
 prime = []
 target = []
@@ -55,7 +62,7 @@ for i, _ in enumerate(group_ds):
 
 #prime
 p = E.plot.utsnd.butterfly(prime)
-p.figure.savefig(os.path.join(plots_dir, 'primes_grandavg_%s_epochs.pdf' % filter))
+p.figure.savefig(os.path.join(plots_dir, '%s_primes_grandavg_epochs.pdf' % filter))
 #target
 p = E.plot.utsnd.butterfly(target)
-p.figure.savefig(os.path.join(plots_dir, 'targets_grandavg_%s_epochs.pdf' % filter))
+p.figure.savefig(os.path.join(plots_dir, '%s_targets_grandavg_epochs.pdf' % filter))

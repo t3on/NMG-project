@@ -43,7 +43,7 @@ else:
 
         morphed = mne.morph_data(subject_from=e.get('mrisubject'),
                                  subject_to=e._common_brain, stc_from=stc,
-                                 grade=4, n_jobs=10)
+                                 grade=5, n_jobs=2)
 
         orig = E.load.fiff.stc_ndvar(stc, e.get('mrisubject'), 'orig')
         orig -= orig.summary(time=(tstart, 0))

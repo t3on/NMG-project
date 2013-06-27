@@ -9,51 +9,58 @@ import os
 import basic.process as process
 import pickle
 
+# raw data parameters
+filter = 'hp1_lp40'
+tstart = -0.1
+tstop = 0.6
+reject = 3e-12
+
+# analysis parameters
+orient = 'free'
+e_type = 'evoked'
+
+# experiment parameters
 e = process.NMG()
-e.exclude = {}
 e.set(raw='hp1_lp40')
+e.set(analysis='_'.join((e_type, filter, str(tstart), str(tstop))))
 
-root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-saved_data = os.path.join(root, 'data', 'group_stcs_activation.pickled')
-plots_dir = os.path.join(root, 'results', 'meg', 'qualitative')
+# directory info
+plots_dir = os.path.join(e.get('exp_db'), 'results', 'meg', 'qualitative')
 
-if os.path.lexists(saved_data):
-    group_stcs = pickle.load(open(saved_data))
-else:
-    tstart = -0.1
-    tstop = 0.6
-    reject = 3e-12
+# roi
+roi = ['lh.cuneus', 'rh.cuneus']
+group_stcs = []
 
-
+for _ in e.iter_vars(['subject']):
     stcs = []
     subs = []
-    group_stcs = []
+    if os.path.lexists('data-file'):
+        meg_ds = pickle.load(open(e.get('data-file')))
+else:
+    meg_ds = e.load_events()
+    index = meg_ds['target'].isany('prime', 'target')
+    meg_ds = meg_ds[index]
 
-    for _ in e.iter_vars(['subject']):
-        meg_ds = e.load_events()
-        index = meg_ds['target'].isany('prime', 'target')
-        meg_ds = meg_ds[index]
+    #add epochs to the dataset after excluding bad channels
+    meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
+                                        baseline=None, reject={'mag':reject},
+                                        preload=True)
+#do source transformation
+stc = e.make_stcs(meg_ds, stc_type=e_type, force_fixed=False)
+roi = e.read_label(labels=roi)
+roi = stc.in_label(roi)
+mri = e.get('mrisubject')
+roi = E.load.fiff.stc_ndvar(roi, subject=mri)
+roi = roi.summary('source', name='stc')
+roi.x -= roi.summary(time=(tstart, 0))
+del meg_ds['epochs'], stc
+stcs.append(roi)
+subs.append(e.get('subject'))
 
-
-        #add epochs to the dataset after excluding bad channels
-        meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=None, reject={'mag':reject}, preload=True)
-#                                            reject={'mag':reject}, preload=True)
-        #do source transformation
-        stcs.append(e.make_stcs(meg_ds, stc_type='evoked',
-                                labels=['lh.cuneus', 'rh.cuneus'],
-                                force_fixed=False))
-        del meg_ds['epochs']
-        subs.append(e.get('subject'))
-
-    #combines the datasets for group
-    for stc, sub in zip(stcs, subs):
-        stc = stc.summary('source', name='stc')
-        group_stcs.append(stc)
-    stcs = E.combine(group_stcs)
-    subjects = E.factor(subs, name='subject')
-    group_stcs = E.dataset(stcs, subjects)
-    E.save.pickle(group_stcs, saved_data)
+#combines the datasets for group
+stcs = E.combine(stcs)
+subjects = E.factor(subs, name='subject')
+group_stcs = E.dataset(stcs, subjects)
 
 p = E.plot.uts.uts(E.plot.unpack(group_stcs['stc'], group_stcs['subject']))
 p.figure.savefig(os.path.join(plots_dir, 'group_grandavg_activation.pdf'))
