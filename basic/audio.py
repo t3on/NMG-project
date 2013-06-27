@@ -5,7 +5,45 @@ Created on Oct 19, 2012
 '''
 
 import numpy as np
+import os
+import shutil
 
+def make_transcripts(audio_dir, script_dir):
+    files = os.listdir(audio_dir)
+    audio_dict = {}
+    for FILE in files:
+        if os.path.splitext(FILE)[1] == '.wav': 
+            lab = os.path.splitext(FILE)[0] 
+            lab = lab.split('_')
+            if lab[0].isdigit() or (len(lab[0]) == 0):
+                lab = lab[-1]
+            else:
+                lab = lab[0]
+#             if lab.lower() in ['practice', 'is', 'very', 'important', 'no', 'name']:
+#                 continue
+#             else:
+            lab = lab  + '.txt'
+            audio_dict[FILE] = os.path.join(script_dir, lab)
+    
+    for entry in audio_dict:
+        trans = os.path.splitext(entry)[0] + '.lab'
+        trans = os.path.join(audio_dir, trans)
+        shutil.copy(audio_dict[entry], trans) 
+            
+def del_transcripts(audio_dir):
+    files = os.listdir(audio_dir)
+    for FILE in files:
+        if os.path.splitext(FILE)[1] == '.wav':
+            lab = os.path.splitext(FILE)[0] 
+            lab = lab.split('_')
+            if lab[0].isdigit() or (len(lab[0]) == 0):
+                lab = lab[-1]
+            else:
+                lab = lab[0] 
+            if lab.lower() in ['practice', 'is', 'very', 'important', 'no', 'name']:
+                lab = os.path.join(audio_dir, FILE) 
+                os.remove(lab)
+    
 
 class Sound:
 

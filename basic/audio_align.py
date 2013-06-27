@@ -27,20 +27,13 @@ for subject in subjects:
     tmp_dir = os.path.join(audio_dir, './tmp')
     if not os.path.lexists(tmp_dir):
         os.mkdir(tmp_dir)
-
-
     files = os.listdir(audio_dir)
-
     files = fnmatch.filter(files, '*.wav')
-
     ctime = []
-
     trials = []
 
-    for file in files:
-        title, ext = os.path.splitext(file)
-
-        
+    for FILE in files:
+        title, ext = os.path.splitext(FILE)
         time = title.split('_')
         word = time.pop(0)
 
@@ -51,35 +44,19 @@ for subject in subjects:
         tsec = sum(scale*time)
         ctime.append(tsec)
         
-
-
-    
         cmd = ['/opt/local/bin/sox', os.path.join(audio_dir, file), '-r 11025',  '-c 1', os.path.join(tmp_dir, 'temp.wav')]
         cwd = '/Applications/p2fa/'
         sp = subprocess.call(cmd, cwd = cwd)
-
-        cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'), os.path.join(transcripts_dir, word+'.txt'),
-
+        cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'), 
+               os.path.join(transcripts_dir, word+'.txt'),
             os.path.join(textgrids_dir, title+'.TextGrid')]
 
-
-
-
-
         sp = subprocess.Popen(cmd, cwd=cwd,
-
-                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = sp.communicate()
 
-
-
-    
-
         if stderr:
-
             print '\n> ERROR:'
-
             print '%s\n%s' %(stderr, stdout)
     
 
