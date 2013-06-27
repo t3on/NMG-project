@@ -16,8 +16,7 @@ t = {
     # keywords
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
-    # to be deleted after resolving 'name' dependencies
-    'name': '{s_e}',
+    'denoise': 'calm',
     'raw': 'hp1_lp40',
     'analysis': '',
     'orient': '',
@@ -51,6 +50,9 @@ t = {
     'BESA_sdir': os.path.join('{exp_sdir}', 'BESA', ''),
     'BESA_Averages': os.path.join('{BESA_dir}', 'BESA_Averages'),
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
+    
+    # audio dir
+    'script_dir': os.path.join('{exp_db}', 'stims', 'transcripts'),
 
     # mri dir
     'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
@@ -63,6 +65,7 @@ t = {
     'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
     'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
     'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
+    'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
     # fif files
@@ -99,7 +102,7 @@ t = {
 
     # raw files
     # legacy. looks in the fif folder for file pattern
-    'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_calm.sqd'),
+    'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
     'stim_info': os.path.join('{exp_db}', 'stims', 'stims_info.mat'),
     'plot_png': os.path.join('{results}', 'visuals', 'helmet',
@@ -143,7 +146,7 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 ###############################
 
 # subject to exclude
-exclude = ['R0224', 'R0414', 'R0576', 'R0580', 'R0605']
+exclude = ['R0224', 'R0414', 'R0576', 'R0580', 'R0605', 'R0478']
 
 # color palette
 cm = dict()

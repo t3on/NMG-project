@@ -2,6 +2,8 @@
 Created on Nov 25, 2012
 
 @author: teon
+
+Collection of functions used on an experiment class.
 '''
 
 import os
@@ -15,22 +17,23 @@ import mne
 import mne.fiff.kit as KIT
 from eelbrain import eellab as E
 from eelbrain.vessels import experiment
-import eelbrain.utils.kit as kit
-import template
+import dicts
+import custom_labels
 
 
 class NMG(experiment.mne_experiment):
     _common_brain = 'fsaverage'
     _exp = 'NMG'
     _experiments = ['NMG']
-    _templates = template.t
+    _templates = dicts.t
+#    _defaults = dicts.defaults
 
-    def __init__(self, subject='{name}', subjects=[], root='~/data'):
-        super(NMG, self).__init__(root=root, subjects=subjects)
-        self.bad_channels = template.bad_channels
+    def __init__(self, subject=None, root='~/data'):
+        super(NMG, self).__init__(root=root)
+        self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
-        self.exclude['subject'] = template.exclude
-        self.cm = template.cm
+        self.exclude['subject'] = dicts.exclude
+        self.cm = dicts.cm
         self.set(subject=subject)
 
 
@@ -39,8 +42,8 @@ class NMG(experiment.mne_experiment):
     #################
 
     def kit2fiff(self, stim='>', slope='-', mne_raw=False, verbose=False,
-                 stimthresh=3.5, overwrite=False, **rawfiles):
-        self.set(raw='calm')
+                 stimthresh=3.5, overwrite=False, denoise='calm', **rawfiles):
+        self.set(raw=denoise, denoise=denoise)
         mrk = self.get('mrk')
         elp = self.get('elp')
         hsp = self.get('hsp')
@@ -59,6 +62,9 @@ class NMG(experiment.mne_experiment):
             rawfif = rawfiles['rawfif']
         fifdir = os.path.dirname(rawfif)
 
+        if os.path.lexists(mrk) or os.path.lexists(elp) or os.path.lexists(hsp):
+            mrk = elp = hsp = None
+
         if not os.path.lexists(rawfif) or not mne_raw or not overwrite:
             if not os.path.lexists(fifdir):
                 os.mkdir(fifdir)
@@ -70,6 +76,7 @@ class NMG(experiment.mne_experiment):
             else:
                 raw.save(rawfif, overwrite=overwrite)
                 del raw
+        self.reset()
 
 
     def make_bpf_raw(self, hp=1, lp=40, redo=False, n_jobs=2, **kwargs):
@@ -159,7 +166,7 @@ class NMG(experiment.mne_experiment):
         log_ds = read_log(self.get('log-file'))
         ds.update(log_ds)
 
-        self.label_events(self.get('stim_info'), ds)
+        self.label_events(ds)
 
         # add edf
         if edf:
@@ -444,58 +451,12 @@ class NMG(experiment.mne_experiment):
         epochs = np.vstack(epochs)
         np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
 
-    def make_LATL_label(self):
-        ant_super = kit.split_label(label=mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.superiortemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[1]
-        ant_mid = kit.split_label(mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.middletemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[1]
-        ant_inf = kit.split_label(mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.inferiortemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[1]
-        LATL = ant_super + ant_mid + ant_inf
-        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.LATL.label'), LATL)
-
-    def make_LPTL_label(self):
-        post_super = kit.split_label(label=mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.superiortemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[0]
-        post_mid = kit.split_label(mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.middletemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[0]
-        post_inf = kit.split_label(mne.read_label(os.path.join(
-                    self.get('label_sdir'), 'lh.inferiortemporal.label')),
-                    source_space=self.get('src'), axis=1, pieces=2)[0]
-        LPTL = post_super + post_mid + post_inf
-        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.LPTL.label'), LPTL)
-
-    def make_split_fusiform(self):
-        label = mne.read_label(os.path.join(self.get('label_sdir'), 'lh.fusiform.label'))
-        ant_fusiform = kit.split_label(label=label,
-                    source_space=self.get('src'),
-                    axis=1, pieces=2)[1]
-        post_fusiform = kit.split_label(label=label,
-                    source_space=self.get('src'),
-                    axis=1, pieces=2)[0]
-        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.ant_fusiform.label'),
-                        ant_fusiform)
-        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.post_fusiform.label'),
-                        post_fusiform)
-
-    def make_vmPFC_label(self):
-        lmedial = mne.read_label(os.path.join(self.get('label_sdir'),
-                                'lh.lateralorbitofrontal.label'))
-        llateral = mne.read_label(os.path.join(self.get('label_sdir'),
-                                'lh.medialorbitofrontal.label'))
-        lvmPFC = lmedial + llateral
-        rmedial = mne.read_label(os.path.join(self.get('label_sdir'),
-                                'rh.lateralorbitofrontal.label'))
-        rlateral = mne.read_label(os.path.join(self.get('label_sdir'),
-                                'rh.medialorbitofrontal.label'))
-        rvmPFC = rmedial + rlateral
-        mne.write_label(os.path.join(self.get('label_sdir'), 'lh.vmPFC.label'), lvmPFC)
-        mne.write_label(os.path.join(self.get('label_sdir'), 'rh.vmPFC.label'), rvmPFC)
+    def make_custom_labels(self):
+        "makes custom fs labels for subjects"
+        custom_labels.make_LATL_label(self)
+        custom_labels.make_LPTL_label(self)
+        custom_labels.make_split_fusiform(self)
+        custom_labels.make_vmPFC_label(self)
 
     def read_label(self, labels):
         "label: list"
@@ -572,7 +533,19 @@ class NMG(experiment.mne_experiment):
                 stc_rois.append(roi)
             ds[roilabel] = E.combine(stc_rois)
         return ds
-
+    
+    ###############
+    #    audio    #
+    ###############
+    
+    def make_transcripts(self):
+        from audio import make_transcripts
+        make_transcripts(audio_dir = self.get('audio_sdir'), 
+                        script_dir = self.get('script_dir'))
+    
+    def del_transcripts(self):
+        from audio import del_transcripts
+        del_transcripts(audio_dir = self.get('audio_sdir'))
 
 
 def read_log(logfile, **kwargs):
