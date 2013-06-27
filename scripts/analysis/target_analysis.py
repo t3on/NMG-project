@@ -77,7 +77,7 @@ for roilabel, roititle in zip(roilabels, roititles):
         a = E.testnd.cluster_anova(Y=group_ds[roilabel],
                                    X=group_ds.eval('condition*wordtype*subject'),
                                    sub=sub)
-        stat = os.path.join(stats_dir, 'group_%s_%s.txt' % (condition, roilabel))
+        stat = os.path.join(stats_dir, '%s_%s_%s.txt' % (test, condition, roilabel))
         with open(stat , 'w') as FILE:
             FILE.write(title + os.linesep * 2)
             FILE.write(str(a.as_table()))
@@ -85,14 +85,14 @@ for roilabel, roititle in zip(roilabels, roititles):
         p = E.plot.uts.clusters(a, figtitle=title,
                                 t={'color': 'g', 'linestyle': 'dashed'})
         p.figure.savefig(os.path.join(plots_dir,
-                            'group_%s_%s.pdf' % (condition, roilabel)))
+                            '%s_%s_%s.pdf' % (test, condition, roilabel)))
 
         p = E.plot.uts.stat(Y=group_ds[roilabel], X=group_ds['condition'],
                             sub=sub,
                             figtitle=title, ylabel='dSPM', legend='upper left',
                              width=15, height=9)
-        p.figure.savefig(os.path.join(wf_dir, 'group_%s_%s.pdf'
-                                      % (condition, roilabel)))
+        p.figure.savefig(os.path.join(wf_dir, '%s_%s_%s.pdf'
+                                      % (test, condition, roilabel)))
 
 #        # subject plots
 #        p = E.plot.uts.stat(Y=group_ds[roilabel], X=group_ds['condition'],
