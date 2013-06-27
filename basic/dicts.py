@@ -14,6 +14,7 @@ t = {
     'mne_bin': os.path.join('/Applications/mne/bin'),
 
     # keywords
+    'common_brain': 'fsaverage',
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',

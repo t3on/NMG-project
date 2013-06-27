@@ -22,19 +22,15 @@ import custom_labels
 
 
 class NMG(experiment.mne_experiment):
-    _common_brain = 'fsaverage'
-    _exp = 'NMG'
-    _experiments = ['NMG']
     _templates = dicts.t
 #    _defaults = dicts.defaults
 
     def __init__(self, subject=None, root='~/data'):
-        super(NMG, self).__init__(root=root)
+        super(NMG, self).__init__(root=root, subject=subject)
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.exclude['subject'] = dicts.exclude
         self.cm = dicts.cm
-        self.set(subject=subject)
 
 
     #################
