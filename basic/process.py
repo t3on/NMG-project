@@ -22,8 +22,8 @@ import custom_labels
 
 
 class NMG(experiment.mne_experiment):
-    _templates = dicts.t
-#    _defaults = dicts.defaults
+    _subject_loc = '{meg_dir}'
+    _defaults = dicts.t
 
     def __init__(self, subject=None, root='~/data'):
         super(NMG, self).__init__(root=root, subject=subject)
