@@ -23,10 +23,10 @@ import custom_labels
 
 class NMG(experiment.mne_experiment):
     _subject_loc = '{meg_dir}'
-    _defaults = dicts.t
+    _templates = _defaults = dicts.t
 
-    def __init__(self, subject=None, root='~/data'):
-        super(NMG, self).__init__(root=root, subject=subject)
+    def __init__(self, subject=None, root='~/data', **kwargs):
+        super(NMG, self).__init__(root=root, subject=subject, **kwargs)
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.exclude['subject'] = dicts.exclude
@@ -108,6 +108,7 @@ class NMG(experiment.mne_experiment):
 
         raw = mne.fiff.Raw(src_file, preload=True)
         raw.filter(hp, lp, n_jobs=n_jobs, **kwargs)
+        raw.verbose = False
         raw.save(dest_file, overwrite=True)
 
         self.reset()
@@ -453,6 +454,19 @@ class NMG(experiment.mne_experiment):
         custom_labels.make_LPTL_label(self)
         custom_labels.make_split_fusiform(self)
         custom_labels.make_vmPFC_label(self)
+        
+    def plot_coreg(self, redo=False):
+        fname = self.get('helmet_png')
+        if not redo and os.path.exists(fname):
+            return
+        
+        from mayavi import mlab
+        from eelbrain.plot import coreg
+
+        raw = mne.fiff.Raw(self.get('raw-file'))
+        p = coreg.dev_mri(raw)
+        p.save_views(fname, overwrite=True)
+        mlab.close()
 
     def read_label(self, labels):
         "label: list"
@@ -471,13 +485,13 @@ class NMG(experiment.mne_experiment):
         return rois
 
     def process_evoked(self, raw='hp1_lp40', e_type='evoked', tstart= -0.1,
-                       tstop=0.6, reject={'mag': 3e-12}):
+                       tstop=0.6, reject={'mag': 3e-12}, redo=False):
         if e_type != 'evoked':
             raise ValueError('This method only works for evoked data.')
         self.set(raw=raw)
         self.set(analysis='_'.join((e_type, raw, str(tstart), str(tstop))))
         data = self.get('data-file')
-        if os.path.lexists(data):
+        if os.path.lexists(data) and ~redo:
             print self.get('subject')
             ds = pickle.load(open(data))
         else:
@@ -534,15 +548,32 @@ class NMG(experiment.mne_experiment):
     #    audio    #
     ###############
     
-    def make_transcripts(self):
-        from audio import make_transcripts
-        make_transcripts(audio_dir = self.get('audio_sdir'), 
+    def load_soundfiles(self):
+        from audio import load_soundfiles
+        load_soundfiles(audio_sdir = self.get('audio_sdir'), 
                         script_dir = self.get('script_dir'))
     
-    def del_transcripts(self):
-        from audio import del_transcripts
-        del_transcripts(audio_dir = self.get('audio_sdir'))
-
+    def do_force_alignment(self, redo=False):
+        if ~redo:
+            files = os.listdir(self.get('data_sdir'))
+            for FILE in files:
+                if os.path.splitext(FILE)[1] == '.TextGrid':
+                    return
+        from audio import make_transcripts
+        make_transcripts(audio_sdir = self.get('audio_sdir'), 
+                        script_dir = self.get('script_dir'),
+                        data_sdir = self.get('data_sdir'),
+                        name = self.get('s_e'))
+    
+        from audio import cat_soundfiles
+        cat_soundfiles(audio_sdir = self.get('audio_sdir'), 
+                       script_dir = self.get('script_dir'),
+                       data_sdir = self.get('data_sdir'),
+                       name = self.get('s_e'))
+    
+        from audio import force_align
+        force_align(data_sdir = self.get('data_sdir'))
+    
 
 def read_log(logfile, **kwargs):
 
@@ -620,12 +651,12 @@ def read_stim_info(stim_info):
 
     idx = ~np.isnan(stim_ds['word2_freq'])
     idy = np.isnan(stim_ds['word_freq'])
-    stim_ds['word_freq'][np.isnan(stim_ds['word_freq'])] = stim_ds[idx * idy]['word2_freq']
+    stim_ds['word_freq'][idx * idy] = stim_ds[idx * idy]['word2_freq']
 
     idx = ~np.isnan(stim_ds['word2_nmg'])
     idy = np.isnan(stim_ds['word_nmg'])
 
-    stim_ds['word_nmg'][np.isnan(stim_ds['word_nmg'])] = stim_ds[idx * idy]['word2_nmg']
+    stim_ds['word_nmg'][idx * idy] = stim_ds[idx * idy]['word2_nmg']
     del stim_ds['word2'], stim_ds['word2_freq'], stim_ds['word2_nmg']
 
     return stim_ds
@@ -644,9 +675,9 @@ def load_stim_info(stim_info, ds):
     nmg = E.var(stim_ds['c2_nmg'], name='word_nmg')
     c2 = E.dataset(c2, freq, nmg)
 
-    word = E.dataset(*stim_ds['word', 'word_freq', 'word_nmg',
-                              'c1_rating', 'c1_sd', 'c1_freq',
-                              'c2_rating', 'c2_sd', 'c2_freq'])
+    word = stim_ds['word', 'word_freq', 'word_nmg',
+                   'c1_rating', 'c1_sd', 'c1_freq',
+                   'c2_rating', 'c2_sd', 'c2_freq']
     words = E.combine((c1, c2, word))
     word_dict = {word: i for i, word in enumerate(words['word'])}
     word_idx = [word_dict[word.lower()] for word in ds['display']]

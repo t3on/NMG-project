@@ -75,7 +75,7 @@ t = {
     'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
 
     # saved data
-    'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pydat'),
+    'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
     'group-file': os.path.join('{group_dir}', 'group_{test}-{orient}.pydat'),
 
     # fif files derivatives
@@ -102,16 +102,15 @@ t = {
     'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
 
     # raw files
-    # legacy. looks in the fif folder for file pattern
     'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
     'stim_info': os.path.join('{exp_db}', 'stims', 'stims_info.mat'),
-    'plot_png': os.path.join('{results}', 'visuals', 'helmet',
+    'helmet_png': os.path.join('{results}', 'visuals', 'helmet',
                              '{s_e}' + '.png'),
 
     # eye-tracker
     'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
-    'edf': os.path.join('{edf_sdir}', '*.edf'),
+    'edf-file': os.path.join('{edf_sdir}', '*.edf'),
 
     # EEG
     'vhdr': os.path.join('{eeg_sdir}', '{s_e}.vhdr'),
@@ -147,7 +146,11 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 ###############################
 
 # subject to exclude
-exclude = ['R0224', 'R0414', 'R0576', 'R0580', 'R0605', 'R0478']
+exclude = ['R0224', # large noise artifacts 
+           'R0414', # lost 3/4 of trials by accident
+           'R0576', # noise issues
+           'R0580', # noise issues
+           'R0605'] # noise issues
 
 # color palette
 cm = dict()
