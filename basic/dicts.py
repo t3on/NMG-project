@@ -12,6 +12,7 @@ t = {
     # experiment
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
+    'root': os.path.join(os.path.expanduser('~'), 'data'),
 
     # keywords
     'common_brain': 'fsaverage',
@@ -19,8 +20,8 @@ t = {
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
     'raw': 'hp1_lp40',
-    'analysis': '',
-    'orient': '',
+    'analysis': 'prime',
+    'orient': 'fixed',
     'test': '',
     'dtype': '',
     'stat': '',
@@ -42,13 +43,14 @@ t = {
     'data_sdir': os.path.join('{exp_sdir}', 'data'),
     'meg_dir': os.path.join('{root}', '{experiment}'),
     'group_dir': os.path.join('{meg_dir}', 'group'),
+    'server_dir': '/Volumes/server/MORPHLAB/Teon/data',
 
     # MNE dir
     'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
 
     # BESA dir
     'BESA_dir': os.path.join('{meg_dir}', 'BESA'),
-    'BESA_sdir': os.path.join('{exp_sdir}', 'BESA', ''),
+    'BESA_sdir': os.path.join('{exp_sdir}', 'BESA'),
     'BESA_Averages': os.path.join('{BESA_dir}', 'BESA_Averages'),
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
     
@@ -99,7 +101,10 @@ t = {
     'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
     'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
     'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
+    'fsn': os.path.join('{param_sdir}', '{subject}*.fsn'),
     'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
+    'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
+    'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
 
     # raw files
     'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
@@ -122,9 +127,10 @@ t = {
     'besa_ela': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.ela'),
     'besa_pos': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.pos'),
     'besa_sfp': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.sfp'),
+    'besa_evt': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.evt'),
 
     # BESA files
-    'besa_pdg': os.path.join('{BESA_dir}', '{exp}.PDG'),
+    'besa_pdg': os.path.join('{BESA_dir}', '{experiment}.PDG'),
     'besa_cfg': os.path.join('{BESA_dir}', 'BESA_MN.cfg'),
     'besa_fsg': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.fsg'),
     'besa_elv': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.elv'),

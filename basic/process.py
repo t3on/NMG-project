@@ -6,8 +6,10 @@ Created on Nov 25, 2012
 Collection of functions used on an experiment class.
 '''
 
+import re
 import os
 import logging
+from glob import glob
 from subprocess import Popen, PIPE
 import cPickle as pickle
 import numpy as np
@@ -16,21 +18,43 @@ import scipy.io as sio
 import mne
 import mne.fiff.kit as KIT
 from eelbrain import eellab as E
-from eelbrain.vessels import experiment
+from eelbrain import experiment
+from pyphon import pyphon as pyp
 import dicts
 import custom_labels
 
 
-class NMG(experiment.mne_experiment):
+
+class NMG(experiment.FileTree):
     _subject_loc = '{meg_dir}'
     _templates = _defaults = dicts.t
+    exclude = {'subject': dicts.exclude}
 
-    def __init__(self, subject=None, root='~/data', **kwargs):
+    def __init__(self, subject=None, 
+                 root=dicts.t['root'], **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
-        self.exclude['subject'] = dicts.exclude
         self.cm = dicts.cm
+        
+    def _register_field(self, key, values=None, default=None, set_handler=None,
+                        eval_handler=None, post_set_handler=None):
+        folders = os.listdir(self.get('exp_dir'))
+        pat = re.compile('R[0-9]{4}')
+        subjects = []
+        for subject in folders:
+            if re.match(pat, subject):
+                subjects.append(subject)
+        subjects = list(set(subjects) - set(self.exclude['subject']))
+        subjects.sort()
+        
+        return experiment.FileTree._register_field(self, 'subject', subjects)
+        
+    def __iter__(self):
+        "Iterate state through subjects and yield each subject name."
+        self._register_field('subject')
+        for subject in self.iter('subject'):
+            yield subject
 
 
     #################
@@ -123,8 +147,8 @@ class NMG(experiment.mne_experiment):
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
 
-    def load_events(self, subject=None, experiment=None,
-                    remove_bad_chs=True, proj=False, edf=True, treject=25):
+    def load_events(self, remove_bad_chs=True, proj=False, 
+                    edf=True, treject=25, **kwargs):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -136,7 +160,8 @@ class NMG(experiment.mne_experiment):
             Loads edf and add it to the info dict.
 
         """
-        self.set(subject=subject, experiment=experiment)
+        if 'subject' in kwargs:
+            self.set(subject=kwargs['subject'])
         self.logger.info('subject: %s' % self.get('subject'))
         raw_file = self.get('raw-file')
         if isinstance(proj, str):
@@ -167,8 +192,10 @@ class NMG(experiment.mne_experiment):
 
         # add edf
         if edf:
-            if os.path.lexists(self.get('edf_sdir')):
-                edf = self.load_edf()
+            edf_path = self.get('edf_sdir')
+            if os.path.lexists(edf_path):
+                edf_path = os.path.join(edf_path, '*.edf')
+                edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
                     self.logger.info('edf: dimension mismatch, eyelink disabled')
                 #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
@@ -292,6 +319,22 @@ class NMG(experiment.mne_experiment):
         except ValueError:
             self.logger.info('ds: Dimension Mismatch. No Stimuli Info')
         return ds
+    
+    def push_mne_files(self, overwrite=False, **kwargs):
+        if 'raw' in kwargs:
+            self.set(raw=kwargs['raw']) 
+        self.push(dst_root=self.get('server_dir'),
+                  names=['raw-file', 'trans', 'cov', 'fwd'],
+                  overwrite=overwrite)
+    
+    def push_BESA_files(self, 
+                        names=['besa_ascii', 'besa_cot', 'besa_ela', 
+                               'besa_pos', 'besa_sfp', 'besa_evt'], 
+                        overwrite=False, **kwargs):
+        if 'raw' in kwargs:
+            self.set(raw=kwargs['raw']) 
+        self.push(dst_root=self.get('server_dir'),
+                  names=names, overwrite=overwrite)
 
     ################
     #    source    #
@@ -439,15 +482,28 @@ class NMG(experiment.mne_experiment):
             self.logger.info('stc: %s' % error)
             raise TypeError(error)
 
-    def make_BESA_epochs(self, ds):
-        # loads a epoch x sensor x time
-        ds = E.load.fiff.add_epochs(ds)
-        # makes a time x sensor x epoch
-        epochs = ds['MEG'].x.T
-        epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
-        epochs = np.vstack(epochs)
-        np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
-
+    def make_BESA_files(self, asc=False):
+        tstart = -.1
+        tstop = .6
+        epoch = int((tstop - tstart) * 1e3)
+        
+        ds = self.load_events(remove_bad_chs=False)
+        ds = ds[ds['target'] == 'prime']        
+        d = E.dataset()
+        d['Tms'] = E.var(range(0, epoch*ds.n_cases, epoch))
+        d['Code'] = E.var(np.ones(ds.n_cases))
+        d['TriNo'] = ds['eventID']        
+        d.save_txt(self.get('besa_evt'))
+        
+        if asc:
+            # loads a epoch x sensor x time
+            ds = E.load.fiff.add_epochs(ds, tstart=tstart, tstop=tstop)
+            # makes a time x sensor x epoch
+            epochs = ds['MEG'].x.T
+            epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
+            epochs = np.vstack(epochs)*1e15
+            np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
+        
     def make_custom_labels(self):
         "makes custom fs labels for subjects"
         custom_labels.make_LATL_label(self)
@@ -484,7 +540,8 @@ class NMG(experiment.mne_experiment):
             rois = rois[0]
         return rois
 
-    def process_evoked(self, raw='hp1_lp40', e_type='evoked', tstart= -0.1,
+    def process_evoked(self, model='condition % wordtype % target', 
+                       raw='hp1_lp40', e_type='evoked', tstart= -0.1,
                        tstop=0.6, reject={'mag': 3e-12}, redo=False):
         if e_type != 'evoked':
             raise ValueError('This method only works for evoked data.')
@@ -510,9 +567,8 @@ class NMG(experiment.mne_experiment):
                 self.logger.info('subject %s is excluded due to large number '
                                  % self.get('subject') + 'of rejections')
                 return
-            #do source transformation
-            ds = ds.compress(ds['condition'] % ds['wordtype'] %
-                            ds['target'], drop_bad=True)
+            #do compression
+            ds = ds.compress(model, drop_bad=True)
             E.save.pickle(ds, self.get('data-file', mkdir=True))
         return ds
 
@@ -531,17 +587,21 @@ class NMG(experiment.mne_experiment):
             stcs.append(self.make_stcs(d, orient=orient, stc_type=e_type))
         del ds['epochs']
 
-        for fs_roi, roilabel in zip(rois, roilabels):
-            stc_rois = []
-            for stc in stcs:
-                roi = self.read_label(fs_roi)
-                roi = stc.in_label(roi)
-                mri = self.get('mrisubject')
-                roi = E.load.fiff.stc_ndvar(roi, subject=mri)
-                roi = roi.summary('source', name='stc')
-                roi.x -= roi.summary(time=(tstart, 0))
-                stc_rois.append(roi)
-            ds[roilabel] = E.combine(stc_rois)
+        if rois == None:
+            ds['stcs'] = stcs
+            return ds
+        else:
+            for fs_roi, roilabel in zip(rois, roilabels):
+                stc_rois = []
+                for stc in stcs:
+                    roi = self.read_label(fs_roi)
+                    roi = stc.in_label(roi)
+                    mri = self.get('mrisubject')
+                    roi = E.load.fiff.stc_ndvar(roi, subject=mri)
+                    roi = roi.summary('source', name='stc')
+                    roi.x -= roi.summary(time=(tstart, 0))
+                    stc_rois.append(roi)
+                ds[roilabel] = E.combine(stc_rois)
         return ds
     
     ###############
@@ -554,26 +614,32 @@ class NMG(experiment.mne_experiment):
                         script_dir = self.get('script_dir'))
     
     def do_force_alignment(self, redo=False):
-        if ~redo:
-            files = os.listdir(self.get('data_sdir'))
-            for FILE in files:
-                if os.path.splitext(FILE)[1] == '.TextGrid':
-                    return
+        fmatch = os.path.join(self.get('data_sdir'), '*.TextGrid')
+        if len(glob(fmatch)) > 0 and not redo:
+            return
+
         from audio import make_transcripts
         make_transcripts(audio_sdir = self.get('audio_sdir'), 
                         script_dir = self.get('script_dir'),
                         data_sdir = self.get('data_sdir'),
                         name = self.get('s_e'))
-    
         from audio import cat_soundfiles
         cat_soundfiles(audio_sdir = self.get('audio_sdir'), 
                        script_dir = self.get('script_dir'),
                        data_sdir = self.get('data_sdir'),
                        name = self.get('s_e'))
-    
         from audio import force_align
         force_align(data_sdir = self.get('data_sdir'))
-    
+        
+    def get_word_duration(self):
+        ds = []
+        fmatch = os.path.join(self.get('data_sdir'), '*.TextGrid')
+        textgrids = glob(fmatch)
+        for textgrid in textgrids:
+            grid = pyp.textgrid(textgrid)
+            ds.append(grid.export_durs())
+        ds = E.combine(ds)
+        return ds
 
 def read_log(logfile, **kwargs):
 
