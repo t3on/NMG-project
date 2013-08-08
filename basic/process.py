@@ -45,8 +45,9 @@ class NMG(experiment.FileTree):
         for subject in folders:
             if re.match(pat, subject):
                 subjects.append(subject)
-        subjects = list(set(subjects) - set(self.exclude['subject']))
-        subjects.sort()
+        if self.exclude:
+            subjects = list(set(subjects) - set(self.exclude['subject']))
+            subjects.sort()
         
         return experiment.FileTree._register_field(self, 'subject', subjects)
         
