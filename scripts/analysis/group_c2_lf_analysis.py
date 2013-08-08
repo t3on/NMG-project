@@ -8,16 +8,16 @@ import eelbrain.eellab as E
 import basic.process as process
 import os
 
-filter = 'hp1_lp40'
+raw = 'hp1_lp40'
 root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
 corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
 stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
 logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'c2_sf_corr_%s.pickled' % filter)
+saved_data = os.path.join(root, 'data', 'c2_sf_corr_%s.pickled' % raw)
 roilabels = ['lh.fusiform', 'lh.inferiortemporal']
 
 e = process.NMG()
-e.set(raw=filter)
+e.set(raw=raw)
 
 if os.path.lexists(saved_data):
     group_ds = pickle.load(open(saved_data))

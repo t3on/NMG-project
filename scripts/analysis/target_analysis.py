@@ -5,7 +5,6 @@ Created on Nov 26, 2012
 '''
 
 import os
-import pickle
 import eelbrain.eellab as E
 import basic.process as process
 

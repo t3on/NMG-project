@@ -4,6 +4,8 @@ Created on Apr 24, 2013
 @author: teon
 '''
 
+import basic.process as process
+
 e = process.NMG()
 
 # analysis

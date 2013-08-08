@@ -5,32 +5,32 @@ Created on May 31, 2013
 '''
 
 
-import eelbrain.utils.kit as kit
+import eelbrain.utils.mne_utils as utils
 import os
 import mne
 
 
 def make_LATL_label(e):
-    ant_super = kit.split_label(label=mne.read_label(os.path.join(
+    ant_super = utils.split_label(label=mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.superiortemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[1]
-    ant_mid = kit.split_label(mne.read_label(os.path.join(
+    ant_mid = utils.split_label(mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.middletemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[1]
-    ant_inf = kit.split_label(mne.read_label(os.path.join(
+    ant_inf = utils.split_label(mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.inferiortemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[1]
     LATL = ant_super + ant_mid + ant_inf
     mne.write_label(os.path.join(e.get('label_sdir'), 'lh.LATL.label'), LATL)
 
 def make_LPTL_label(e):
-    post_super = kit.split_label(label=mne.read_label(os.path.join(
+    post_super = utils.split_label(label=mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.superiortemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[0]
-    post_mid = kit.split_label(mne.read_label(os.path.join(
+    post_mid = utils.split_label(mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.middletemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[0]
-    post_inf = kit.split_label(mne.read_label(os.path.join(
+    post_inf = utils.split_label(mne.read_label(os.path.join(
                 e.get('label_sdir'), 'lh.inferiortemporal.label')),
                 source_space=e.get('src'), axis=1, pieces=2)[0]
     LPTL = post_super + post_mid + post_inf
@@ -38,10 +38,10 @@ def make_LPTL_label(e):
 
 def make_split_fusiform(e):
     label = mne.read_label(os.path.join(e.get('label_sdir'), 'lh.fusiform.label'))
-    ant_fusiform = kit.split_label(label=label,
+    ant_fusiform = utils.split_label(label=label,
                 source_space=e.get('src'),
                 axis=1, pieces=2)[1]
-    post_fusiform = kit.split_label(label=label,
+    post_fusiform = utils.split_label(label=label,
                 source_space=e.get('src'),
                 axis=1, pieces=2)[0]
     mne.write_label(os.path.join(e.get('label_sdir'), 'lh.ant_fusiform.label'),
