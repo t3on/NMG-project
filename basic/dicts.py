@@ -13,6 +13,7 @@ t = {
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
     'root': os.path.join(os.path.expanduser('~'), 'data'),
+    'server': os.path.join('/Volumes', 'server', 'MORPHLAB', 'Teon'),
 
     # keywords
     'common_brain': 'fsaverage',
@@ -28,22 +29,23 @@ t = {
 
     # db dirs
     'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                            'Experiments', '{experiment}'),
+                            'Experiments', '{experiment}',
+                            'data'),
     'results': os.path.join('{exp_db}', 'results'),
     'plots_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                              '{orient}', ''),
+                              '{orient}'),
     'stats_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                              '{orient}', 'stats', ''),
+                              '{orient}', 'stats'),
     'wf_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                           '{orient}', ''),
+                           '{orient}'),
 
     # basic dir
-    'exp_dir': os.path.join('{root}', '{experiment}'),
+    'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
     'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
     'data_sdir': os.path.join('{exp_sdir}', 'data'),
-    'meg_dir': os.path.join('{root}', '{experiment}'),
+    'meg_dir': os.path.join('{root}', '{experiment}', 'data'),
     'group_dir': os.path.join('{meg_dir}', 'group'),
-    'server_dir': '/Volumes/server/MORPHLAB/Teon/data',
+    'server_dir': os.path.join('{server}', 'data', '{experiment}'),
 
     # MNE dir
     'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
@@ -53,12 +55,12 @@ t = {
     'BESA_sdir': os.path.join('{exp_sdir}', 'BESA'),
     'BESA_Averages': os.path.join('{BESA_dir}', 'BESA_Averages'),
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
-    
+
     # audio dir
     'script_dir': os.path.join('{exp_db}', 'stims', 'transcripts'),
 
     # mri dir
-    'mri_dir': os.path.join('{root}', 'MRI'), # contains subject-name folders for MRI data
+    'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
     'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
     'label_sdir': os.path.join('{mri_sdir}', 'label'),
 
@@ -74,7 +76,7 @@ t = {
     # fif files
     'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
     'raw-file': '{raw-base}-raw.fif',
-    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'), # mne p. 196
+    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p. 196
 
     # saved data
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
@@ -152,11 +154,11 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 ###############################
 
 # subject to exclude
-exclude = ['R0224', # large noise artifacts 
-           'R0414', # lost 3/4 of trials by accident
-           'R0576', # noise issues
-           'R0580', # noise issues
-           'R0605'] # noise issues
+exclude = ['R0224',  # large noise artifacts
+           'R0414',  # lost 3/4 of trials by accident
+           'R0576',  # noise issues
+           'R0580',  # noise issues
+           'R0605']  # noise issues
 
 # color palette
 cm = dict()
