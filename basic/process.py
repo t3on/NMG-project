@@ -18,18 +18,17 @@ import scipy.io as sio
 import mne
 import mne.fiff.kit as KIT
 from eelbrain import eellab as E
-from eelbrain import experiment
+from eelbrain.experiment import FileTree
 from pyphon import pyphon as pyp
 import dicts
 import custom_labels
 
 
 
-class NMG(experiment.FileTree):
+class NMG(FileTree):
     _subject_loc = '{meg_dir}'
     _templates = _defaults = dicts.t
-    exclude = {'subject': dicts.exclude}
-
+    exclude = dicts.exclude
     def __init__(self, subject=None, 
                  root=dicts.t['root'], **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
@@ -45,18 +44,36 @@ class NMG(experiment.FileTree):
         for subject in folders:
             if re.match(pat, subject):
                 subjects.append(subject)
-        if self.exclude:
-            subjects = list(set(subjects) - set(self.exclude['subject']))
-            subjects.sort()
+                subjects.sort()
         
-        return experiment.FileTree._register_field(self, 'subject', subjects)
+        return FileTree._register_field(self, 'subject', subjects)
         
     def __iter__(self):
         "Iterate state through subjects and yield each subject name."
-        self._register_field('subject')
         for subject in self.iter('subject'):
-            yield subject
+            if subject in self.exclude:
+                continue
+            else:
+                yield subject
+            
+    def set(self, subject=None, **state):
+        """
+        Set variable values.
 
+        Parameters
+        ----------
+        subject : str
+            Set the `subject` value.
+        add : bool
+            If the template name does not exist, add a new key. If False
+            (default), a non-existent key will raise a KeyError.
+        other : str
+            All other keywords can be used to set templates.
+        """
+        if subject is not None:
+            state['subject'] = subject
+
+        FileTree.set(self, **state)
 
     #################
     #    process    #
@@ -114,7 +131,7 @@ class NMG(experiment.FileTree):
         raw : fif-file
             New fif-file with filter settings named with template.
         """
-        self.reset()
+#         self.reset()
         if isinstance(hp, int) and isinstance(lp, int):
             raw = 'hp%d_lp%d' % (hp, lp)
         elif isinstance(hp, float) and isinstance(lp, int):
@@ -136,7 +153,7 @@ class NMG(experiment.FileTree):
         raw.verbose = False
         raw.save(dest_file, overwrite=True)
 
-        self.reset()
+#         self.reset()
 
     def make_fiducials(self):
         mne.gui.fiducials(self.get('subject'),
@@ -148,8 +165,8 @@ class NMG(experiment.FileTree):
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
 
-    def load_events(self, remove_bad_chs=True, proj=False, 
-                    edf=True, treject=25, **kwargs):
+    def load_events(self, subject=None, redo=False, remove_bad_chs=True, 
+                    proj=False, edf=True, treject=25):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -161,40 +178,29 @@ class NMG(experiment.FileTree):
             Loads edf and add it to the info dict.
 
         """
-        if 'subject' in kwargs:
-            self.set(subject=kwargs['subject'])
-        self.logger.info('subject: %s' % self.get('subject'))
-        raw_file = self.get('raw-file')
-        if isinstance(proj, str):
-            proj = self.get('proj', projname=proj)
-        if proj:
-            proj = os.path.lexists(self.get('proj'))
-        ds = E.load.fiff.events(raw_file, proj=proj)
+        edf_path = self.get('edf_sdir')
+        if subject:
+            self.set(subject=subject)
+        
+        if redo or not os.path.lexists(self.get('ds-file')):
+            self.logger.info('subject: %s' % self.get('subject'))
+            raw_file = self.get('raw-file')
+            if isinstance(proj, str):
+                proj = self.get('proj', projname=proj)
+            if proj:
+                proj = os.path.lexists(self.get('proj'))
+            ds = E.load.fiff.events(raw_file, proj=proj)
 
-        #Add subject as a dummy variable to the dataset
-        ds['subject'] = E.factor([self.get('subject')], rep=ds.n_cases, random=True)
-        ds.info['subject'] = self.get('subject')
-
-
-        raw = ds.info['raw']
-        raw.verbose = False
-        if remove_bad_chs:
-            bad_chs = self.bad_channels[self.get('subject')]
-            raw.info['bads'].extend(bad_chs)
-        else:
-            self.bad_channels = {}
-            raw.info['bads'] = []
-
-        #Loads logfile and adds it to the ds
-        log_ds = read_log(self.get('log-file'))
-        ds.update(log_ds)
-
-        self.label_events(ds)
-
-        # add edf
-        if edf:
-            edf_path = self.get('edf_sdir')
-            if os.path.lexists(edf_path):
+            #Add subject as a dummy variable to the dataset
+            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, random=True)
+    
+            #Loads logfile and adds it to the ds
+            log_ds = read_log(self.get('log-file'))
+            ds.update(log_ds)
+            
+            self.label_events(ds)    
+            
+            if edf and os.path.lexists(edf_path):
                 edf_path = os.path.join(edf_path, '*.edf')
                 edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
@@ -208,17 +214,45 @@ class NMG(experiment.FileTree):
                         b = trial[1] - 128 if trial[1] > 128 else trial[1]
                         edf.triggers[idx] = (a, b)
 
-                    edf.add_T_to(ds)
-                    ds.info['edf'] = edf
-                ds = self._reject_blinks(ds, treject=treject)
+                    try:
+                        edf.add_T_to(ds)
+                        edf.mark(ds, tstart= -0.2, tstop=0.4, good=None, bad=False, 
+                                 use=['EBLINK'], T='t_edf', target='accept')
+                    except ValueError:
+                        edf=False
+                        pass
+                    
+            ds.save_txt(self.get('ds-file'))
+
+        else:
+            ds = E.load.txt.tsv(self.get('ds-file'))
+            ds['subject'].random = True
+
+        ds.info['subject'] = self.get('subject')
+        try:
+            ds.info['raw'] = raw = mne.fiff.Raw(self.get('raw-file'), verbose=False)
+            if remove_bad_chs:
+                bad_chs = self.bad_channels[self.get('subject')]
+                raw.info['bads'].extend(bad_chs)
+            else:
+                self.bad_channels = {}
+                raw.info['bads'] = []
+        except IOError:
+            print 'No Raw fif found. Loading dataset without raw...'
+            pass
+
+        # add edf
+        if edf and os.path.lexists(edf_path):
+            ds = self._reject_blinks(ds, treject=treject)
+        if 't_edf' in ds:
+            del ds['t_edf']
+        if 'accept' in ds:
+            del ds['accept']
         return ds
 
     def _reject_blinks(self, ds, treject=25):
-
-        if 't_edf' in ds:
-            ds.info['edf'].mark(ds, tstart= -0.2, tstop=0.4,
-                                good=None, bad=False, use=['EBLINK'],
-                                T='t_edf', target='accept')
+        if 'accept' in ds:
+            ds['accept'] = E.Var(np.array(ds['accept'].x, bool))
             dsx = ds.subset('accept')
             rejected = (ds.n_cases - dsx.n_cases) * 100 / ds.n_cases
             remainder = dsx.n_cases * 100 / ds.n_cases
@@ -277,22 +311,25 @@ class NMG(experiment.FileTree):
                 cond.append(None)
 
         #Labels events    
-        ds['experiment'] = E.factor(exp, labels={None: 'fixation',
+        ds['experiment'] = E.Factor(exp, labels={None: 'fixation',
                                                  1: 'experiment'})
-        ds['target'] = E.factor(target, labels={None: 'fixation/voice',
+        ds['target'] = E.Factor(target, labels={None: 'fixation/voice',
                                                 0: 'prime', 1: 'target'})
-        ds['wordtype'] = E.factor(wtype, labels={None: 'None', 1: 'transparent',
+        ds['wordtype'] = E.Factor(wtype, labels={None: 'None', 1: 'transparent',
                                                  2: 'opaque', 3: 'novel',
                                                  4: 'ortho', 5:'ortho'})
-        ds['condition'] = E.factor(cond, labels={None: 'None', 1: 'control_identity',
+        ds['ortho'] = E.Factor(wtype, labels={None: 'compound', 1: 'compound',
+                                                 2: 'compound', 3: 'compound',
+                                                 4: 'ortho-1', 5:'ortho-2'})
+        ds['condition'] = E.Factor(cond, labels={None: 'None', 1: 'control_identity',
                                                  2: 'identity', 3: 'control_constituent',
                                                  4: 'first_constituent'})
-        ds['eventID_bin'] = E.factor(eventID_bin, 'eventID_bin')
+        ds['eventID_bin'] = E.Factor(eventID_bin, 'eventID_bin')
         #Propagates itemID for all trigger events
-        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by factor of 2.
+        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by Factor of 2.
         index = ds['eventID'] < 64
         scenario = map(int, ds['eventID'][index])
-        ds['scenario'] = E.var(np.repeat(scenario, 2))
+        ds['scenario'] = E.Var(np.repeat(scenario, 2))
 
 
         #Makes a temporary ds
@@ -300,14 +337,14 @@ class NMG(experiment.FileTree):
         #Add itemID to uniquely identify each word
         #There are sixty words in each of the four condition 
         itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
-        ds['itemID'] = E.var(np.repeat(itemID, 4))
+        ds['itemID'] = E.Var(np.repeat(itemID, 4))
 
         #Labels the voice events
         #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
         index = np.arange(3, ds.n_cases, 4)
         ds['experiment'][index] = 'voice'
         #Add block to the ds. 4 events per trial, 240 trials per block
-        ds['block'] = E.var(np.repeat(xrange(ds.n_cases / 960), repeats=960,
+        ds['block'] = E.Var(np.repeat(xrange(ds.n_cases / 960), repeats=960,
                                       axis=None))
 
         #Loads the stim info from txt file and adds it to the ds
@@ -316,7 +353,7 @@ class NMG(experiment.FileTree):
             ds.update(stim_ds)
             freq = ds['word_freq'].x
             freq[np.where(freq == 0)[0]] = 1
-            ds['log_freq'] = E.var(np.log(freq))
+            ds['log_freq'] = E.Var(np.log(freq))
         except ValueError:
             self.logger.info('ds: Dimension Mismatch. No Stimuli Info')
         return ds
@@ -375,9 +412,9 @@ class NMG(experiment.FileTree):
         index = ds['experiment'] == 'fixation'
         ds_fix = ds[index]
 
-        epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(None, 0),
+        epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(-.2, 0),
                                         reject={'mag':2e-12}, tstart= -.2,
-                                        tstop=.2, verbose=verbose)
+                                        tstop=0, verbose=verbose)
         cov = mne.cov.compute_covariance(epochs, verbose=verbose)
 
         if write == True:
@@ -396,7 +433,7 @@ class NMG(experiment.FileTree):
         bem = self.get('bem')
         fwd = self.get('fwd')
         rawfif = self.get('raw-file')
-        mri_subject = self.get('mrisubject')
+        mri_subject = self.get('subject')
         cwd = self.get('mne_bin')
 
         cmd = ['mne_do_forward_solution',
@@ -435,7 +472,7 @@ class NMG(experiment.FileTree):
 
         Parameters
         ----------
-        ds: dataset
+        ds: Dataset
             data
         labels: list of tuples
             a list of ROIs
@@ -490,9 +527,9 @@ class NMG(experiment.FileTree):
         
         ds = self.load_events(remove_bad_chs=False)
         ds = ds[ds['target'] == 'prime']        
-        d = E.dataset()
-        d['Tms'] = E.var(range(0, epoch*ds.n_cases, epoch))
-        d['Code'] = E.var(np.ones(ds.n_cases))
+        d = E.Dataset()
+        d['Tms'] = E.Var(range(0, epoch*ds.n_cases, epoch))
+        d['Code'] = E.Var(np.ones(ds.n_cases))
         d['TriNo'] = ds['eventID']        
         d.save_txt(self.get('besa_evt'))
         
@@ -518,7 +555,7 @@ class NMG(experiment.FileTree):
             return
         
         from mayavi import mlab
-        from eelbrain.plot import coreg
+        import eelbrain.data.plot.coreg as coreg
 
         raw = mne.fiff.Raw(self.get('raw-file'))
         p = coreg.dev_mri(raw)
@@ -557,7 +594,7 @@ class NMG(experiment.FileTree):
             index = ds['experiment'] == 'experiment'
             ds = ds[index]
 
-            #add epochs to the dataset after excluding bad channels
+            #add epochs to the Dataset after excluding bad channels
             orig_N = ds.n_cases
             ds = E.load.fiff.add_mne_epochs(ds, tstart=tstart, tstop=tstop,
                                             reject=reject)
@@ -597,7 +634,7 @@ class NMG(experiment.FileTree):
                 for stc in stcs:
                     roi = self.read_label(fs_roi)
                     roi = stc.in_label(roi)
-                    mri = self.get('mrisubject')
+                    mri = self.get('subject')
                     roi = E.load.fiff.stc_ndvar(roi, subject=mri)
                     roi = roi.summary('source', name='stc')
                     roi.x -= roi.summary(time=(tstart, 0))
@@ -632,15 +669,30 @@ class NMG(experiment.FileTree):
         from audio import force_align
         force_align(data_sdir = self.get('data_sdir'))
         
-    def get_word_duration(self):
+    def get_word_duration(self, block=1, **kwargs):
+        dataset = self.load_events(edf=False, remove_bad_chs=False, **kwargs)
+        dataset = dataset[dataset['target'] == 'target']
         ds = []
-        fmatch = os.path.join(self.get('data_sdir'), '*.TextGrid')
+        fmatch = self.format('{textgrid}')
         textgrids = glob(fmatch)
-        for textgrid in textgrids:
-            grid = pyp.textgrid(textgrid)
+        textgrids.sort()
+        for grid in textgrids[:block]:
+            grid = pyp.Textgrid(grid)
             ds.append(grid.export_durs())
         ds = E.combine(ds)
-        return ds
+        if all(ds['words'] == dataset['word'][:ds.n_cases]): 
+            c1_dur = np.zeros((dataset.n_cases))
+            c1_dur[:ds.n_cases] = ds['c1_dur'].x
+            c1_dur = E.Var(c1_dur, 'c1_dur')
+            c2_dur = np.zeros((dataset.n_cases))
+            c2_dur[:ds.n_cases] = ds['c2_dur'].x
+            c2_dur = E.Var(c2_dur, 'c2_dur')
+            
+            dataset.update(E.Dataset(c1_dur, c2_dur))
+        else:
+            raise ValueError('Words do not match up.')
+        
+        return dataset
 
 def read_log(logfile, **kwargs):
 
@@ -673,44 +725,44 @@ def read_log(logfile, **kwargs):
     times = np.diff(times)
     latencies = times[2::4]
 
-    latency = E.var(latencies, name='latency').repeat(4)
+    latency = E.Var(latencies, name='latency').repeat(4)
     latency.properties = 'Time (s)'
-    trigger = E.var(triggers, name='trigger')
-    trigger_time = E.var(trigger_times, name='trigger_time')
-    display = E.factor(displays, name='display')
+    trigger = E.Var(triggers, name='trigger')
+    trigger_time = E.Var(trigger_times, name='trigger_time')
+    display = E.Factor(displays, name='display')
 
     if 'subject' in kwargs:
-        subject = E.factor([kwargs['subject']], rep=len(latency), name='subject')
-        ds = E.dataset(subject, display, trigger, latency, trigger_time)
+        subject = E.Factor([kwargs['subject']], rep=len(latency), name='subject')
+        ds = E.Dataset(subject, display, trigger, latency, trigger_time)
     else:
-        ds = E.dataset(display, trigger, latency, trigger_time)
-    ds['word_length'] = E.var(map(len, ds['display']))
+        ds = E.Dataset(display, trigger, latency, trigger_time)
+    ds['word_length'] = E.Var(map(len, ds['display']))
 
     return ds
 
 def read_stim_info(stim_info):
     stims = sio.loadmat(stim_info)['stims'].T
-    stim_ds = E.dataset()
+    stim_ds = E.Dataset()
 
-    stim_ds['c1_rating'] = E.var(nphs(nphs(nphs(stims[0]))))
-    stim_ds['c1_sd'] = E.var(nphs(nphs(nphs(stims[1]))))
-    stim_ds['c1'] = E.factor(nphs(nphs(stims[2])))
-    stim_ds['c1_freq'] = E.var(nphs(nphs(nphs(stims[3]))))
-    stim_ds['c1_nmg'] = E.var(nphs(nphs(nphs(stims[4]))))
+    stim_ds['c1_rating'] = E.Var(nphs(nphs(nphs(stims[0]))))
+    stim_ds['c1_sd'] = E.Var(nphs(nphs(nphs(stims[1]))))
+    stim_ds['c1'] = E.Factor(nphs(nphs(stims[2])))
+    stim_ds['c1_freq'] = E.Var(nphs(nphs(nphs(stims[3]))))
+    stim_ds['c1_nmg'] = E.Var(nphs(nphs(nphs(stims[4]))))
 
-    stim_ds['word'] = E.factor(nphs(nphs(stims[5])))
-    stim_ds['word_freq'] = E.var(nphs(nphs(nphs(stims[6]))))
-    stim_ds['word_nmg'] = E.var(nphs(nphs(nphs(stims[7]))))
+    stim_ds['word'] = E.Factor(nphs(nphs(stims[5])))
+    stim_ds['word_freq'] = E.Var(nphs(nphs(nphs(stims[6]))))
+    stim_ds['word_nmg'] = E.Var(nphs(nphs(nphs(stims[7]))))
 
-    stim_ds['c2_rating'] = E.var(nphs(nphs(nphs(stims[-9]))))
-    stim_ds['c2_sd'] = E.var(nphs(nphs(nphs(stims[-8]))))
-    stim_ds['c2'] = E.factor(nphs(nphs(stims[-7])))
-    stim_ds['c2_freq'] = E.var(nphs(nphs(nphs(stims[-6]))))
-    stim_ds['c2_nmg'] = E.var(nphs(nphs(nphs(stims[-5]))))
+    stim_ds['c2_rating'] = E.Var(nphs(nphs(nphs(stims[-9]))))
+    stim_ds['c2_sd'] = E.Var(nphs(nphs(nphs(stims[-8]))))
+    stim_ds['c2'] = E.Factor(nphs(nphs(stims[-7])))
+    stim_ds['c2_freq'] = E.Var(nphs(nphs(nphs(stims[-6]))))
+    stim_ds['c2_nmg'] = E.Var(nphs(nphs(nphs(stims[-5]))))
 
-    stim_ds['word2'] = E.factor(nphs(nphs(stims[-4])))
-    stim_ds['word2_freq'] = E.var(nphs(nphs(nphs(stims[-3]))))
-    stim_ds['word2_nmg'] = E.var(nphs(nphs(nphs(stims[-2]))))
+    stim_ds['word2'] = E.Factor(nphs(nphs(stims[-4])))
+    stim_ds['word2_freq'] = E.Var(nphs(nphs(nphs(stims[-3]))))
+    stim_ds['word2_nmg'] = E.Var(nphs(nphs(nphs(stims[-2]))))
 
     idx = stim_ds['word2'] != 'NaW'
     idy = stim_ds['word'] == 'NaW'
@@ -732,15 +784,15 @@ def read_stim_info(stim_info):
 def load_stim_info(stim_info, ds):
     stim_ds = read_stim_info(stim_info)
 
-    c1 = E.factor(stim_ds['c1'], name='word')
-    freq = E.var(stim_ds['c1_freq'], name='word_freq')
-    nmg = E.var(stim_ds['c1_nmg'], name='word_nmg')
-    c1 = E.dataset(c1, freq, nmg)
+    c1 = E.Factor(stim_ds['c1'], name='word')
+    freq = E.Var(stim_ds['c1_freq'], name='word_freq')
+    nmg = E.Var(stim_ds['c1_nmg'], name='word_nmg')
+    c1 = E.Dataset(c1, freq, nmg)
 
-    c2 = E.factor(stim_ds['c2'], name='word')
-    freq = E.var(stim_ds['c2_freq'], name='word_freq')
-    nmg = E.var(stim_ds['c2_nmg'], name='word_nmg')
-    c2 = E.dataset(c2, freq, nmg)
+    c2 = E.Factor(stim_ds['c2'], name='word')
+    freq = E.Var(stim_ds['c2_freq'], name='word_freq')
+    nmg = E.Var(stim_ds['c2_nmg'], name='word_nmg')
+    c2 = E.Dataset(c2, freq, nmg)
 
     word = stim_ds['word', 'word_freq', 'word_nmg',
                    'c1_rating', 'c1_sd', 'c1_freq',

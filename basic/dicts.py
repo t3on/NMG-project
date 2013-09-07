@@ -21,23 +21,19 @@ t = {
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
     'raw': 'hp1_lp40',
-    'analysis': 'prime',
-    'orient': 'fixed',
+    'analysis': '',
+    'orient': '',
     'test': '',
-    'dtype': '',
+    'datatype': '',
     'stat': '',
 
     # db dirs
-    'exp_db': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                            'Experiments', '{experiment}',
-                            'data'),
-    'results': os.path.join('{exp_db}', 'results'),
-    'plots_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                              '{orient}'),
-    'stats_dir': os.path.join('{results}', '{dtype}', '{stat}',
+    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox',
+                            'Experiments'),
+    'results': os.path.join('{db_dir}', '{experiment}', 'results'),
+    'plots_dir': os.path.join('{results}', '{datatype}', '{stat}'),
+    'stats_dir': os.path.join('{results}', '{datatype}', '{stat}',
                               '{orient}', 'stats'),
-    'wf_dir': os.path.join('{results}', '{dtype}', '{stat}',
-                           '{orient}'),
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
@@ -56,12 +52,9 @@ t = {
     'BESA_Averages': os.path.join('{BESA_dir}', 'BESA_Averages'),
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
 
-    # audio dir
-    'script_dir': os.path.join('{exp_db}', 'stims', 'transcripts'),
-
     # mri dir
     'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
-    'mri_sdir': os.path.join('{mri_dir}', '{mrisubject}'),
+    'mri_sdir': os.path.join('{mri_dir}', '{subject}'),
     'label_sdir': os.path.join('{mri_sdir}', 'label'),
 
     # raw folders
@@ -70,6 +63,7 @@ t = {
     'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
     'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
     'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
+    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims', 'transcripts'),
     'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
@@ -79,8 +73,10 @@ t = {
     'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p. 196
 
     # saved data
+    'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
+    'analysis-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
-    'group-file': os.path.join('{group_dir}', 'group_{test}-{orient}.pydat'),
+    'group-file': os.path.join('{group_dir}', 'group_{analysis}-{orient}.pickled'),
 
     # fif files derivatives
     'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
@@ -93,25 +89,24 @@ t = {
     # fwd model
     # replaces 5120-bem-sol.fif
     'bem': os.path.join('{mri_sdir}', 'bem',
-                        '{mrisubject}-*-bem.fif'),
+                        '{subject}-*-bem.fif'),
     'src': os.path.join('{mri_sdir}', 'bem',
-                        '{mrisubject}-ico-4-src.fif'),
+                        '{subject}-ico-4-src.fif'),
     'bem_head': os.path.join('{mri_sdir}', 'bem',
-                             '{mrisubject}-head.fif'),
+                             '{subject}-head.fif'),
 
     # parameter files
     'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
     'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
     'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
     'fsn': os.path.join('{param_sdir}', '{subject}*.fsn'),
-    'sns': os.path.join('{exp_db}', 'tools', 'parameters', 'sns.txt'),
     'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
     'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
 
     # raw files
     'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
-    'stim_info': os.path.join('{exp_db}', 'stims', 'stims_info.mat'),
+    'stim_info': os.path.join('{db_dir}', '{experiment}', 'stims', 'stims_info.mat'),
     'helmet_png': os.path.join('{results}', 'visuals', 'helmet',
                              '{s_e}' + '.png'),
 
@@ -137,6 +132,10 @@ t = {
     'besa_fsg': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.fsg'),
     'besa_elv': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.elv'),
     'besa_dat': os.path.join('{BESA_MN}', '{s_e}_*-*.dat'),
+    
+    # audio dir
+    'textgrid': os.path.join('{data_sdir}', '*.TextGrid'),
+    'sound-file': os.path.join('{data_sdir}', '*.wav'),
     }
 
 
