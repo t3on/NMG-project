@@ -28,12 +28,14 @@ t = {
     'stat': '',
 
     # db dirs
-    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                            'Experiments'),
+    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments'),
     'results': os.path.join('{db_dir}', '{experiment}', 'results'),
-    'plots_dir': os.path.join('{results}', '{datatype}', '{stat}'),
-    'stats_dir': os.path.join('{results}', '{datatype}', '{stat}',
-                              '{orient}', 'stats'),
+    'plots_dir': os.path.join('{results}', '{datatype}', 'plots'),
+    'stats_dir': os.path.join('{results}', '{datatype}', 'stats'),
+
+    # saved files
+    'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
+    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
@@ -53,7 +55,7 @@ t = {
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
 
     # mri dir
-    'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
+    'mri_dir': os.path.join('{root}', 'MRI'),
     'mri_sdir': os.path.join('{mri_dir}', '{subject}'),
     'label_sdir': os.path.join('{mri_sdir}', 'label'),
 
@@ -74,8 +76,8 @@ t = {
 
     # saved data
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
-    'analysis-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
+    'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'group-file': os.path.join('{group_dir}', 'group_{analysis}-{orient}.pickled'),
 
     # fif files derivatives
@@ -132,7 +134,7 @@ t = {
     'besa_fsg': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.fsg'),
     'besa_elv': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.elv'),
     'besa_dat': os.path.join('{BESA_MN}', '{s_e}_*-*.dat'),
-    
+
     # audio dir
     'textgrid': os.path.join('{data_sdir}', '*.TextGrid'),
     'sound-file': os.path.join('{data_sdir}', '*.wav'),

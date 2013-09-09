@@ -29,13 +29,13 @@ class NMG(FileTree):
     _subject_loc = '{meg_dir}'
     _templates = _defaults = dicts.t
     exclude = dicts.exclude
-    def __init__(self, subject=None, 
+    def __init__(self, subject=None,
                  root=dicts.t['root'], **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
-        
+
     def _register_field(self, key, values=None, default=None, set_handler=None,
                         eval_handler=None, post_set_handler=None):
         folders = os.listdir(self.get('exp_dir'))
@@ -45,9 +45,9 @@ class NMG(FileTree):
             if re.match(pat, subject):
                 subjects.append(subject)
                 subjects.sort()
-        
+
         return FileTree._register_field(self, 'subject', subjects)
-        
+
     def __iter__(self):
         "Iterate state through subjects and yield each subject name."
         for subject in self.iter('subject'):
@@ -55,7 +55,7 @@ class NMG(FileTree):
                 continue
             else:
                 yield subject
-            
+
     def set(self, subject=None, **state):
         """
         Set variable values.
@@ -165,7 +165,7 @@ class NMG(FileTree):
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
 
-    def load_events(self, subject=None, redo=False, remove_bad_chs=True, 
+    def load_events(self, subject=None, redo=False, remove_bad_chs=True,
                     proj=False, edf=True, treject=25):
         """
 
@@ -181,7 +181,7 @@ class NMG(FileTree):
         edf_path = self.get('edf_sdir')
         if subject:
             self.set(subject=subject)
-        
+
         if redo or not os.path.lexists(self.get('ds-file')):
             self.logger.info('subject: %s' % self.get('subject'))
             raw_file = self.get('raw-file')
@@ -191,22 +191,22 @@ class NMG(FileTree):
                 proj = os.path.lexists(self.get('proj'))
             ds = E.load.fiff.events(raw_file, proj=proj)
 
-            #Add subject as a dummy variable to the dataset
+            # Add subject as a dummy variable to the dataset
             ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, random=True)
-    
-            #Loads logfile and adds it to the ds
+
+            # Loads logfile and adds it to the ds
             log_ds = read_log(self.get('log-file'))
             ds.update(log_ds)
-            
-            self.label_events(ds)    
-            
+
+            self.label_events(ds)
+
             if edf and os.path.lexists(edf_path):
                 edf_path = os.path.join(edf_path, '*.edf')
                 edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
                     self.logger.info('edf: dimension mismatch, eyelink disabled')
-                #For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
-                #Repairs voice trigger value problem, if needed.
+                # For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
+                # Repairs voice trigger value problem, if needed.
                 else:
                     index = range(3, edf.triggers.size, 4)
                     for trial, idx in zip(edf.triggers[index], index):
@@ -216,12 +216,12 @@ class NMG(FileTree):
 
                     try:
                         edf.add_T_to(ds)
-                        edf.mark(ds, tstart= -0.2, tstop=0.4, good=None, bad=False, 
+                        edf.mark(ds, tstart= -0.2, tstop=0.4, good=None, bad=False,
                                  use=['EBLINK'], T='t_edf', target='accept')
                     except ValueError:
-                        edf=False
+                        edf = False
                         pass
-                    
+
             ds.save_txt(self.get('ds-file'))
 
         else:
@@ -272,7 +272,7 @@ class NMG(FileTree):
 
     def label_events(self, ds):
 
-        #Initialize lists    
+        # Initialize lists
         eventID_bin = []
         exp = []
         target = []
@@ -282,14 +282,14 @@ class NMG(FileTree):
         if not 'eventID' in ds:
             ds['eventID'] = ds['trigger']
 
-        #For the first five subjects in NMG, the voice trigger was mistakenly 
-        #overlapped with the prime triggers.
-        #Repairs voice trigger value problem, if needed.
+        # For the first five subjects in NMG, the voice trigger was mistakenly
+        # overlapped with the prime triggers.
+        # Repairs voice trigger value problem, if needed.
         index = range(3, ds.n_cases, 4)
         if all(ds['eventID'][index].x > 128):
             ds['eventID'][index] = ds['eventID'][index] - 128
 
-        #Decomposes the trigger
+        # Decomposes the trigger
         for v in ds['eventID']:
             binary_trig = bin(int(v))[2:]
             eventID_bin.append(binary_trig)
@@ -310,7 +310,7 @@ class NMG(FileTree):
                 wtype.append(None)
                 cond.append(None)
 
-        #Labels events    
+        # Labels events
         ds['experiment'] = E.Factor(exp, labels={None: 'fixation',
                                                  1: 'experiment'})
         ds['target'] = E.Factor(target, labels={None: 'fixation/voice',
@@ -318,36 +318,41 @@ class NMG(FileTree):
         ds['wordtype'] = E.Factor(wtype, labels={None: 'None', 1: 'transparent',
                                                  2: 'opaque', 3: 'novel',
                                                  4: 'ortho', 5:'ortho'})
-        ds['ortho'] = E.Factor(wtype, labels={None: 'compound', 1: 'compound',
+        ds['orthotype'] = E.Factor(wtype, labels={None: 'compound', 1: 'compound',
                                                  2: 'compound', 3: 'compound',
                                                  4: 'ortho-1', 5:'ortho-2'})
         ds['condition'] = E.Factor(cond, labels={None: 'None', 1: 'control_identity',
                                                  2: 'identity', 3: 'control_constituent',
                                                  4: 'first_constituent'})
         ds['eventID_bin'] = E.Factor(eventID_bin, 'eventID_bin')
-        #Propagates itemID for all trigger events
-        #Since the fixation cross and the voice trigger is the same value, we only need to propagate it by Factor of 2.
+
+        ds['opaque'] = E.Var(np.array((ds['wordtype'] == 'opaque'), float))
+        ds['transparent'] = E.Var(np.array((ds['wordtype'] == 'transparent'), float))
+        ds['novel'] = E.Var(np.array((ds['wordtype'] == 'novel'), float))
+
+        # Propagates itemID for all trigger events
+        # Since the fixation cross and the voice trigger is the same value, we only need to propagate it by Factor of 2.
         index = ds['eventID'] < 64
         scenario = map(int, ds['eventID'][index])
         ds['scenario'] = E.Var(np.repeat(scenario, 2))
 
 
-        #Makes a temporary ds
+        # Makes a temporary ds
         temp = ds[ds['target'] == 'target']
-        #Add itemID to uniquely identify each word
-        #There are sixty words in each of the four condition 
+        # Add itemID to uniquely identify each word
+        # There are sixty words in each of the four condition
         itemID = temp['scenario'].x + (temp['wordtype'].x * 60)
         ds['itemID'] = E.Var(np.repeat(itemID, 4))
 
-        #Labels the voice events
-        #Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
+        # Labels the voice events
+        # Since python's indexing start at 0 the voice trigger is the fourth event in the trial, the following index is created.
         index = np.arange(3, ds.n_cases, 4)
         ds['experiment'][index] = 'voice'
-        #Add block to the ds. 4 events per trial, 240 trials per block
+        # Add block to the ds. 4 events per trial, 240 trials per block
         ds['block'] = E.Var(np.repeat(xrange(ds.n_cases / 960), repeats=960,
                                       axis=None))
 
-        #Loads the stim info from txt file and adds it to the ds
+        # Loads the stim info from txt file and adds it to the ds
         stim_ds = load_stim_info(self.get('stim_info'), ds)
         try:
             ds.update(stim_ds)
@@ -357,20 +362,20 @@ class NMG(FileTree):
         except ValueError:
             self.logger.info('ds: Dimension Mismatch. No Stimuli Info')
         return ds
-    
+
     def push_mne_files(self, overwrite=False, **kwargs):
         if 'raw' in kwargs:
-            self.set(raw=kwargs['raw']) 
+            self.set(raw=kwargs['raw'])
         self.push(dst_root=self.get('server_dir'),
                   names=['raw-file', 'trans', 'cov', 'fwd'],
                   overwrite=overwrite)
-    
-    def push_BESA_files(self, 
-                        names=['besa_ascii', 'besa_cot', 'besa_ela', 
-                               'besa_pos', 'besa_sfp', 'besa_evt'], 
+
+    def push_BESA_files(self,
+                        names=['besa_ascii', 'besa_cot', 'besa_ela',
+                               'besa_pos', 'besa_sfp', 'besa_evt'],
                         overwrite=False, **kwargs):
         if 'raw' in kwargs:
-            self.set(raw=kwargs['raw']) 
+            self.set(raw=kwargs['raw'])
         self.push(dst_root=self.get('server_dir'),
                   names=names, overwrite=overwrite)
 
@@ -385,7 +390,7 @@ class NMG(FileTree):
                 raise IOError("proj file at %r already exists"
                               % self.get('proj'))
 
-        #add the projections to this object by using 
+        # add the projections to this object by using
 
         ds_fix = ds[ds['experiment'] == 'fixation']
         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
@@ -440,9 +445,9 @@ class NMG(FileTree):
            '--subject', mri_subject,
            '--src', src,
            '--bem', bem,
-           '--mri', trans, # head-MRI coordinate transformation.
-           '--meas', rawfif, # provides sensor locations
-           '--fwd', fwd, #'--destdir', target_file_dir, # optional 
+           '--mri', trans,  # head-MRI coordinate transformation.
+           '--meas', rawfif,  # provides sensor locations
+           '--fwd', fwd,  # '--destdir', target_file_dir, # optional
            '--megonly']
 
         if overwrite:
@@ -500,11 +505,11 @@ class NMG(FileTree):
                                                      depth=None, fixed=fixed,
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
-        #makes stc epochs or evoked
+        # makes stc epochs or evoked
         if stc_type == 'epochs':
-            #for ROI analyses
+            # for ROI analyses
             rois = self.read_label(labels)
-            #a list of stcs within label per epoch.
+            # a list of stcs within label per epoch.
             stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
                                                          label=rois,
                                                          lambda2=1. / 2 ** 2,
@@ -524,36 +529,36 @@ class NMG(FileTree):
         tstart = -.1
         tstop = .6
         epoch = int((tstop - tstart) * 1e3)
-        
+
         ds = self.load_events(remove_bad_chs=False)
-        ds = ds[ds['target'] == 'prime']        
+        ds = ds[ds['target'] == 'prime']
         d = E.Dataset()
-        d['Tms'] = E.Var(range(0, epoch*ds.n_cases, epoch))
+        d['Tms'] = E.Var(range(0, epoch * ds.n_cases, epoch))
         d['Code'] = E.Var(np.ones(ds.n_cases))
-        d['TriNo'] = ds['eventID']        
+        d['TriNo'] = ds['eventID']
         d.save_txt(self.get('besa_evt'))
-        
+
         if asc:
             # loads a epoch x sensor x time
             ds = E.load.fiff.add_epochs(ds, tstart=tstart, tstop=tstop)
             # makes a time x sensor x epoch
             epochs = ds['MEG'].x.T
             epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
-            epochs = np.vstack(epochs)*1e15
+            epochs = np.vstack(epochs) * 1e15
             np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
-        
+
     def make_custom_labels(self):
         "makes custom fs labels for subjects"
         custom_labels.make_LATL_label(self)
         custom_labels.make_LPTL_label(self)
         custom_labels.make_split_fusiform(self)
         custom_labels.make_vmPFC_label(self)
-        
+
     def plot_coreg(self, redo=False):
         fname = self.get('helmet_png')
         if not redo and os.path.exists(fname):
             return
-        
+
         from mayavi import mlab
         import eelbrain.data.plot.coreg as coreg
 
@@ -578,7 +583,7 @@ class NMG(FileTree):
             rois = rois[0]
         return rois
 
-    def process_evoked(self, model='condition % wordtype % target', 
+    def process_evoked(self, model='condition % wordtype % target',
                        raw='hp1_lp40', e_type='evoked', tstart= -0.1,
                        tstop=0.6, reject={'mag': 3e-12}, redo=False):
         if e_type != 'evoked':
@@ -594,7 +599,7 @@ class NMG(FileTree):
             index = ds['experiment'] == 'experiment'
             ds = ds[index]
 
-            #add epochs to the Dataset after excluding bad channels
+            # add epochs to the Dataset after excluding bad channels
             orig_N = ds.n_cases
             ds = E.load.fiff.add_mne_epochs(ds, tstart=tstart, tstop=tstop,
                                             reject=reject)
@@ -605,7 +610,7 @@ class NMG(FileTree):
                 self.logger.info('subject %s is excluded due to large number '
                                  % self.get('subject') + 'of rejections')
                 return
-            #do compression
+            # do compression
             ds = ds.compress(model, drop_bad=True)
             E.save.pickle(ds, self.get('data-file', mkdir=True))
         return ds
@@ -641,34 +646,34 @@ class NMG(FileTree):
                     stc_rois.append(roi)
                 ds[roilabel] = E.combine(stc_rois)
         return ds
-    
+
     ###############
     #    audio    #
     ###############
-    
+
     def load_soundfiles(self):
         from audio import load_soundfiles
-        load_soundfiles(audio_sdir = self.get('audio_sdir'), 
-                        script_dir = self.get('script_dir'))
-    
+        load_soundfiles(audio_sdir=self.get('audio_sdir'),
+                        script_dir=self.get('script_dir'))
+
     def do_force_alignment(self, redo=False):
         fmatch = os.path.join(self.get('data_sdir'), '*.TextGrid')
         if len(glob(fmatch)) > 0 and not redo:
             return
 
         from audio import make_transcripts
-        make_transcripts(audio_sdir = self.get('audio_sdir'), 
-                        script_dir = self.get('script_dir'),
-                        data_sdir = self.get('data_sdir'),
-                        name = self.get('s_e'))
+        make_transcripts(audio_sdir=self.get('audio_sdir'),
+                        script_dir=self.get('script_dir'),
+                        data_sdir=self.get('data_sdir'),
+                        name=self.get('s_e'))
         from audio import cat_soundfiles
-        cat_soundfiles(audio_sdir = self.get('audio_sdir'), 
-                       script_dir = self.get('script_dir'),
-                       data_sdir = self.get('data_sdir'),
-                       name = self.get('s_e'))
+        cat_soundfiles(audio_sdir=self.get('audio_sdir'),
+                       script_dir=self.get('script_dir'),
+                       data_sdir=self.get('data_sdir'),
+                       name=self.get('s_e'))
         from audio import force_align
-        force_align(data_sdir = self.get('data_sdir'))
-        
+        force_align(data_sdir=self.get('data_sdir'))
+
     def get_word_duration(self, block=1, **kwargs):
         dataset = self.load_events(edf=False, remove_bad_chs=False, **kwargs)
         dataset = dataset[dataset['target'] == 'target']
@@ -680,28 +685,28 @@ class NMG(FileTree):
             grid = pyp.Textgrid(grid)
             ds.append(grid.export_durs())
         ds = E.combine(ds)
-        if all(ds['words'] == dataset['word'][:ds.n_cases]): 
+        if all(ds['words'] == dataset['word'][:ds.n_cases]):
             c1_dur = np.zeros((dataset.n_cases))
             c1_dur[:ds.n_cases] = ds['c1_dur'].x
             c1_dur = E.Var(c1_dur, 'c1_dur')
             c2_dur = np.zeros((dataset.n_cases))
             c2_dur[:ds.n_cases] = ds['c2_dur'].x
             c2_dur = E.Var(c2_dur, 'c2_dur')
-            
+
             dataset.update(E.Dataset(c1_dur, c2_dur))
         else:
             raise ValueError('Words do not match up.')
-        
+
         return dataset
 
 def read_log(logfile, **kwargs):
 
-#Initializes list
+# Initializes list
     displays = []
     triggers = []
     trigger_times = []
 
-#Reads the logfile and searches for the triggers
+# Reads the logfile and searches for the triggers
     for line in open(logfile):
         if (line.startswith('TRIGGER\tUSBBox') or
             line.startswith('TRIGGER\tStimTracker')):
