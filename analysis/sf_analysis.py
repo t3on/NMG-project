@@ -7,6 +7,8 @@ Created on Nov 27, 2012
 import eelbrain.eellab as E
 import basic.process as process
 import os
+import cPickle as pickle
+import numpy as np
 
 # raw data parameters
 raw = 'hp1_lp40'
@@ -18,9 +20,10 @@ roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
 
 e = process.NMG()
 e.set(raw=raw)
+e.set(analysis='sf', orient='free')
 
-if os.path.lexists(saved_data):
-    group_ds = pickle.load(open(saved_data))
+if os.path.lexists(e.get('group-file')):
+    group_ds = pickle.load(e.get('group-file'))
 else:
     datasets = []
     for _ in e:

@@ -108,7 +108,8 @@ t = {
     # raw files
     'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
-    'stim_info': os.path.join('{db_dir}', '{experiment}', 'stims', 'stims_info.mat'),
+    'stim_info': os.path.join('{db_dir}', '{experiment}', 
+                              'exp', 'stims', 'stims_info.mat'),
     'helmet_png': os.path.join('{results}', 'visuals', 'helmet',
                              '{s_e}' + '.png'),
 

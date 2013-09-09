@@ -50,7 +50,7 @@ ct = E.Celltable(Y='latency', X='wordtype % condition', match='subject', ds=grou
 idx = group_ds['condition'].isany('control_constituent', 'first_constituent')
 a = E.test.anova(Y='latency', X='subject*wordtype*condition', sub=idx, ds=group_ds)
 t = a.table()
-t.save_pdf(os.path.join(e.get('analysis-file', analysis='latency_consituent')) + '.pdf')
+t.save_pdf(os.path.join(e.get('analysis-file', analysis='latency_constituent')) + '.pdf')
 t.save_tex(os.path.join(e.get('analysis-file') + '.tex'))
 
 novel = ct.data[('novel', 'control_constituent')] - ct.data[('novel', 'first_constituent')]

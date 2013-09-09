@@ -17,7 +17,7 @@ group_ds = []
 subjects = ['R0095', 'R0224', 'R0338', 'R0370', 'R0494', 'R0498']
 
 if os.path.exists(e.get('agg-file')):
-    group_ds = E.load.tsv(e.get('agg-file'))
+    group_ds = E.load.txt.tsv(e.get('agg-file'))
     group_ds['subject'].random = True
 else:
     for subject in subjects:
@@ -54,7 +54,7 @@ ct = E.Celltable(Y='duration', X='wordtype % condition', match='subject', ds=gro
 idx = group_ds['condition'].isany('control_constituent', 'first_constituent')
 a = E.test.anova(Y='duration', X='subject*wordtype*condition', sub=idx, ds=group_ds)
 t = a.table()
-t.save_pdf(os.path.join(e.get('analysis-file', analysis='duration_consituent')) + '.pdf')
+t.save_pdf(os.path.join(e.get('analysis-file', analysis='duration_constituent')) + '.pdf')
 t.save_tex(os.path.join(e.get('analysis-file') + '.tex'))
 
 novel = ct.data[('novel', 'control_constituent')] - ct.data[('novel', 'first_constituent')]
