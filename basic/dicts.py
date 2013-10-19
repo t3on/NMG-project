@@ -12,7 +12,7 @@ t = {
     # experiment
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
-    'root': os.path.join(os.path.expanduser('~'), 'data'),
+    'root': os.path.join(os.path.expanduser('~'), 'Experiments'),
     'server': os.path.join('/Volumes', 'server', 'MORPHLAB', 'Teon'),
 
     # keywords
@@ -20,9 +20,9 @@ t = {
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
-    'raw': 'hp1_lp40',
+    'raw': 'iir_hp1_lp40',
     'analysis': '',
-    'orient': '',
+    'orient': 'free',
     'test': '',
     'datatype': '',
     'stat': '',
@@ -82,7 +82,8 @@ t = {
 
     # fif files derivatives
     'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
-    'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
+    'fwd': os.path.join('{fif_sdir}', '{s_e}-fwd.fif'),
+    'fwd_old': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
     'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
     'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
     'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
@@ -143,6 +144,19 @@ t = {
 
 
 # bad chs
+#bad_channels = defaultdict(lambda: [])
+# bad_channels['R0095'] = [9,109]
+# bad_channels['R0370'] = [18,26,54]
+#bad_channels['R0370'] = [54],
+#bad_channels['R0560'] = [18,26],
+#bad_channels['R0562'] = [18],
+#bad_channels['R0575'] = [2,3,9,10,12,17,18],
+#bad_channels['R0605'] = [18],  
+
+# meg = lambda x: 'MEG %03d' %(x+1)
+# for entry in bad_channels.keys():
+#     bad_channels[entry] = [meg(x) for x in bad_channels[entry]]
+
 bad_channels = defaultdict(lambda: [])
 bad_channels['R0498'].extend(['MEG 065', 'MEG 066'])
 bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 065', 'MEG 138'])

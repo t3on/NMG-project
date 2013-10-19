@@ -17,7 +17,7 @@ raw = 'iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
-analysis='sf'
+analysis='stemfreq'
 
 # analysis paramaters
 cstart = 0
@@ -29,7 +29,7 @@ rois = roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis='sf', orient='free')
+e.set(analysis=analysis, orient='free')
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
@@ -37,9 +37,9 @@ else:
     datasets = []
     for _ in e:
         ds = e.load_events()
-        idx = (ds['word_freq'] != 0) * (~np.isnan(ds['word_freq']))
+        idx = (ds['c1_freq'] != 0) * (~np.isnan(ds['c1_freq']))
         ds = ds[idx]
-        ds['log_freq'] = E.Var(np.log(ds['word_freq'].x))
+        ds['log_freq'] = E.Var(np.log(ds['c1_freq'].x))
         ds = e.make_epochs(ds, evoked=False, raw=raw)
         if ds.info['use']:
             ds = e.analyze_source(ds, rois=rois, roilabels=roilabels, tmin=tmin)
@@ -56,7 +56,7 @@ e.logger.info('%d subjects entered into stats.\n %s'
               % (sub, group_ds['subject'].cells))
 
 for roilabel in roilabels:
-    title = 'Correlation of Surface Frequency in %s' % roilabel
+    title = 'Correlation of Stem Frequency in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='log_freq', norm='subject',
                       tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
                       samples=1000, tmin=.01, match='subject')

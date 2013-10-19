@@ -35,6 +35,7 @@ class NMG(FileTree):
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
+        self.subject = self.get('subject')
 
     def _register_field(self, key, values=None, default=None, set_handler=None,
                         eval_handler=None, post_set_handler=None):
@@ -116,55 +117,6 @@ class NMG(FileTree):
                 del raw
         self.reset()
 
-
-    def make_bpf_raw(self, hp=1, lp=40, redo=False, n_jobs=2, **kwargs):
-        """
-        Parameters
-        ----------
-        lp : int
-            Lowpass filter.
-        hp : int
-            Highpass filter.
-
-        Returns
-        -------
-        raw : fif-file
-            New fif-file with filter settings named with template.
-        """
-#         self.reset()
-        if isinstance(hp, int) and isinstance(lp, int):
-            raw = 'hp%d_lp%d' % (hp, lp)
-        elif isinstance(hp, float) and isinstance(lp, int):
-            raw = 'hp%.1f_lp%d' % (hp, lp)
-        elif isinstance(hp, int) and isinstance(lp, float):
-            raw = 'hp%d_lp%.1f' % (hp, lp)
-        elif isinstance(hp, float) and isinstance(lp, float):
-            raw = 'hp%.1f_lp%.1f' % (hp, lp)
-        else:
-            TypeError('Must be int or float')
-
-        src_file = self.get('raw-file', raw='calm')
-        dest_file = self.get('raw-file', raw=raw)
-        if (not redo) and os.path.exists(dest_file):
-            return
-
-        raw = mne.fiff.Raw(src_file, preload=True)
-        raw.filter(hp, lp, n_jobs=n_jobs, **kwargs)
-        raw.verbose = False
-        raw.save(dest_file, overwrite=True)
-
-#         self.reset()
-
-    def make_fiducials(self):
-        mne.gui.fiducials(self.get('subject'),
-                          subjects_dir=self.get('mri_dir'),
-                          fid_file=self.get('fids'))
-
-    def make_coreg(self):
-        mne.gui.coregistration(raw=self.get('raw-file'),
-                               trans_fname=self.get('trans'),
-                               subjects_dir=self.get('mri_dir'))
-
     def load_events(self, subject=None, redo=False, remove_bad_chs=True,
                     proj=False, edf=True, treject=25):
         """
@@ -189,10 +141,26 @@ class NMG(FileTree):
                 proj = self.get('proj', projname=proj)
             if proj:
                 proj = os.path.lexists(self.get('proj'))
-            ds = E.load.fiff.events(raw_file, proj=proj)
+        
+            raw = mne.fiff.Raw(raw_file)
+            if proj:
+                proj = mne.read_proj(self.get('proj'))
+                raw.add_proj(proj, remove_existing=True)
+            evts = mne.find_stim_steps(raw, merge=-1)
+            idx = np.nonzero(evts[:, 2])
+            evts = evts[idx]
+        
+            if len(evts) == 0:
+                raise ValueError("No events found!")
+        
+            i_start = Var(evts[:, 0], name='i_start')
+            trigger = Var(evts[:, 2], name='trigger')
+            info = {'raw': raw}
+            ds = Dataset(trigger, i_start, name=name, info=info)
 
             # Add subject as a dummy variable to the dataset
-            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, random=True)
+            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, 
+                                     random=True)
 
             # Loads logfile and adds it to the ds
             log_ds = read_log(self.get('log-file'))
@@ -225,7 +193,7 @@ class NMG(FileTree):
             ds.save_txt(self.get('ds-file'))
 
         else:
-            ds = E.load.txt.tsv(self.get('ds-file'))
+            ds = E.load.txt.tsv(self.get('ds-file'), delimiter='\t')
             ds['subject'].random = True
 
         ds.info['subject'] = self.get('subject')
@@ -273,26 +241,26 @@ class NMG(FileTree):
     def label_events(self, ds):
 
         # Initialize lists
-        eventID_bin = []
+        trigger_bin = []
         exp = []
         target = []
         cond = []
         wtype = []
 
-        if not 'eventID' in ds:
-            ds['eventID'] = ds['trigger']
+        if not 'trigger' in ds:
+            ds['trigger'] = ds['ptb_trigger']
 
         # For the first five subjects in NMG, the voice trigger was mistakenly
         # overlapped with the prime triggers.
         # Repairs voice trigger value problem, if needed.
         index = range(3, ds.n_cases, 4)
-        if all(ds['eventID'][index].x > 128):
-            ds['eventID'][index] = ds['eventID'][index] - 128
+        if all(ds['trigger'][index].x > 128):
+            ds['trigger'][index] = ds['trigger'][index] - 128
 
         # Decomposes the trigger
-        for v in ds['eventID']:
+        for v in ds['trigger']:
             binary_trig = bin(int(v))[2:]
-            eventID_bin.append(binary_trig)
+            trigger_bin.append(binary_trig)
 
             exp_mask = 2 ** 7; exp_bit = 7
             target_mask = 2 ** 6; target_bit = 6
@@ -324,7 +292,7 @@ class NMG(FileTree):
         ds['condition'] = E.Factor(cond, labels={None: 'None', 1: 'control_identity',
                                                  2: 'identity', 3: 'control_constituent',
                                                  4: 'first_constituent'})
-        ds['eventID_bin'] = E.Factor(eventID_bin, 'eventID_bin')
+        ds['trigger_bin'] = E.Factor(trigger_bin, 'trigger_bin')
 
         ds['opaque'] = E.Var(np.array((ds['wordtype'] == 'opaque'), float))
         ds['transparent'] = E.Var(np.array((ds['wordtype'] == 'transparent'), float))
@@ -332,8 +300,8 @@ class NMG(FileTree):
 
         # Propagates itemID for all trigger events
         # Since the fixation cross and the voice trigger is the same value, we only need to propagate it by Factor of 2.
-        index = ds['eventID'] < 64
-        scenario = map(int, ds['eventID'][index])
+        index = ds['trigger'] < 64
+        scenario = map(int, ds['trigger'][index])
         ds['scenario'] = E.Var(np.repeat(scenario, 2))
 
 
@@ -378,12 +346,125 @@ class NMG(FileTree):
             self.set(raw=kwargs['raw'])
         self.push(dst_root=self.get('server_dir'),
                   names=names, overwrite=overwrite)
+        
+    def make_bpf_raw(self, raw='NR', hp=1, lp=40, redo=False, method='iir', 
+                     n_jobs=2, **kwargs):
+        """
+        Parameters
+        ----------
+        lp : int
+            Lowpass filter.
+        hp : int
+            Highpass filter.
+
+        Returns
+        -------
+        raw : fif-file
+            New fif-file with filter settings named with template.
+        """
+#         self.reset()
+        if isinstance(hp, int) and isinstance(lp, int):
+            newraw = '%s_%s_hp%d_lp%d' % (raw, method, hp, lp)
+        elif isinstance(hp, float) and isinstance(lp, int):
+            newraw = '%s_%s_hp%.1f_lp%d' % (raw, method, hp, lp)
+        elif isinstance(hp, int) and isinstance(lp, float):
+            newraw = '%s_%s_hp%d_lp%.1f' % (raw, method, hp, lp)
+        elif isinstance(hp, float) and isinstance(lp, float):
+            newraw = '%s_%s_hp%.1f_lp%.1f' % (raw, method, hp, lp)
+        else:
+            TypeError('Must be int or float')
+
+        src_file = self.get('raw-file', raw=raw)
+        dest_file = self.get('raw-file', raw=newraw)
+        if (not redo) and os.path.exists(dest_file):
+            return
+
+        raw = mne.fiff.Raw(src_file, preload=True)
+        raw.filter(hp, lp, n_jobs=n_jobs, method=method, **kwargs)
+        raw.verbose = False
+        raw.save(dest_file, overwrite=True)
+
+#         self.reset()
+
+    def make_epochs(self, ds, evoked=False, raw='iir_hp1_lp40', tmin= -0.1, 
+                    tmax=0.6, reject={'mag': 3e-12}, model=None, redo=False):
+        if evoked:
+            label = 'evoked'
+            if not model:
+                raise ValueError('No aggregation model specified.')
+        else:
+            label = 'epochs'
+        self.set(raw=raw)
+        props = raw.split('_')
+        for val in props:
+            if re.match('lp*', val):
+                lp = int(val[2:])
+        nyq = lp * 2.5 # nyquist rate requires at least twice the sampling.
+        sfreq = ds.info['raw'].info['sfreq']
+        decim = (sfreq/nyq) * 2 # to provide additional values for plotting.
+
+        self.set(analysis='_'.join((label, raw, 'reject_%s' % reject['mag'], 
+                                    str(tmin), str(tmax))))
+        
+        # add epochs to the Dataset after excluding bad channels
+        orig_N = ds.n_cases
+        ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
+                                        reject=reject, verbose=False,
+                                        decim=decim)
+        remainder = ds.n_cases * 100 / orig_N
+        self.logger.info('epochs: %d' % remainder + r'% ' +
+                         'of trials remain')
+        if remainder < 50:
+            self.logger.info('subject %s is excluded due to large number '
+                             % self.get('subject') + 'of rejections')
+            del ds['epochs']
+            ds.info['use'] = False
+        else:
+            ds.info['use'] = True
+            # do compression
+            if evoked:
+                ds = ds.aggregate(model, drop_bad=True)
+                ds.info['use'] = True
+        return ds
+    
+    def make_BESA_files(self, asc=False):
+        tstart = -.1
+        tstop = .6
+        epoch = int((tstop - tstart) * 1e3)
+
+        ds = self.load_events(remove_bad_chs=False)
+        ds = ds[ds['target'] == 'prime']
+        d = E.Dataset()
+        d['Tms'] = E.Var(range(0, epoch * ds.n_cases, epoch))
+        d['Code'] = E.Var(np.ones(ds.n_cases))
+        d['TriNo'] = ds['trigger']
+        d.save_txt(self.get('besa_evt'))
+
+        if asc:
+            # loads a epoch x sensor x time
+            ds = E.load.fiff.add_epochs(ds, tstart=tstart, tstop=tstop)
+            # makes a time x sensor x epoch
+            epochs = ds['MEG'].x.T
+            epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
+            epochs = np.vstack(epochs) * 1e15
+            np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
 
     ################
     #    source    #
     ################
 
-    def make_proj(self, write=True, overwrite=False, nprojs=1, verbose=False):
+    def make_fiducials(self):
+        mne.gui.fiducials(self.get('subject'),
+                          subjects_dir=self.get('mri_dir'),
+                          fid_file=self.get('fids'))
+
+    def make_coreg(self):
+        mne.gui.coregistration(raw=self.get('raw-file'),
+                               trans_fname=self.get('trans'),
+                               subjects_dir=self.get('mri_dir'))
+
+    def make_proj(self, raw='NR_iir_hp1_lp40', write=True, overwrite=False, 
+                  nprojs=5, verbose=False):
         ds = self.load_events(proj=False, edf=False, remove_bad_chs=False)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
@@ -392,11 +473,11 @@ class NMG(FileTree):
 
         # add the projections to this object by using
 
-        ds_fix = ds[ds['experiment'] == 'fixation']
-        epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
-                                        baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs,
-                                            n_eeg=0, verbose=verbose)
+#         ds_fix = ds[ds['experiment'] == 'fixation']
+#         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
+#                                         baseline=(None, 0), reject={'mag':1.5e-11})
+        proj = mne.proj.compute_proj_raw(self.get('raw-file'), n_grad=0, 
+                                         n_mag=nprojs, n_eeg=0, verbose=verbose)
         proj = [proj[:nprojs]]
 
         if write == True:
@@ -428,8 +509,7 @@ class NMG(FileTree):
         else:
             return cov
 
-
-    def make_fwd(self, fromfile=True, overwrite=False):
+    def make_fwd_c(self, fromfile=True, overwrite=False):
         # create the forward solution
         os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
 
@@ -470,7 +550,7 @@ class NMG(FileTree):
             raise RuntimeError(err)
 
 
-    def make_stcs(self, ds, labels=None, stc_type='evoked', verbose=False,
+    def make_stcs(self, ds, labels=None, evoked=True, verbose=False,
                   **kwargs):
 
         """Creates an stc object of transformed data from the ds
@@ -483,7 +563,9 @@ class NMG(FileTree):
             a list of ROIs
         orient: 'fixed' | 'free'
             'fixed' = Fixed orientation, 'free' = Free orientation
-        stc_type: 'epochs' | 'evoked'
+        evoked: bool
+            True: evoked
+            False: epochs
         """
         cov = mne.read_cov(self.get('cov'))
 
@@ -506,7 +588,12 @@ class NMG(FileTree):
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
         # makes stc epochs or evoked
-        if stc_type == 'epochs':
+        if evoked == True:
+            stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
+                                                  lambda2=1. / 3 ** 2,
+                                                  verbose=verbose)
+            return stcs
+        else:
             # for ROI analyses
             rois = self.read_label(labels)
             # a list of stcs within label per epoch.
@@ -515,37 +602,6 @@ class NMG(FileTree):
                                                          lambda2=1. / 2 ** 2,
                                                          verbose=verbose)
             return stcs
-        elif stc_type == 'evoked':
-            stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
-                                                  lambda2=1. / 3 ** 2,
-                                                  verbose=verbose)
-            return stcs
-        else:
-            error = 'Currently only implemented for epochs and evoked'
-            self.logger.info('stc: %s' % error)
-            raise TypeError(error)
-
-    def make_BESA_files(self, asc=False):
-        tstart = -.1
-        tstop = .6
-        epoch = int((tstop - tstart) * 1e3)
-
-        ds = self.load_events(remove_bad_chs=False)
-        ds = ds[ds['target'] == 'prime']
-        d = E.Dataset()
-        d['Tms'] = E.Var(range(0, epoch * ds.n_cases, epoch))
-        d['Code'] = E.Var(np.ones(ds.n_cases))
-        d['TriNo'] = ds['eventID']
-        d.save_txt(self.get('besa_evt'))
-
-        if asc:
-            # loads a epoch x sensor x time
-            ds = E.load.fiff.add_epochs(ds, tstart=tstart, tstop=tstop)
-            # makes a time x sensor x epoch
-            epochs = ds['MEG'].x.T
-            epochs = [epochs[:, :, i] for i in xrange(epochs.shape[2])]
-            epochs = np.vstack(epochs) * 1e15
-            np.savetxt(self.get('besa_ascii', mkdir=True), epochs)
 
     def make_custom_labels(self):
         "makes custom fs labels for subjects"
@@ -583,68 +639,39 @@ class NMG(FileTree):
             rois = rois[0]
         return rois
 
-    def process_evoked(self, model='condition % wordtype % target',
-                       raw='hp1_lp40', e_type='evoked', tstart= -0.1,
-                       tstop=0.6, reject={'mag': 3e-12}, redo=False):
-        if e_type != 'evoked':
-            raise ValueError('This method only works for evoked data.')
-        self.set(raw=raw)
-        self.set(analysis='_'.join((e_type, raw, str(tstart), str(tstop))))
-        data = self.get('data-file')
-        if os.path.lexists(data) and ~redo:
-            print self.get('subject')
-            ds = pickle.load(open(data))
-        else:
-            ds = self.load_events(edf=True)
-            index = ds['experiment'] == 'experiment'
-            ds = ds[index]
-
-            # add epochs to the Dataset after excluding bad channels
-            orig_N = ds.n_cases
-            ds = E.load.fiff.add_mne_epochs(ds, tstart=tstart, tstop=tstop,
-                                            reject=reject)
-            remainder = ds.n_cases * 100 / orig_N
-            self.logger.info('epochs: %d' % remainder + r'% ' +
-                             'of trials remain')
-            if remainder < 50:
-                self.logger.info('subject %s is excluded due to large number '
-                                 % self.get('subject') + 'of rejections')
-                return
-            # do compression
-            ds = ds.compress(model, drop_bad=True)
-            E.save.pickle(ds, self.get('data-file', mkdir=True))
-        return ds
-
-    def source_evoked(self, ds, rois=None, roilabels=None,
-                      tstart= -0.1, tstop=0.6, **kwargs):
-
-        e_type = 'evoked'
-
+    def analyze_source(self, ds, evoked=False, rois=None, roilabels=None,
+                       tmin=-.1, **kwargs):
+        orient = self.get('orient')
         if 'orient' in kwargs:
             orient = kwargs['orient']
-        else:
-            orient = self.get('orient')
-
-        stcs = []
-        for d in ds.itercases():
-            stcs.append(self.make_stcs(d, orient=orient, stc_type=e_type))
-        del ds['epochs']
-
-        if rois == None:
-            ds['stcs'] = stcs
-            return ds
-        else:
-            for fs_roi, roilabel in zip(rois, roilabels):
-                stc_rois = []
-                for stc in stcs:
-                    roi = self.read_label(fs_roi)
-                    roi = stc.in_label(roi)
-                    mri = self.get('subject')
-                    roi = E.load.fiff.stc_ndvar(roi, subject=mri)
-                    roi = roi.summary('source', name='stc')
-                    roi.x -= roi.summary(time=(tstart, 0))
-                    stc_rois.append(roi)
-                ds[roilabel] = E.combine(stc_rois)
+        # do source transformation
+        for roi, roilabel in zip(rois, roilabels):
+            stcs = []        
+            if evoked:
+                for d in ds.itercases():
+                    stcs.append(self.make_stcs(d, orient=orient, evoked=evoked))
+                if rois == None:
+                    ds['stcs'] = stcs
+                    return ds
+                else:
+                    roi_stcs = []
+                    for stc in stcs:
+                        fs_roi = self.read_label(roi)
+                        fs_roi = stc.in_label(fs_roi)
+                        fs_roi = E.load.fiff.stc_ndvar(fs_roi, subject=self.subject, 
+                                                 kind='ico', grade=5)
+                        roi_stcs.append(fs_roi)
+                    ds[roilabel] = E.combine(roi_stcs) 
+            else:
+                stcs = self.make_stcs(ds, labels=[roi], evoked=evoked, 
+                                      orient=orient)
+                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=self.subject, 
+                                                 kind='ico', grade=5)
+            # collapsing across sources
+            ds[roilabel] = ds[roilabel].summary('source', name='stc')
+            # baseline correct source estimates
+            ds[roilabel] -= ds[roilabel].summary(time=(tmin, 0))
+        del stcs, ds['epochs']
         return ds
 
     ###############
@@ -732,15 +759,15 @@ def read_log(logfile, **kwargs):
 
     latency = E.Var(latencies, name='latency').repeat(4)
     latency.properties = 'Time (s)'
-    trigger = E.Var(triggers, name='trigger')
+    ptb_trigger = E.Var(triggers, name='ptb_trigger')
     trigger_time = E.Var(trigger_times, name='trigger_time')
     display = E.Factor(displays, name='display')
 
     if 'subject' in kwargs:
         subject = E.Factor([kwargs['subject']], rep=len(latency), name='subject')
-        ds = E.Dataset(subject, display, trigger, latency, trigger_time)
+        ds = E.Dataset(subject, display, ptb_trigger, latency, trigger_time)
     else:
-        ds = E.Dataset(display, trigger, latency, trigger_time)
+        ds = E.Dataset(display, ptb_trigger, latency, trigger_time)
     ds['word_length'] = E.Var(map(len, ds['display']))
 
     return ds
@@ -800,12 +827,21 @@ def load_stim_info(stim_info, ds):
     c2 = E.Dataset(c2, freq, nmg)
 
     word = stim_ds['word', 'word_freq', 'word_nmg',
-                   'c1_rating', 'c1_sd', 'c1_freq',
-                   'c2_rating', 'c2_sd', 'c2_freq']
+                   'c1', 'c1_rating', 'c1_sd', 'c1_freq',
+                   'c2', 'c2_rating', 'c2_sd', 'c2_freq']
     words = E.combine((c1, c2, word))
     word_dict = {word: i for i, word in enumerate(words['word'])}
     word_idx = [word_dict[word.lower()] for word in ds['display']]
 
     return words[word_idx]
+
+
+def load_coca_freq_info(freq_info):
+#     E.load.tsv
+    words = E.combine((c1, c2, word))
+    word_dict = {word: i for i, word in enumerate(words['word'])}
+    word_idx = [word_dict[word.lower()] for word in ds['display']]
+    
+    words[word_idx]
 
 

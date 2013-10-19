@@ -47,15 +47,16 @@ else:
 
 ct = E.Celltable(Y='duration', X='wordtype % condition', match='subject', ds=group_ds)
 
+
 ###########################
 #    constituent anova    #
 ###########################
-
+e.set(analysis='duration_constituent')
 idx = group_ds['condition'].isany('control_constituent', 'first_constituent')
 a = E.test.anova(Y='duration', X='subject*wordtype*condition', sub=idx, ds=group_ds)
 t = a.table()
-t.save_pdf(os.path.join(e.get('analysis-file', analysis='duration_constituent')) + '.pdf')
-t.save_tex(os.path.join(e.get('analysis-file') + '.tex'))
+t.save_pdf(e.get('analysis-file') + '.pdf')
+t.save_tex(e.get('analysis-file') + '.tex')
 
 novel = ct.data[('novel', 'control_constituent')] - ct.data[('novel', 'first_constituent')]
 opaque = ct.data[('opaque', 'control_constituent')] - ct.data[('opaque', 'first_constituent')]
@@ -68,20 +69,23 @@ X = E.Factor(('novel', 'opaque', 'ortho', 'transparent'),
 sub = E.Factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
 group_plot = E.Dataset(sub, Y, X)
 
-p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5),
+p = E.plot.uv.barplot(Y, X, match=sub, figsize=(10, 5), corr=False,
                       ylabel='Duration Priming Difference in ms',
                       title="Constituent Priming Duration Difference Means")
 p.fig.savefig(e.get('plot-file'))
 
+a = E.test.pairwise(Y,X, match=sub, corr=None)
+a.save_tex(e.get('analysis-file') + '-pairwise.tex')
 
 #########################
 #    identity anova     #
 #########################
-
+e.set(analysis='duration_identity')
 idx = group_ds['condition'].isany('control_identity', 'identity')
-a2 = E.test.anova(Y='duration', X='subject*wordtype*condition', sub=idx, ds=group_ds)
+a2 = E.test.anova(Y='duration', X='subject * wordtype * condition',
+                 sub=idx, ds=group_ds)
 t2 = a2.table()
-t2.save_pdf(e.get('analysis-file', analysis='duration_identity') + '.pdf')
+t2.save_pdf(e.get('analysis-file') + '.pdf')
 t2.save_tex(e.get('analysis-file') + '.tex')
 
 novel = ct.data[('novel', 'control_identity')] - ct.data[('novel', 'identity')]
@@ -95,7 +99,10 @@ X = E.Factor(('novel', 'opaque', 'ortho', 'transparent'),
 sub = E.Factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
 group_plot = E.Dataset(sub, Y, X)
 
-p = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5),
+p2 = E.plot.uv.barplot(Y, X, match=sub, figsize=(20, 5), corr=False,
                        ylabel='Duration Priming Difference in ms',
                        title="Identity Priming Duration Difference Means")
-p.fig.savefig(e.get('plot-file'))
+p2.fig.savefig(e.get('plot-file'))
+
+a2 = E.test.pairwise(Y,X, match=sub, corr=None)
+a2.save_tex(e.get('analysis-file') + '-pairwise.tex')

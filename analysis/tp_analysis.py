@@ -7,90 +7,78 @@ Created on Nov 27, 2012
 import eelbrain.eellab as E
 import basic.process as process
 import os
+import cPickle as pickle
+import numpy as np
 
-filter = 'hp1_lp40'
-root = os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments', 'NMG')
-corrs_dir = os.path.join(root, 'results', 'meg', 'corrs')
-stats_dir = os.path.join(root, 'results', 'meg', 'corrs', 'stats')
-logs_dir = os.path.join(root, 'results', 'logs')
-saved_data = os.path.join(root, 'data', 'tp_corr_%s.pickled' % filter)
-roilabels = ['lh.fusiform', 'lh.inferiortemporal']
 
-e = process.NMG()
-e.set(raw=filter)
+redo=True
 
-if os.path.lexists(saved_data):
-    group_ds = pickle.load(open(saved_data))
-else:
-    datasets = list()
+# raw data parameters
+raw = 'iir_hp1_lp40'
+tmin = -0.1
+tmax = 0.6
+reject = 3e-12
+analysis='tp'
 
-    tstart = -0.1
-    tstop = 0.6
-    reject = 3e-12
-
-    for _ in e.iter_vars(['subject']):
-        meg_ds = e.load_events()
-        index = meg_ds['wordtype'].isany('transparent', 'opaque')
-        index2 = meg_ds['condition'].isany('control_identity', 'identity')
-#        index2 = meg_ds['condition'] == 'control_constituent'
-#        index3 = meg_ds['target'] == 'target'
-        meg_ds = meg_ds[index * index2]
-
-        index = meg_ds['c1_freq'] != 0
-        index2 = ~np.isnan(meg_ds['c1_freq'])
-        index3 = meg_ds['word_freq'] != 0
-        index4 = ~np.isnan(meg_ds['word_freq'])
-        meg_ds = meg_ds[index * index2 * index3 * index4]
-
-        meg_ds['tp'] = meg_ds['word_freq'] / meg_ds['c1_freq']
-
-        #add epochs to the dataset after excluding bad channels
-        orig_N = meg_ds.n_cases
-        meg_ds = E.load.fiff.add_mne_epochs(meg_ds, tstart=tstart, tstop=tstop,
-                                            baseline=(tstart, 0),
-                                            reject={'mag':reject}, preload=True)
-        remainder = meg_ds.n_cases * 100 / orig_N
-        e.logger.info('epochs: %d' % remainder + r'% ' + 'of trials remain')
-        if remainder < 50:
-            e.logger.info('subject %s is excluded due to large number '
-                          % e.get('subject') + 'of rejections')
-            del meg_ds
-            continue
-        #do source transformation
-        for roilabel in roilabels:
-            if roilabel in e.rois:
-                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=e.rois[roilabel],
-                                               force_fixed=False)
-            else:
-                meg_ds[roilabel] = e.make_stcs(meg_ds, labels=[roilabel],
-                                               force_fixed=False)
-            #collapsing across sources
-            meg_ds[roilabel] = meg_ds[roilabel].summary('source', name='stc')
-            #baseline correct source estimates
-            meg_ds[roilabel] -= meg_ds[roilabel].summary(time=(tstart, 0))
-        del meg_ds['epochs']
-        #combines the datasets for group
-        datasets.append(meg_ds)
-        del meg_ds
-    group_ds = E.combine(datasets)
-    E.save.pickle(group_ds, saved_data)
-
-sub = len(group_ds['subject'].cells)
-e.logger.info('%d subjects entered into stats.' % sub)
-
+# analysis paramaters
 cstart = 0
 cstop = None
-ctp = .05
+pmin = .1
+
+rois = roilabels = ['lh.fusiform', 'lh.ant_fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
+
+e = process.NMG()
+e.set(raw=raw)
+e.set(datatype='meg')
+e.set(analysis='tp', orient='free')
+
+if os.path.lexists(e.get('group-file')) and not redo:
+    group_ds = pickle.load(open(e.get('group-file')))
+else:
+    datasets = []
+    for _ in e:
+        # Selection Criteria
+        ds = e.load_events()
+        idx = ds['wordtype'].isany('transparent', 'opaque')
+        idx2 = ds['condition'].isany('control_identity')
+        idx3 = ds['target'] == 'prime'
+        idx = reduce(np.logical_and, [idx,idx2,idx3])
+
+        idy = ds['c1_freq'] != 0
+        idy2 = ~np.isnan(ds['c1_freq'])
+        idy3 = ds['word_freq'] != 0
+        idy4 = ~np.isnan(ds['word_freq'])
+        idy = reduce(np.logical_and, [idy,idy2,idy3,idy4])
+        
+        idx = reduce(np.logical_and, [idx,idy])
+        ds = ds[idx]
+        
+        ds['log_freq'] = E.Var(np.log(ds['word_freq'].x))
+        ds['log_c1_freq'] = E.Var(np.log(ds['c1_freq'].x))        
+        ds['tp'] = E.Var(ds['log_freq'].x - ds['log_c1_freq'].x)
+
+        ds = e.make_epochs(ds, evoked=False, raw=raw)
+        if ds.info['use']:
+            ds = e.analyze_source(ds, rois=rois, roilabels=roilabels, tmin=tmin)
+            # Append to group level datasets
+            datasets.append(ds)
+            del ds
+    # combines the datasets for group
+    group_ds = E.combine(datasets)
+    del datasets
+    E.save.pickle(group_ds, e.get('group-file', analysis=analysis))
+
+sub = len(group_ds['subject'].cells)
+e.logger.info('%d subjects entered into stats.\n %s'
+              % (sub, group_ds['subject'].cells))
+
 for roilabel in roilabels:
     title = 'Correlation of Transition Probability in %s' % roilabel
-    a = E.testnd.cluster_corr(Y=group_ds[roilabel], X=group_ds['tp'],
-                              norm=group_ds['subject'], tstart=cstart,
-                              tstop=cstop, tp=ctp)
-    file = os.path.join(stats_dir, 'group_tp_%s.txt' % roilabel)
-    with open(file, 'w') as FILE:
-        FILE.write(title + os.linesep * 4)
-        FILE.write(str(a.as_table()))
-    p = E.plot.uts.clusters(a, figtitle=title, axtitle=False,
-                            t={'linestyle': 'dashed', 'color': 'g'})
-    p.figure.savefig(os.path.join(corrs_dir, 'group_tp_%s.pdf' % roilabel),
-                     orientation='landscape')
+    a = E.testnd.corr(Y=group_ds[roilabel], X='tp', norm='subject',
+                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
+                      samples=1000, tmin=.01, match='subject')
+    p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
+    e.set(analysis='%s_%s' % (analysis, roilabel))
+    p.figure.savefig(e.get('plot-file'))
+
+
