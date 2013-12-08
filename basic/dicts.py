@@ -68,7 +68,7 @@ t = {
 
     # saved data
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
-    'bads-file': os.path.join('{data_sdir}', '{s_e}_bads.txt'),
+    'bads-file': os.path.join('{data_sdir}', '{s_e}_{raw}_bads.txt'),
     'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
     'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
@@ -133,43 +133,13 @@ t = {
     'sound-file': os.path.join('{data_sdir}', '*.wav'),
     }
 
-
-# bad chs
-bad_channels = defaultdict(lambda: [])
-bad_channels['R0498'].extend(['MEG 065', 'MEG 066'])
-bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 065', 'MEG 138'])
-bad_channels['R0576'].extend(['MEG 065', 'MEG 143'])
-bad_channels['R0580'].extend(['MEG 001', 'MEG 065', 'MEG 084', 'MEG 143',
-                              'MEG 160', 'MEG161'])
-bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
-
-# # bad chs from NR
-# bad_channels['R0095'] = [9,109]
-# # bad_channels['R0370'] = [18,26,54]
-# bad_channels['R0370'] = [54]
-# bad_channels['R0560'] = [18,26]
-# bad_channels['R0562'] = [18]
-# bad_channels['R0575'] = [2,3,9,10,12,17,18]
-# bad_channels['R0580'] = [0]
-# bad_channels['R0605'] = [18, 32]
-#
-# meg = lambda x: 'MEG %03d' %(x+1)
-# for entry in bad_channels.keys():
-#     bad_channels[entry] = [meg(x) for x in bad_channels[entry]]
-
 ###############################
 # Experiment class attributes #
 ###############################
 
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
-           'R0414',  # lost 3/4 of trials by accident
-           'R0504',  # large number of rejections
-#            'R0575'  # noise issues
-#            'R0576',  # noise issues
-           'R0580',  # noise issues
-           'R0605',  # noise issues
-           'R0498']  # noise issues
+           'R0414']  # lost 3/4 of trials by accident
 
 # color palette
 cm = dict()

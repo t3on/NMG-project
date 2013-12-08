@@ -29,11 +29,11 @@ import custom_labels
 class NMG(FileTree):
     _subject_loc = '{meg_dir}'
     _templates = _defaults = dicts.t
-    exclude = dicts.exclude
     def __init__(self, subject=None,
                  root=dicts.t['root'], **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
-        self.bad_channels = dicts.bad_channels
+        self.exclude = dicts.exclude
+        self._exclude()
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
 
@@ -79,6 +79,13 @@ class NMG(FileTree):
             state['subject'] = subject
 
         FileTree.set(self, **state)
+
+    def _exclude(self):
+        self.bad_channels = {}
+        for subject in self.iter('subject'):
+            drop, bad_chs = load_bad_chs_info(self.get('bads-file'))
+            self.exclude.append(drop)
+            self.bad_channels[subject] = bad_chs
 
     #################
     #    process    #
@@ -353,7 +360,7 @@ class NMG(FileTree):
         return ds
 
 
-    def check_bad_chs(self, threshold=0.05, reject=3e-12):
+    def check_bad_chs(self, threshold=0.05, reject=3e-12, n_chan=5):
         """
         Check for flat-line channels or channels that repeatedly exceeded
         threshold.
@@ -382,13 +389,18 @@ class NMG(FileTree):
         flats = ['MEG %03d' % (x + 1) for x in flats]
 
         bad_chs = np.unique(np.hstack((bads, flats)).ravel())
+        if len(bad_chs) >= n_chan:
+            drop = True
+        else:
+            drop = False
 
         with open(self.get('bads-file'), 'w') as FILE:
             import datetime
             date = datetime.datetime.now().ctime()
             FILE.write('# Log of bad channels for %s written on %s\n\n'
                        % (self.get('subject'), date))
-            FILE.write('bads=%s' % bad_chs)
+            FILE.write('bads=%s\n' % bad_chs)
+            FILE.write('drop=%s' % drop)
         return bad_chs
 
     def make_bpf_raw(self, hp=1, lp=40, redo=False, method='iir',
@@ -920,6 +932,20 @@ def load_stim_info(stim_info, ds):
     word_idx = [word_dict[word.lower()] for word in ds['display']]
 
     return words[word_idx]
+
+
+def load_bad_chs_info(bads_file):
+    bads = open(bads_file).read()
+    if bads.startswith('bads='):
+        bad_chs = re.findall('(\d+)')
+    else:
+        bad_chs = []
+    if bads.startswith('drop='):
+        drop = re.findall('(\s+)')
+    else:
+        drop = []
+
+    return drop, bad_chs
 
 
 def load_coca_freq_info(freq_info):
