@@ -20,7 +20,7 @@ t = {
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
-    'filter': 'iir_hp1_lp40',
+    'filter': 'fft_hp1_lp40',
     'raw': '{denoise}_{filter}',
     'analysis': '',
     'orient': 'free',
@@ -79,12 +79,12 @@ t = {
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
-    'trans': os.path.join('{fif_sdir}', '{s_e}_{raw}-trans.fif'),  # mne p.196
+    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
 
     'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
     'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
-    'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
+    'proj': os.path.join('{fif_sdir}', '{s_e}_{raw}-proj.fif'),
     'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                               '-proj.pdf'),
 
@@ -98,7 +98,9 @@ t = {
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
     'stim_info': os.path.join('{db_dir}', '{experiment}',
                               'exp', 'stims', 'stims_info.mat'),
-    'mrk': os.path.join('{raw_sdir}', '{s_e}_marker.txt'),
+    'mrk': os.path.join('{raw_sdir}', '{subject}*marker*'),
+    'posttest-mrk': os.path.join('{raw_sdir}',
+                                 '{subject}_*_marker_posttest_*.sqd'),
     'elp': os.path.join('{raw_sdir}', '{s_e}_elp.txt'),
     'hsp': os.path.join('{raw_sdir}', '{s_e}_hsp.txt'),
     'fsn': os.path.join('{raw_sdir}', '{subject}*.fsn'),
@@ -139,7 +141,12 @@ t = {
 
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
-           'R0414']  # lost 3/4 of trials by accident
+           'R0414',  # lost 3/4 of trials by accident
+           'R0580']
+
+old = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504', 'R0547', 'R0569', 'R0574',
+       'R0575', 'R0576', 'R0580']
+new = ['R0338', 'R0370', 'R0494', 'R0560', 'R0562', 'R0605']
 
 # color palette
 cm = dict()

@@ -17,11 +17,12 @@ import numpy as np
 from numpy import hstack as nphs
 import scipy.io as sio
 import mne
-import mne.fiff.kit as KIT
+from mne.fiff.kit import read_raw_kit
 from eelbrain import eellab as E
 from eelbrain.experiment import FileTree
 from pyphon import pyphon as pyp
 import dicts
+from collections import defaultdict
 import custom_labels
 
 
@@ -29,13 +30,18 @@ import custom_labels
 class NMG(FileTree):
     _subject_loc = '{meg_dir}'
     _templates = _defaults = dicts.t
-    def __init__(self, subject=None,
-                 root=dicts.t['root'], **kwargs):
+    def __init__(self, subject=None, root=dicts.t['root'], exclude=True,
+                 **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
-        self.exclude = dicts.exclude
-        self._exclude()
+        self.bad_channels = defaultdict(list)
+        self.exclude = []
+        if exclude:
+            self.exclude = dicts.exclude
+            self._exclude()
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
+        self.old = dicts.old
+        self.new = dicts.new
 
     @property
     def subject(self):
@@ -81,10 +87,10 @@ class NMG(FileTree):
         FileTree.set(self, **state)
 
     def _exclude(self):
-        self.bad_channels = {}
         for subject in self.iter('subject'):
             drop, bad_chs = load_bad_chs_info(self.get('bads-file'))
-            self.exclude.append(drop)
+            if drop:
+                self.exclude.append(subject)
             self.bad_channels[subject] = bad_chs
 
     #################
@@ -92,9 +98,9 @@ class NMG(FileTree):
     #################
 
     def kit2fiff(self, stim='>', slope='-', mne_raw=False, verbose=False,
-                 stimthresh=3.5, overwrite=False, denoise='calm', **rawfiles):
+                 stimthresh=3, overwrite=False, denoise='calm', **rawfiles):
         self.set(raw=denoise, denoise=denoise)
-        mrk = self.get('mrk')
+        mrk = self.get('mrk', fmatch=False)
         elp = self.get('elp')
         hsp = self.get('hsp')
         rawsqd = self.get('raw-sqd')
@@ -102,6 +108,8 @@ class NMG(FileTree):
 
         if 'mrk' in rawfiles:
             mrk = rawfiles['mrk']
+        if 'mrk2' in rawfiles:
+            mrk2 = rawfiles['mrk2']
         if 'elp' in rawfiles:
             elp = rawfiles['elp']
         if 'hsp' in rawfiles:
@@ -112,21 +120,29 @@ class NMG(FileTree):
             rawfif = rawfiles['rawfif']
         fifdir = os.path.dirname(rawfif)
 
-        if os.path.lexists(mrk) or os.path.lexists(elp) or os.path.lexists(hsp):
-            mrk = elp = hsp = None
+        if '*' in mrk:
+            mrk = glob(mrk)
+            if mrk is None:
+                ValueError('No markers found.')
+        elif not os.path.lexists(mrk):
+            raise ValueError('No marker found.')
+
+        if not os.path.lexists(elp):
+                raise ValueError('No elp file found.')
+        if not os.path.lexists(hsp):
+                raise ValueError('No hsp file found.')
+#             mrk = elp = hsp = None
 
         if not os.path.lexists(rawfif) or not mne_raw or not overwrite:
             if not os.path.lexists(fifdir):
                 os.mkdir(fifdir)
-            raw = KIT.read_raw_kit(input_fname=rawsqd, mrk=mrk,
-                                   elp=elp, hsp=hsp,
-                                   stim=stim, slope=slope, verbose=verbose)
+            raw = read_raw_kit(input_fname=rawsqd, mrk=mrk, elp=elp, hsp=hsp,
+                               stim=stim, slope=slope, verbose=verbose)
             if mne_raw:
                 return raw
             else:
-                raw.save(rawfif, overwrite=overwrite)
+                raw.save(rawfif, overwrite=overwrite, verbose=verbose)
                 del raw
-        self.reset()
 
     def push_mne_files(self, overwrite=False, **kwargs):
         if 'raw' in kwargs:
@@ -159,10 +175,12 @@ class NMG(FileTree):
         edf_path = self.get('edf_sdir')
         if subject:
             self.set(subject=subject)
-        self.logger.info('Loading Subject: %s' % self.get('subject'))
+        else:
+            subject = self.get('subject')
+        self.logger.info('Loading Subject: %s' % subject)
 
         if redo or not os.path.lexists(self.get('ds-file')):
-            self.logger.info('subject: %s' % self.get('subject'))
+            self.logger.info('subject: %s' % subject)
             raw_file = self.get('raw-file')
             if isinstance(proj, str):
                 proj = self.get('proj', projname=proj)
@@ -173,7 +191,7 @@ class NMG(FileTree):
             if proj:
                 proj = mne.read_proj(self.get('proj'))
                 raw.add_proj(proj, remove_existing=True)
-            evts = mne.find_stim_steps(raw, merge= -1)
+            evts = mne.find_stim_steps(raw, merge=-1)
             idx = np.nonzero(evts[:, 2])
             evts = evts[idx]
 
@@ -186,8 +204,7 @@ class NMG(FileTree):
             ds = E.Dataset(trigger, i_start, info=info)
 
             # Add subject as a dummy variable to the dataset
-            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases,
-                                     random=True)
+            ds['subject'] = E.Factor([subject], rep=ds.n_cases, random=True)
 
             # Loads logfile and adds it to the ds
             log_ds = read_log(self.get('log-file'))
@@ -200,7 +217,8 @@ class NMG(FileTree):
                 edf_path = os.path.join(edf_path, '*.edf')
                 edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
-                    self.logger.info('edf: dimension mismatch, eyelink disabled')
+                    self.logger.info('edf: dimension mismatch, '
+                                     'eyelink disabled')
                 # For the first five subjects in NMG, the voice trigger was
                 # mistakenly overlapped with the prime triggers.
                 # Repairs voice trigger value problem, if needed.
@@ -213,8 +231,9 @@ class NMG(FileTree):
 
                     try:
                         edf.add_t_to(ds)
-                        edf.mark(ds, tstart= -0.2, tstop=0.4, good=None, bad=False,
-                                 use=['EBLINK'], T='t_edf', target='accept')
+                        edf.mark(ds, tstart=-0.2, tstop=0.4, good=None,
+                                 bad=False, use=['EBLINK'], T='t_edf',
+                                 target='accept')
                     except ValueError:
                         edf = False
                         pass
@@ -225,12 +244,12 @@ class NMG(FileTree):
             ds = E.load.txt.tsv(self.get('ds-file'), delimiter='\t')
             ds['subject'].random = True
 
-        ds.info['subject'] = self.get('subject')
+        ds.info['subject'] = subject
         try:
-            ds.info['raw'] = raw = mne.fiff.Raw(self.get('raw-file'), verbose=False)
+            ds.info['raw'] = raw = mne.fiff.Raw(self.get('raw-file'),
+                                                verbose=False)
             if drop_bad_chs:
-                bad_chs = self.bad_channels[self.get('subject')]
-                raw.info['bads'].extend(bad_chs)
+                raw.info['bads'].extend(self.bad_channels[subject])
             else:
                 raw.info['bads'] = []
         except IOError:
@@ -365,10 +384,10 @@ class NMG(FileTree):
         Check for flat-line channels or channels that repeatedly exceeded
         threshold.
         """
-        ds = self.load_events()
+        ds = self.load_events(drop_bad_chs=False)
         ds = ds[ds['experiment'] == 'fixation']
         threshold = ds.n_cases * threshold
-        epochs = E.load.fiff.mne_epochs(ds, tmin= -.2, tmax=.6,
+        epochs = E.load.fiff.mne_epochs(ds, tmin=-.2, tmax=.6,
                                         drop_bad_chs=False, verbose=False,
                                         baseline=(None, 0), preload=True,
                                         reject={'mag': reject})
@@ -389,10 +408,10 @@ class NMG(FileTree):
         flats = ['MEG %03d' % (x + 1) for x in flats]
 
         bad_chs = np.unique(np.hstack((bads, flats)).ravel())
-        if len(bad_chs) >= n_chan:
-            drop = True
+        if len(bad_chs) > n_chan:
+            drop = 1
         else:
-            drop = False
+            drop = 0
 
         with open(self.get('bads-file'), 'w') as FILE:
             import datetime
@@ -403,8 +422,8 @@ class NMG(FileTree):
             FILE.write('drop=%s' % drop)
         return bad_chs
 
-    def make_bpf_raw(self, hp=1, lp=40, redo=False, method='iir',
-                     n_jobs=2, **kwargs):
+    def make_bpf_raw(self, denoise='calm', hp=1, lp=40, redo=False,
+                     method='fft', n_jobs=2, **kwargs):
         """
         Parameters
         ----------
@@ -419,21 +438,19 @@ class NMG(FileTree):
             New fif-file with filter settings named with template.
         """
 
-        if 'denoise' in kwargs:
-            self.set(raw=kwargs['denoise'])
-        raw = self.get('denoise')
+        self.set(raw=denoise)
         if isinstance(hp, int) and isinstance(lp, int):
-            newraw = '%s_%s_hp%d_lp%d' % (raw, method, hp, lp)
+            newraw = '%s_%s_hp%d_lp%d' % (denoise, method, hp, lp)
         elif isinstance(hp, float) and isinstance(lp, int):
-            newraw = '%s_%s_hp%.1f_lp%d' % (raw, method, hp, lp)
+            newraw = '%s_%s_hp%.1f_lp%d' % (denoise, method, hp, lp)
         elif isinstance(hp, int) and isinstance(lp, float):
-            newraw = '%s_%s_hp%d_lp%.1f' % (raw, method, hp, lp)
+            newraw = '%s_%s_hp%d_lp%.1f' % (denoise, method, hp, lp)
         elif isinstance(hp, float) and isinstance(lp, float):
-            newraw = '%s_%s_hp%.1f_lp%.1f' % (raw, method, hp, lp)
+            newraw = '%s_%s_hp%.1f_lp%.1f' % (denoise, method, hp, lp)
         else:
             TypeError('Must be int or float')
 
-        src_file = self.get('raw-file', raw=raw)
+        src_file = self.get('raw-file', raw=denoise)
         dest_file = self.get('raw-file', raw=newraw)
         if (not redo) and os.path.exists(dest_file):
             return
@@ -441,11 +458,9 @@ class NMG(FileTree):
         raw = mne.fiff.Raw(src_file, preload=True)
         raw.filter(hp, lp, n_jobs=n_jobs, method=method, **kwargs)
         raw.verbose = False
-        raw.save(dest_file, overwrite=True)
+        raw.save(dest_file, overwrite=True, verbose=False)
 
-#         self.reset()
-
-    def make_epochs(self, ds, evoked=False, tmin= -0.2, tmax=0.6, decim=2,
+    def make_epochs(self, ds, evoked=False, tmin=-0.2, tmax=0.6, decim=2,
                     baseline=(None, 0), reject={'mag': 3e-12},
                     model=None, redo=False, mne=True, **kwargs):
 
@@ -522,30 +537,28 @@ class NMG(FileTree):
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
 
-    def make_proj(self, raw='NR_iir_hp1_lp40', write=True, overwrite=False,
-                  nprojs=5, verbose=False):
-        ds = self.load_events(proj=False, edf=False, remove_bad_chs=False)
+    def make_proj(self, write=True, overwrite=False, nprojs=5, verbose=False):
+        ds = self.load_events(proj=False, edf=False, drop_bad_chs=True)
         if write and not overwrite:
             if os.path.lexists(self.get('proj')):
                 raise IOError("proj file at %r already exists"
                               % self.get('proj'))
+        ds_fix = ds[ds['experiment'] == 'fixation']
+        epochs = E.load.fiff.mne_epochs(ds_fix, tmin=-0.2, tmax=.6,
+                                        baseline=(None, 0),
+                                        reject={'mag':3e-12})
+
 
         # add the projections to this object by using
-
-#         ds_fix = ds[ds['experiment'] == 'fixation']
-#         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
-#                                         baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_raw(self.get('raw-file'), n_grad=0,
-                                         n_mag=nprojs, n_eeg=0, verbose=verbose)
-        proj = [proj[:nprojs]]
-
+        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs,
+                                            n_eeg=0, verbose=verbose)
         if write == True:
             mne.write_proj(self.get('proj'), proj)
             self.logger.info('proj: Projection written to file')
         else:
             return proj
 
-    def make_cov(self, write=True, raw='NR_iir_hp1_lp40', overwrite=False):
+    def make_cov(self, write=True, raw='calm_fft_hp1_lp40', overwrite=False):
         ds = self.load_events(proj=False, edf=False)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
@@ -557,7 +570,7 @@ class NMG(FileTree):
         ds_fix = ds[index]
 
         epochs = E.load.fiff.mne_epochs(ds_fix, baseline=(-.2, 0),
-                                        reject={'mag':3e-12}, tmin= -.2,
+                                        reject={'mag':3e-12}, tmin=-.2,
                                         tmax=0, verbose=False)
         cov = mne.cov.compute_covariance(epochs, verbose=False)
 
@@ -935,16 +948,14 @@ def load_stim_info(stim_info, ds):
 
 
 def load_bad_chs_info(bads_file):
-    bads = open(bads_file).read()
-    if bads.startswith('bads='):
-        bad_chs = re.findall('(\d+)')
-    else:
-        bad_chs = []
-    if bads.startswith('drop='):
-        drop = re.findall('(\s+)')
-    else:
-        drop = []
-
+    bad_chs = drop = []
+    if os.path.lexists(bads_file):
+        bads = open(bads_file).readlines()
+        for line in bads:
+            if line.startswith('bads='):
+                bad_chs = re.findall('(MEG \d+)', line)
+            if line.startswith('drop='):
+                drop = int(re.findall('(\d)', line)[0])
     return drop, bad_chs
 
 
