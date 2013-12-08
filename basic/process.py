@@ -368,7 +368,6 @@ class NMG(FileTree):
         if epochs.drop_log:
             bads = E.Factor(sum(epochs.drop_log, []))
             bads = E.table.frequencies(bads)
-            return bads
             bads = bads[bads['n'] > threshold]['cell'].as_labels()
         else:
             bads = []
@@ -379,7 +378,8 @@ class NMG(FileTree):
         for epoch in diffs:
             # channels flat > 50% time period
             flats.append(np.where(np.mean(epoch, 1) >= .5)[0])
-        flats = np.hstack(flats)
+        flats = np.unique(np.hstack(flats))
+        flats = ['MEG %03d' % (x + 1) for x in flats]
 
         bad_chs = np.unique(np.hstack((bads, flats)).ravel())
 
