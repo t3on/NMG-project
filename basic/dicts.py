@@ -20,7 +20,8 @@ t = {
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
-    'raw': '{denoise}_iir_hp1_lp40',
+    'filter': 'iir_hp1_lp40',
+    'raw': '{denoise}_{filter}',
     'analysis': '',
     'orient': 'free',
     'test': '',
@@ -60,13 +61,14 @@ t = {
     'raw_sdir': os.path.join('{exp_sdir}', 'raw'),
     'eeg_sdir': os.path.join('{exp_sdir}', 'eeg'),
     'beh_sdir': os.path.join('{exp_sdir}', 'behavioral'),
-    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims', 
+    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims',
                                'transcripts'),
     'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
     # saved data
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
+    'bads-file': os.path.join('{data_sdir}', '{s_e}_bads.txt'),
     'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
     'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
@@ -77,7 +79,7 @@ t = {
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
-    'trans': os.path.join('{fif_sdir}', '{s_e}_{raw}-trans.fif'), #mne p.196
+    'trans': os.path.join('{fif_sdir}', '{s_e}_{raw}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
 
     'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
@@ -94,7 +96,7 @@ t = {
     # raw files
     'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
-    'stim_info': os.path.join('{db_dir}', '{experiment}', 
+    'stim_info': os.path.join('{db_dir}', '{experiment}',
                               'exp', 'stims', 'stims_info.mat'),
     'mrk': os.path.join('{raw_sdir}', '{s_e}_marker.txt'),
     'elp': os.path.join('{raw_sdir}', '{s_e}_elp.txt'),
@@ -150,7 +152,7 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 # bad_channels['R0575'] = [2,3,9,10,12,17,18]
 # bad_channels['R0580'] = [0]
 # bad_channels['R0605'] = [18, 32]
-# 
+#
 # meg = lambda x: 'MEG %03d' %(x+1)
 # for entry in bad_channels.keys():
 #     bad_channels[entry] = [meg(x) for x in bad_channels[entry]]
@@ -162,7 +164,7 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
            'R0414',  # lost 3/4 of trials by accident
-           'R0504', # large number of rejections
+           'R0504',  # large number of rejections
 #            'R0575'  # noise issues
 #            'R0576',  # noise issues
            'R0580',  # noise issues

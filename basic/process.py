@@ -36,7 +36,7 @@ class NMG(FileTree):
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
-        
+
     @property
     def subject(self):
         return self.get('subject')
@@ -121,7 +121,22 @@ class NMG(FileTree):
                 del raw
         self.reset()
 
-    def load_events(self, subject=None, redo=False, remove_bad_chs=True,
+    def push_mne_files(self, overwrite=False, **kwargs):
+        if 'raw' in kwargs:
+            self.set(raw=kwargs['raw'])
+        self.push(dst_root=self.get('server_dir'),
+                  names=['raw-file', 'trans', 'cov', 'fwd'],
+                  overwrite=overwrite)
+
+    def push_BESA_files(self, overwrite=False, **kwargs):
+        names = ['besa_ascii', 'besa_cot', 'besa_ela',
+                 'besa_pos', 'besa_sfp', 'besa_evt']
+        if 'raw' in kwargs:
+            self.set(raw=kwargs['raw'])
+        self.push(dst_root=self.get('server_dir'),
+                  names=names, overwrite=overwrite)
+
+    def load_events(self, subject=None, redo=False, drop_bad_chs=True,
                     proj=False, edf=True, treject=25):
         """
 
@@ -146,25 +161,25 @@ class NMG(FileTree):
                 proj = self.get('proj', projname=proj)
             if proj:
                 proj = os.path.lexists(self.get('proj'))
-        
+
             raw = mne.fiff.Raw(raw_file)
             if proj:
                 proj = mne.read_proj(self.get('proj'))
                 raw.add_proj(proj, remove_existing=True)
-            evts = mne.find_stim_steps(raw, merge=-1)
+            evts = mne.find_stim_steps(raw, merge= -1)
             idx = np.nonzero(evts[:, 2])
             evts = evts[idx]
-        
+
             if len(evts) == 0:
                 raise ValueError("No events found!")
-        
+
             i_start = E.Var(evts[:, 0], name='i_start')
             trigger = E.Var(evts[:, 2], name='trigger')
             info = {'raw': raw}
             ds = E.Dataset(trigger, i_start, info=info)
 
             # Add subject as a dummy variable to the dataset
-            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, 
+            ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases,
                                      random=True)
 
             # Loads logfile and adds it to the ds
@@ -179,7 +194,7 @@ class NMG(FileTree):
                 edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
                     self.logger.info('edf: dimension mismatch, eyelink disabled')
-                # For the first five subjects in NMG, the voice trigger was 
+                # For the first five subjects in NMG, the voice trigger was
                 # mistakenly overlapped with the prime triggers.
                 # Repairs voice trigger value problem, if needed.
                 else:
@@ -206,7 +221,7 @@ class NMG(FileTree):
         ds.info['subject'] = self.get('subject')
         try:
             ds.info['raw'] = raw = mne.fiff.Raw(self.get('raw-file'), verbose=False)
-            if remove_bad_chs:
+            if drop_bad_chs:
                 bad_chs = self.bad_channels[self.get('subject')]
                 raw.info['bads'].extend(bad_chs)
             else:
@@ -337,54 +352,46 @@ class NMG(FileTree):
             self.logger.info('ds: Dimension Mismatch. No Stimuli Info')
         return ds
 
-    def push_mne_files(self, overwrite=False, **kwargs):
-        if 'raw' in kwargs:
-            self.set(raw=kwargs['raw'])
-        self.push(dst_root=self.get('server_dir'),
-                  names=['raw-file', 'trans', 'cov', 'fwd'],
-                  overwrite=overwrite)
 
-    def push_BESA_files(self,
-                        names=['besa_ascii', 'besa_cot', 'besa_ela',
-                               'besa_pos', 'besa_sfp', 'besa_evt'],
-                        overwrite=False, **kwargs):
-        if 'raw' in kwargs:
-            self.set(raw=kwargs['raw'])
-        self.push(dst_root=self.get('server_dir'),
-                  names=names, overwrite=overwrite)
-        
-    def check_bad_chs(self, ds, buffer_size_sec=1.0, threshold=3e-12):
+    def check_bad_chs(self, threshold=0.05, reject=3e-12):
         """
-        Check for flat-line channels or channels that repeatedly exceed
+        Check for flat-line channels or channels that repeatedly exceeded
         threshold.
         """
-        raw = ds.info['raw']
-        start = raw.first_samp
-        stop = raw.last_samp
-        buffer_size = int(ceil(buffer_size_sec * raw.info['sfreq']))
-        picks = mne.fiff.pick_types(raw.info, exclude=[])
-        
+        ds = self.load_events()
+        ds = ds[ds['experiment'] == 'fixation']
+        threshold = ds.n_cases * threshold
+        epochs = E.load.fiff.mne_epochs(ds, tmin= -.2, tmax=.6,
+                                        drop_bad_chs=False, verbose=False,
+                                        baseline=(None, 0), preload=True,
+                                        reject={'mag': reject})
+        if epochs.drop_log:
+            bads = E.Factor(sum(epochs.drop_log, []))
+            bads = E.table.frequencies(bads)
+            return bads
+            bads = bads[bads['n'] > threshold]['cell'].as_labels()
+        else:
+            bads = []
+        picks = mne.fiff.pick_types(epochs.info, exclude=[])
+        data = epochs.get_data()[:, picks, :]
         flats = []
-        bads = []
-        for first in range(start, stop, buffer_size):
-            last = first + buffer_size
-            if last >= stop:
-                last = stop + 1
-            data, _ = raw[picks, first:last]
-            
-            flat = np.diff(data) == 0
-            flat = np.where(np.mean(flat, 1) > .5)[0]  # channels flat > 50% time period
-            flats.append(flat) 
-            
-            bad = np.absolute(data) > 3e-12
-            bad = np.where(np.mean(bad, 1) > .5)[0]
-            bads.append(bad)
-        
-        bad_chs = np.unique(np.hstack((bads,flats)).ravel())
-        
+        diffs = np.diff(data) == 0
+        for epoch in diffs:
+            # channels flat > 50% time period
+            flats.append(np.where(np.mean(epoch, 1) >= .5)[0])
+        flats = np.hstack(flats)
+
+        bad_chs = np.unique(np.hstack((bads, flats)).ravel())
+
+        with open(self.get('bads-file'), 'w') as FILE:
+            import datetime
+            date = datetime.datetime.now().ctime()
+            FILE.write('# Log of bad channels for %s written on %s\n\n'
+                       % (self.get('subject'), date))
+            FILE.write('bads=%s' % bad_chs)
         return bad_chs
-        
-    def make_bpf_raw(self, hp=1, lp=40, redo=False, method='iir', 
+
+    def make_bpf_raw(self, hp=1, lp=40, redo=False, method='iir',
                      n_jobs=2, **kwargs):
         """
         Parameters
@@ -402,7 +409,7 @@ class NMG(FileTree):
 
         if 'denoise' in kwargs:
             self.set(raw=kwargs['denoise'])
-        raw=self.get('denoise')
+        raw = self.get('denoise')
         if isinstance(hp, int) and isinstance(lp, int):
             newraw = '%s_%s_hp%d_lp%d' % (raw, method, hp, lp)
         elif isinstance(hp, float) and isinstance(lp, int):
@@ -427,38 +434,29 @@ class NMG(FileTree):
 #         self.reset()
 
     def make_epochs(self, ds, evoked=False, tmin= -0.2, tmax=0.6, decim=2,
-                    baseline=(None,0), reject={'mag': 3e-12}, 
+                    baseline=(None, 0), reject={'mag': 3e-12},
                     model=None, redo=False, mne=True, **kwargs):
-        if evoked:
-            label = 'evoked'
-            if not model:
+
+        if evoked and not model:
                 raise ValueError('No aggregation model specified.')
-        else:
-            label = 'epochs'
+
         if 'raw' in kwargs:
             self.set(raw=kwargs['raw'])
-        raw = self.get('raw')
-        props = raw.split('_')
-        for val in props:
-            if re.match('lp*', val):
-                lp = int(val[2:])
-        nyq = lp * 2 # nyquist rate requires at least twice the sampling.
+        lp = ds.info['raw'].info['lowpass']
+        nyq = lp * 2  # nyquist rate requires at least twice the sampling.
         sfreq = ds.info['raw'].info['sfreq']
-        if decim > sfreq/nyq:
+        if decim > sfreq / nyq:
             raise NotImplementedError('Decimated value will cause aliasing.')
 
-        self.set(analysis='_'.join((label, raw, 'reject_%s' % reject['mag'], 
-                                    str(tmin), str(tmax))))
-        
         # add epochs to the Dataset after excluding bad channels
         orig_N = ds.n_cases
         if mne:
             ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
-                                            baseline=baseline, reject=reject, 
+                                            baseline=baseline, reject=reject,
                                             verbose=False, decim=decim)
         else:
             ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
-                                        baseline=baseline, reject=reject['mag'], 
+                                        baseline=baseline, reject=reject['mag'],
                                         decim=decim, mult=1e12)
         remainder = ds.n_cases * 100 / orig_N
         self.logger.info('epochs: %d' % remainder + r'% ' +
@@ -475,7 +473,7 @@ class NMG(FileTree):
                 ds = ds.aggregate(model, drop_bad=True)
                 ds.info['use'] = True
         return ds
-    
+
     def make_BESA_files(self, asc=False):
         tstart = -.1
         tstop = .6
@@ -512,7 +510,7 @@ class NMG(FileTree):
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
 
-    def make_proj(self, raw='NR_iir_hp1_lp40', write=True, overwrite=False, 
+    def make_proj(self, raw='NR_iir_hp1_lp40', write=True, overwrite=False,
                   nprojs=5, verbose=False):
         ds = self.load_events(proj=False, edf=False, remove_bad_chs=False)
         if write and not overwrite:
@@ -525,7 +523,7 @@ class NMG(FileTree):
 #         ds_fix = ds[ds['experiment'] == 'fixation']
 #         epochs = E.load.fiff.mne_Epochs(ds_fix, tstart= -0.2, tstop=.6,
 #                                         baseline=(None, 0), reject={'mag':1.5e-11})
-        proj = mne.proj.compute_proj_raw(self.get('raw-file'), n_grad=0, 
+        proj = mne.proj.compute_proj_raw(self.get('raw-file'), n_grad=0,
                                          n_mag=nprojs, n_eeg=0, verbose=verbose)
         proj = [proj[:nprojs]]
 
@@ -535,10 +533,8 @@ class NMG(FileTree):
         else:
             return proj
 
-    def make_cov(self, write=True, raw='NR_iir_hp1_lp40', 
-                 overwrite=False, remove_bad_chs=True, verbose=False):
-        ds = self.load_events(proj=False, edf=False, 
-                              remove_bad_chs=remove_bad_chs)
+    def make_cov(self, write=True, raw='NR_iir_hp1_lp40', overwrite=False):
+        ds = self.load_events(proj=False, edf=False)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
                 raise IOError("cov file at %r already exists"
@@ -549,9 +545,9 @@ class NMG(FileTree):
         ds_fix = ds[index]
 
         epochs = E.load.fiff.mne_epochs(ds_fix, baseline=(-.2, 0),
-                                        reject={'mag':2e-12}, tmin= -.2,
-                                        tmax=0, verbose=verbose)
-        cov = mne.cov.compute_covariance(epochs, verbose=verbose)
+                                        reject={'mag':3e-12}, tmin= -.2,
+                                        tmax=0, verbose=False)
+        cov = mne.cov.compute_covariance(epochs, verbose=False)
 
         if write == True:
             cov.save(self.get('cov'))
@@ -697,7 +693,7 @@ class NMG(FileTree):
         subject = self.get('subject')
 
         # do source transformation
-        stcs = []        
+        stcs = []
 #         if rois == None:
 #             if evoked:
 #                 for d in ds.itercases():
@@ -706,13 +702,13 @@ class NMG(FileTree):
 #             return ds
 #         else:
 #             raise NotImplementedError('Check back later.')
-        
+
         if 'roilabels' in kwargs:
             roilabels = kwargs['roilabels']
             rois = zip(rois, roilabels)
         else:
             rois = zip(rois, rois)
-        
+
         for roi, roilabel in rois:
             if evoked:
                 for d in ds.itercases():
@@ -722,43 +718,43 @@ class NMG(FileTree):
                     for stc in stcs:
                         fs_roi = self.read_label(roi)
                         fs_roi = stc.in_label(fs_roi)
-                        if not avg: 
-                            morpher = mne.compute_morph_matrix(subject, 
+                        if not avg:
+                            morpher = mne.compute_morph_matrix(subject,
                                                                common_brain,
-                                                               vertices_from='?', 
+                                                               vertices_from='?',
                                                                vertices_to='?')
                             fs_roi = mne.morph_data_precomputed(subject,
                                                                 common_brain,
                                                                 fs_roi,
-                                                                '?', #vertices_to
+                                                                '?',  # vertices_to
                                                                 morpher)
-#                         fs_roi = E.load.fiff.stc_ndvar(fs_roi, 
-#                                                        subject=self.subject, 
+#                         fs_roi = E.load.fiff.stc_ndvar(fs_roi,
+#                                                        subject=self.subject,
 #                                                        src='ico-4')
                         roi_stcs.append(fs_roi)
                     ds[roilabel] = E.combine(roi_stcs)
             else:
-                stcs = self.make_stcs(ds, labels=[roi], evoked=evoked, 
+                stcs = self.make_stcs(ds, labels=[roi], evoked=evoked,
                                               orient=orient)
                 if not avg:
                     for i, stc in enumerate(stcs):
-                        morpher = mne.compute_morph_matrix(subject, 
+                        morpher = mne.compute_morph_matrix(subject,
                                                            common_brain,
-                                                           vertices_from='?', 
+                                                           vertices_from='?',
                                                            vertices_to='?')
                         stcs[i] = mne.morph_data_precomputed(subject,
                                                              common_brain,
                                                              stc,
-                                                             '?', #vertices_to
+                                                             '?',  # vertices_to
                                                              morpher)
                     ds[roilabel] = stcs
-                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=self.subject, 
+                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=self.subject,
                                                      src='ico-4')
-            
+
             if avg:
                 ds[roilabel] = ds[roilabel].summary('source', name='stc')
                 # collapsing across sources
-#                 ds[roilabel] = [E.NDVar.summary(x, 'source', name='stc') 
+#                 ds[roilabel] = [E.NDVar.summary(x, 'source', name='stc')
 #                                 for x in stcs]
 
         del stcs, ds['epochs']
@@ -931,7 +927,7 @@ def load_coca_freq_info(freq_info):
     words = E.combine((c1, c2, word))
     word_dict = {word: i for i, word in enumerate(words['word'])}
     word_idx = [word_dict[word.lower()] for word in ds['display']]
-    
+
     words[word_idx]
 
 
