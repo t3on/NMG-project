@@ -20,7 +20,7 @@ t = {
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
-    'raw': 'iir_hp1_lp40',
+    'raw': '{denoise}_iir_hp1_lp40',
     'analysis': '',
     'orient': 'free',
     'test': '',
@@ -33,9 +33,6 @@ t = {
     'plots_dir': os.path.join('{results}', '{datatype}', 'plots'),
     'stats_dir': os.path.join('{results}', '{datatype}', 'stats'),
 
-    # saved files
-    'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
-    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
@@ -46,7 +43,7 @@ t = {
     'server_dir': os.path.join('{server}', 'data', '{experiment}'),
 
     # MNE dir
-    'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
+    'fif_sdir': os.path.join('{exp_sdir}', 'mne'),
 
     # BESA dir
     'BESA_dir': os.path.join('{meg_dir}', 'BESA'),
@@ -60,59 +57,49 @@ t = {
     'label_sdir': os.path.join('{mri_sdir}', 'label'),
 
     # raw folders
-    'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
-    'raw_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-    'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-    'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
-    'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
-    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims', 'transcripts'),
+    'raw_sdir': os.path.join('{exp_sdir}', 'raw'),
+    'eeg_sdir': os.path.join('{exp_sdir}', 'eeg'),
+    'beh_sdir': os.path.join('{exp_sdir}', 'behavioral'),
+    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims', 
+                               'transcripts'),
     'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
-    # fif files
-    'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
-    'raw-file': '{raw-base}-raw.fif',
-    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p. 196
-
     # saved data
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
-    'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
     'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
-    'group-file': os.path.join('{group_dir}', 'group_{analysis}-{orient}.pickled'),
+    'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
+    'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
 
-    # fif files derivatives
-    'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
-    'fwd': os.path.join('{fif_sdir}', '{s_e}-fwd.fif'),
-    'fwd_old': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
-    'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
+    'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
+    'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
+    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
+
+    # mne files
+    'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
+    'trans': os.path.join('{fif_sdir}', '{s_e}_{raw}-trans.fif'), #mne p.196
+    'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
+
     'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
+    'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
+    'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
     'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                               '-proj.pdf'),
 
     # fwd model
-    # replaces 5120-bem-sol.fif
-    'bem': os.path.join('{mri_sdir}', 'bem',
-                        '{subject}-*-bem.fif'),
-    'src': os.path.join('{mri_sdir}', 'bem',
-                        '{subject}-ico-4-src.fif'),
-    'bem_head': os.path.join('{mri_sdir}', 'bem',
-                             '{subject}-head.fif'),
-
-    # parameter files
-    'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
-    'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
-    'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
-    'fsn': os.path.join('{param_sdir}', '{subject}*.fsn'),
-    'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
-    'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
+    'bem_head': os.path.join('{mri_sdir}', 'bem', '{subject}-head.fif'),
+    'bem': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem.fif'),
+    'src': os.path.join('{mri_sdir}', 'bem', '{subject}-ico-4-src.fif'),
 
     # raw files
-    'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
+    'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
     'stim_info': os.path.join('{db_dir}', '{experiment}', 
                               'exp', 'stims', 'stims_info.mat'),
-    'helmet_png': os.path.join('{results}', 'visuals', 'helmet',
-                             '{s_e}' + '.png'),
+    'mrk': os.path.join('{raw_sdir}', '{s_e}_marker.txt'),
+    'elp': os.path.join('{raw_sdir}', '{s_e}_elp.txt'),
+    'hsp': os.path.join('{raw_sdir}', '{s_e}_hsp.txt'),
+    'fsn': os.path.join('{raw_sdir}', '{subject}*.fsn'),
 
     # eye-tracker
     'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
@@ -129,6 +116,8 @@ t = {
     'besa_pos': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.pos'),
     'besa_sfp': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.sfp'),
     'besa_evt': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.evt'),
+    'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
+    'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
 
     # BESA files
     'besa_pdg': os.path.join('{BESA_dir}', '{experiment}.PDG'),
@@ -144,19 +133,6 @@ t = {
 
 
 # bad chs
-#bad_channels = defaultdict(lambda: [])
-# bad_channels['R0095'] = [9,109]
-# bad_channels['R0370'] = [18,26,54]
-#bad_channels['R0370'] = [54],
-#bad_channels['R0560'] = [18,26],
-#bad_channels['R0562'] = [18],
-#bad_channels['R0575'] = [2,3,9,10,12,17,18],
-#bad_channels['R0605'] = [18],  
-
-# meg = lambda x: 'MEG %03d' %(x+1)
-# for entry in bad_channels.keys():
-#     bad_channels[entry] = [meg(x) for x in bad_channels[entry]]
-
 bad_channels = defaultdict(lambda: [])
 bad_channels['R0498'].extend(['MEG 065', 'MEG 066'])
 bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 065', 'MEG 138'])
@@ -165,6 +141,20 @@ bad_channels['R0580'].extend(['MEG 001', 'MEG 065', 'MEG 084', 'MEG 143',
                               'MEG 160', 'MEG161'])
 bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 
+# # bad chs from NR
+# bad_channels['R0095'] = [9,109]
+# # bad_channels['R0370'] = [18,26,54]
+# bad_channels['R0370'] = [54]
+# bad_channels['R0560'] = [18,26]
+# bad_channels['R0562'] = [18]
+# bad_channels['R0575'] = [2,3,9,10,12,17,18]
+# bad_channels['R0580'] = [0]
+# bad_channels['R0605'] = [18, 32]
+# 
+# meg = lambda x: 'MEG %03d' %(x+1)
+# for entry in bad_channels.keys():
+#     bad_channels[entry] = [meg(x) for x in bad_channels[entry]]
+
 ###############################
 # Experiment class attributes #
 ###############################
@@ -172,9 +162,12 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
            'R0414',  # lost 3/4 of trials by accident
-           'R0576',  # noise issues
+           'R0504', # large number of rejections
+#            'R0575'  # noise issues
+#            'R0576',  # noise issues
            'R0580',  # noise issues
-           'R0605']  # noise issues
+           'R0605',  # noise issues
+           'R0498']  # noise issues
 
 # color palette
 cm = dict()

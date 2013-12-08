@@ -9,7 +9,7 @@ import eelbrain.eellab as E
 import basic.process as process
   
 # raw data parameters
-raw = 'hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = {'mag': 3e-12}

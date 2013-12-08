@@ -14,7 +14,7 @@ import numpy as np
 redo=True
 
 # raw data parameters
-raw = 'iir_hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
@@ -29,8 +29,8 @@ pmin = .1
 plt_clrs = {'ortho': 'orchid', 'novel': 'steelblue', 'transparent': 'steelblue', 
             'opaque': 'steelblue'}
 
-roilabels = ['anterior_fusiform', 'vmPFC']
-rois = ['lh.ant_fusiform', ['lh.VMPFC', 'rh.VMPFC']]
+roilabels = ['anterior_fusiform', 'vmPFC', 'LATL']
+rois = ['lh.ant_fusiform', ['lh.VMPFC', 'rh.VMPFC'], 'lh.LATL']
 
 e = process.NMG()
 e.set(raw=raw)

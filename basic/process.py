@@ -6,6 +6,7 @@ Created on Nov 25, 2012
 Collection of functions used on an experiment class.
 '''
 
+from math import ceil
 import re
 import os
 import logging
@@ -35,7 +36,10 @@ class NMG(FileTree):
         self.bad_channels = dicts.bad_channels
         self.logger = logging.getLogger('mne')
         self.cm = dicts.cm
-        self.subject = self.get('subject')
+        
+    @property
+    def subject(self):
+        return self.get('subject')
 
     def _register_field(self, key, values=None, default=None, set_handler=None,
                         eval_handler=None, post_set_handler=None):
@@ -133,6 +137,7 @@ class NMG(FileTree):
         edf_path = self.get('edf_sdir')
         if subject:
             self.set(subject=subject)
+        self.logger.info('Loading Subject: %s' % self.get('subject'))
 
         if redo or not os.path.lexists(self.get('ds-file')):
             self.logger.info('subject: %s' % self.get('subject'))
@@ -153,10 +158,10 @@ class NMG(FileTree):
             if len(evts) == 0:
                 raise ValueError("No events found!")
         
-            i_start = Var(evts[:, 0], name='i_start')
-            trigger = Var(evts[:, 2], name='trigger')
+            i_start = E.Var(evts[:, 0], name='i_start')
+            trigger = E.Var(evts[:, 2], name='trigger')
             info = {'raw': raw}
-            ds = Dataset(trigger, i_start, name=name, info=info)
+            ds = E.Dataset(trigger, i_start, info=info)
 
             # Add subject as a dummy variable to the dataset
             ds['subject'] = E.Factor([self.get('subject')], rep=ds.n_cases, 
@@ -168,12 +173,14 @@ class NMG(FileTree):
 
             self.label_events(ds)
 
+            # consider moving to a general location
             if edf and os.path.lexists(edf_path):
                 edf_path = os.path.join(edf_path, '*.edf')
                 edf = E.load.eyelink.Edf(path=edf_path)
                 if edf.triggers.size != ds.n_cases:
                     self.logger.info('edf: dimension mismatch, eyelink disabled')
-                # For the first five subjects in NMG, the voice trigger was mistakenly overlapped with the prime triggers.
+                # For the first five subjects in NMG, the voice trigger was 
+                # mistakenly overlapped with the prime triggers.
                 # Repairs voice trigger value problem, if needed.
                 else:
                     index = range(3, edf.triggers.size, 4)
@@ -183,7 +190,7 @@ class NMG(FileTree):
                         edf.triggers[idx] = (a, b)
 
                     try:
-                        edf.add_T_to(ds)
+                        edf.add_t_to(ds)
                         edf.mark(ds, tstart= -0.2, tstop=0.4, good=None, bad=False,
                                  use=['EBLINK'], T='t_edf', target='accept')
                     except ValueError:
@@ -203,7 +210,6 @@ class NMG(FileTree):
                 bad_chs = self.bad_channels[self.get('subject')]
                 raw.info['bads'].extend(bad_chs)
             else:
-                self.bad_channels = {}
                 raw.info['bads'] = []
         except IOError:
             print 'No Raw fif found. Loading dataset without raw...'
@@ -221,7 +227,7 @@ class NMG(FileTree):
     def _reject_blinks(self, ds, treject=25):
         if 'accept' in ds:
             ds['accept'] = E.Var(np.array(ds['accept'].x, bool))
-            dsx = ds.subset('accept')
+            dsx = ds.sub('accept')
             rejected = (ds.n_cases - dsx.n_cases) * 100 / ds.n_cases
             remainder = dsx.n_cases * 100 / ds.n_cases
             if rejected > treject:
@@ -347,7 +353,38 @@ class NMG(FileTree):
         self.push(dst_root=self.get('server_dir'),
                   names=names, overwrite=overwrite)
         
-    def make_bpf_raw(self, raw='NR', hp=1, lp=40, redo=False, method='iir', 
+    def check_bad_chs(self, ds, buffer_size_sec=1.0, threshold=3e-12):
+        """
+        Check for flat-line channels or channels that repeatedly exceed
+        threshold.
+        """
+        raw = ds.info['raw']
+        start = raw.first_samp
+        stop = raw.last_samp
+        buffer_size = int(ceil(buffer_size_sec * raw.info['sfreq']))
+        picks = mne.fiff.pick_types(raw.info, exclude=[])
+        
+        flats = []
+        bads = []
+        for first in range(start, stop, buffer_size):
+            last = first + buffer_size
+            if last >= stop:
+                last = stop + 1
+            data, _ = raw[picks, first:last]
+            
+            flat = np.diff(data) == 0
+            flat = np.where(np.mean(flat, 1) > .5)[0]  # channels flat > 50% time period
+            flats.append(flat) 
+            
+            bad = np.absolute(data) > 3e-12
+            bad = np.where(np.mean(bad, 1) > .5)[0]
+            bads.append(bad)
+        
+        bad_chs = np.unique(np.hstack((bads,flats)).ravel())
+        
+        return bad_chs
+        
+    def make_bpf_raw(self, hp=1, lp=40, redo=False, method='iir', 
                      n_jobs=2, **kwargs):
         """
         Parameters
@@ -362,7 +399,10 @@ class NMG(FileTree):
         raw : fif-file
             New fif-file with filter settings named with template.
         """
-#         self.reset()
+
+        if 'denoise' in kwargs:
+            self.set(raw=kwargs['denoise'])
+        raw=self.get('denoise')
         if isinstance(hp, int) and isinstance(lp, int):
             newraw = '%s_%s_hp%d_lp%d' % (raw, method, hp, lp)
         elif isinstance(hp, float) and isinstance(lp, int):
@@ -386,31 +426,40 @@ class NMG(FileTree):
 
 #         self.reset()
 
-    def make_epochs(self, ds, evoked=False, raw='iir_hp1_lp40', tmin= -0.1, 
-                    tmax=0.6, reject={'mag': 3e-12}, model=None, redo=False):
+    def make_epochs(self, ds, evoked=False, tmin= -0.2, tmax=0.6, decim=2,
+                    baseline=(None,0), reject={'mag': 3e-12}, 
+                    model=None, redo=False, mne=True, **kwargs):
         if evoked:
             label = 'evoked'
             if not model:
                 raise ValueError('No aggregation model specified.')
         else:
             label = 'epochs'
-        self.set(raw=raw)
+        if 'raw' in kwargs:
+            self.set(raw=kwargs['raw'])
+        raw = self.get('raw')
         props = raw.split('_')
         for val in props:
             if re.match('lp*', val):
                 lp = int(val[2:])
-        nyq = lp * 2.5 # nyquist rate requires at least twice the sampling.
+        nyq = lp * 2 # nyquist rate requires at least twice the sampling.
         sfreq = ds.info['raw'].info['sfreq']
-        decim = (sfreq/nyq) * 2 # to provide additional values for plotting.
+        if decim > sfreq/nyq:
+            raise NotImplementedError('Decimated value will cause aliasing.')
 
         self.set(analysis='_'.join((label, raw, 'reject_%s' % reject['mag'], 
                                     str(tmin), str(tmax))))
         
         # add epochs to the Dataset after excluding bad channels
         orig_N = ds.n_cases
-        ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
-                                        reject=reject, verbose=False,
-                                        decim=decim)
+        if mne:
+            ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
+                                            baseline=baseline, reject=reject, 
+                                            verbose=False, decim=decim)
+        else:
+            ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
+                                        baseline=baseline, reject=reject['mag'], 
+                                        decim=decim, mult=1e12)
         remainder = ds.n_cases * 100 / orig_N
         self.logger.info('epochs: %d' % remainder + r'% ' +
                          'of trials remain')
@@ -422,7 +471,7 @@ class NMG(FileTree):
         else:
             ds.info['use'] = True
             # do compression
-            if evoked:
+            if evoked and mne:
                 ds = ds.aggregate(model, drop_bad=True)
                 ds.info['use'] = True
         return ds
@@ -486,9 +535,10 @@ class NMG(FileTree):
         else:
             return proj
 
-    def make_cov(self, write=True, overwrite=False, remove_bad_chs=False,
-                 verbose=False):
-        ds = self.load_events(proj=False, edf=False, remove_bad_chs=remove_bad_chs)
+    def make_cov(self, write=True, raw='NR_iir_hp1_lp40', 
+                 overwrite=False, remove_bad_chs=True, verbose=False):
+        ds = self.load_events(proj=False, edf=False, 
+                              remove_bad_chs=remove_bad_chs)
         if write and not overwrite:
             if os.path.lexists(self.get('cov')):
                 raise IOError("cov file at %r already exists"
@@ -498,9 +548,9 @@ class NMG(FileTree):
         index = ds['experiment'] == 'fixation'
         ds_fix = ds[index]
 
-        epochs = E.load.fiff.mne_Epochs(ds_fix, baseline=(-.2, 0),
-                                        reject={'mag':2e-12}, tstart= -.2,
-                                        tstop=0, verbose=verbose)
+        epochs = E.load.fiff.mne_epochs(ds_fix, baseline=(-.2, 0),
+                                        reject={'mag':2e-12}, tmin= -.2,
+                                        tmax=0, verbose=verbose)
         cov = mne.cov.compute_covariance(epochs, verbose=verbose)
 
         if write == True:
@@ -611,7 +661,7 @@ class NMG(FileTree):
         custom_labels.make_vmPFC_label(self)
 
     def plot_coreg(self, redo=False):
-        fname = self.get('helmet_png')
+        fname = self.get('helmet_png', datatype='meg')
         if not redo and os.path.exists(fname):
             return
 
@@ -619,7 +669,7 @@ class NMG(FileTree):
         import eelbrain.data.plot.coreg as coreg
 
         raw = mne.fiff.Raw(self.get('raw-file'))
-        p = coreg.dev_mri(raw)
+        p = coreg.dev_mri(raw, head_mri_t=self.get('trans'))
         p.save_views(fname, overwrite=True)
         mlab.close()
 
@@ -639,38 +689,78 @@ class NMG(FileTree):
             rois = rois[0]
         return rois
 
-    def analyze_source(self, ds, evoked=False, rois=None, roilabels=None,
-                       tmin=-.1, **kwargs):
+    def analyze_source(self, ds, evoked=False, rois=None, avg=True, **kwargs):
         orient = self.get('orient')
         if 'orient' in kwargs:
             orient = kwargs['orient']
+        common_brain = self.get('common_brain')
+        subject = self.get('subject')
+
         # do source transformation
-        for roi, roilabel in zip(rois, roilabels):
-            stcs = []        
+        stcs = []        
+#         if rois == None:
+#             if evoked:
+#                 for d in ds.itercases():
+#                     stcs.append(self.make_stcs(d, orient=orient, evoked=evoked))
+#             ds['stcs'] = stcs
+#             return ds
+#         else:
+#             raise NotImplementedError('Check back later.')
+        
+        if 'roilabels' in kwargs:
+            roilabels = kwargs['roilabels']
+            rois = zip(rois, roilabels)
+        else:
+            rois = zip(rois, rois)
+        
+        for roi, roilabel in rois:
             if evoked:
                 for d in ds.itercases():
                     stcs.append(self.make_stcs(d, orient=orient, evoked=evoked))
-                if rois == None:
-                    ds['stcs'] = stcs
-                    return ds
                 else:
                     roi_stcs = []
                     for stc in stcs:
                         fs_roi = self.read_label(roi)
                         fs_roi = stc.in_label(fs_roi)
-                        fs_roi = E.load.fiff.stc_ndvar(fs_roi, subject=self.subject, 
-                                                 kind='ico', grade=5)
+                        if not avg: 
+                            morpher = mne.compute_morph_matrix(subject, 
+                                                               common_brain,
+                                                               vertices_from='?', 
+                                                               vertices_to='?')
+                            fs_roi = mne.morph_data_precomputed(subject,
+                                                                common_brain,
+                                                                fs_roi,
+                                                                '?', #vertices_to
+                                                                morpher)
+#                         fs_roi = E.load.fiff.stc_ndvar(fs_roi, 
+#                                                        subject=self.subject, 
+#                                                        src='ico-4')
                         roi_stcs.append(fs_roi)
-                    ds[roilabel] = E.combine(roi_stcs) 
+                    ds[roilabel] = E.combine(roi_stcs)
             else:
                 stcs = self.make_stcs(ds, labels=[roi], evoked=evoked, 
-                                      orient=orient)
+                                              orient=orient)
+                if not avg:
+                    for i, stc in enumerate(stcs):
+                        morpher = mne.compute_morph_matrix(subject, 
+                                                           common_brain,
+                                                           vertices_from='?', 
+                                                           vertices_to='?')
+                        stcs[i] = mne.morph_data_precomputed(subject,
+                                                             common_brain,
+                                                             stc,
+                                                             '?', #vertices_to
+                                                             morpher)
+                    ds[roilabel] = stcs
                 ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=self.subject, 
-                                                 kind='ico', grade=5)
-            # collapsing across sources
-            ds[roilabel] = ds[roilabel].summary('source', name='stc')
-            # baseline correct source estimates
-            ds[roilabel] -= ds[roilabel].summary(time=(tmin, 0))
+                                                     src='ico-4')
+            
+            if avg:
+                ds[roilabel] = ds[roilabel].summary('source', name='stc')
+                # collapsing across sources
+#                 ds[roilabel] = [E.NDVar.summary(x, 'source', name='stc') 
+#                                 for x in stcs]
+
         del stcs, ds['epochs']
         return ds
 

@@ -11,10 +11,10 @@ import cPickle as pickle
 import numpy as np
 
 
-redo=True
+redo=False
 
 # raw data parameters
-raw = 'iir_hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
@@ -25,12 +25,12 @@ cstart = 0
 cstop = None
 pmin = .1
 
-rois = roilabels = ['lh.fusiform', 'lh.ant_fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
+rois = roilabels = ['lh.ant_fusiform', 'lh.middletemporal', 'lh.LPTL']
 
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis='tp', orient='free')
+e.set(analysis='tp-free', orient='free')
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
@@ -72,6 +72,7 @@ sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
               % (sub, group_ds['subject'].cells))
 
+analyses = []
 for roilabel in roilabels:
     title = 'Correlation of Transition Probability in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='tp', norm='subject',
@@ -80,5 +81,5 @@ for roilabel in roilabels:
     p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
     e.set(analysis='%s_%s' % (analysis, roilabel))
     p.figure.savefig(e.get('plot-file'))
-
+    analyses.append(a)
 

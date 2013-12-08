@@ -13,11 +13,12 @@ import numpy as np
 redo=True
 
 # raw data parameters
-raw = 'iir_hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
-analysis='stemfreq'
+analysis = 'stemfreq'
+orient = 'free'
 
 # analysis paramaters
 cstart = 0
@@ -29,7 +30,7 @@ rois = roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis=analysis, orient='free')
+e.set(analysis=analysis, orient=orient)
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))

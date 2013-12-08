@@ -10,14 +10,16 @@ import os
 import cPickle as pickle
 import numpy as np
 
-redo=True
+redo=False
 
 # raw data parameters
-raw = 'iir_hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
-analysis='sf'
+decim = 2
+analysis = 'sf'
+orient = 'free'
 
 # analysis paramaters
 cstart = 0
@@ -29,7 +31,7 @@ rois = roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis='sf', orient='free')
+e.set(analysis=analysis, orient=orient)
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
@@ -40,7 +42,7 @@ else:
         idx = (ds['word_freq'] != 0) * (~np.isnan(ds['word_freq']))
         ds = ds[idx]
         ds['log_freq'] = E.Var(np.log(ds['word_freq'].x))
-        ds = e.make_epochs(ds, evoked=False, raw=raw)
+        ds = e.make_epochs(ds, evoked=False, raw=raw, decim=decim)
         if ds.info['use']:
             ds = e.analyze_source(ds, rois=rois, roilabels=roilabels, tmin=tmin)
             # Append to group level datasets

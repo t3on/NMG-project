@@ -11,26 +11,28 @@ import cPickle as pickle
 import numpy as np
 
 # raw data parameters
-raw = 'iir_hp1_lp40'
+raw = 'NR_iir_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
+decim = 2
 analysis='st'
+redo = False
 
 # analysis paramaters
 cstart = 0
 cstop = None
 pmin = .1
 
-rois = ['MTG', 'LPTL']
-roilabels = ['lh.middletemporal', 'lh.LPTL']
+roilabels = ['inferior_temporal', 'MTG', 'LPTL']
+rois = ['lh.inferiortemporal', 'lh.middletemporal', 'lh.LPTL']
 
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
 e.set(analysis='st', orient='free')
 
-if os.path.lexists(e.get('group-file')):
+if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
 else:
     datasets = []
@@ -46,7 +48,7 @@ else:
         idx = reduce(np.logical_and, [idx,idx2,idx3,idx4, idx5])
         ds = ds[idx]
 
-        ds = e.make_epochs(ds, evoked=False, raw=raw)
+        ds = e.make_epochs(ds, evoked=False, raw=raw, decim=decim)
         if ds.info['use']:
             ds = e.analyze_source(ds, rois=rois, roilabels=roilabels, tmin=tmin)
             # Append to group level datasets
@@ -61,14 +63,15 @@ sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
               % (sub, group_ds['subject'].cells))
 
+analyses = []
 for roilabel in roilabels:
     title = 'Correlation of Semantic Transparency in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='st', norm='subject',
                       tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
                       samples=1000, tmin=.01, match='subject')
-    p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
+    p = E.plot.UTSClusters(a, title=None, axtitle=title, w=10)
     e.set(analysis='%s_%s' % (analysis, roilabel))
     p.figure.savefig(e.get('plot-file'))
-
+    analyses.append(a)
 
 
