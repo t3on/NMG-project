@@ -92,6 +92,7 @@ class NMG(FileTree):
             if drop:
                 self.exclude.append(subject)
             self.bad_channels[subject] = bad_chs
+        self.exclude = list(np.unique(self.exclude))
 
     #################
     #    process    #
@@ -211,47 +212,18 @@ class NMG(FileTree):
             ds.update(log_ds)
 
             self.label_events(ds)
-
-            # consider moving to a general location
-            if edf and os.path.lexists(edf_path):
-                edf_path = os.path.join(edf_path, '*.edf')
-                edf = E.load.eyelink.Edf(path=edf_path)
-                if edf.triggers.size != ds.n_cases:
-                    self.logger.info('edf: dimension mismatch, '
-                                     'eyelink disabled')
-                # For the first five subjects in NMG, the voice trigger was
-                # mistakenly overlapped with the prime triggers.
-                # Repairs voice trigger value problem, if needed.
-                else:
-                    index = range(3, edf.triggers.size, 4)
-                    for trial, idx in zip(edf.triggers[index], index):
-                        a = trial[0]
-                        b = trial[1] - 128 if trial[1] > 128 else trial[1]
-                        edf.triggers[idx] = (a, b)
-
-                    try:
-                        edf.add_t_to(ds)
-                        edf.mark(ds, tstart=-0.2, tstop=0.4, good=None,
-                                 bad=False, use=['EBLINK'], T='t_edf',
-                                 target='accept')
-                    except ValueError:
-                        edf = False
-                        pass
-
             ds.save_txt(self.get('ds-file'))
-
         else:
             ds = E.load.txt.tsv(self.get('ds-file'), delimiter='\t')
             ds['subject'].random = True
 
         ds.info['subject'] = subject
         try:
-            ds.info['raw'] = raw = mne.fiff.Raw(self.get('raw-file'),
-                                                verbose=False)
+            ds.info['raw'] = mne.fiff.Raw(self.get('raw-file'), verbose=False)
             if drop_bad_chs:
-                raw.info['bads'].extend(self.bad_channels[subject])
+                ds.info['raw'].info['bads'].extend(self.bad_channels[subject])
             else:
-                raw.info['bads'] = []
+                ds.info['raw'].info['bads'] = []
         except IOError:
             print 'No Raw fif found. Loading dataset without raw...'
             pass
@@ -259,13 +231,36 @@ class NMG(FileTree):
         # add edf
         if edf and os.path.lexists(edf_path):
             ds = self._reject_blinks(ds, treject=treject)
-        if 't_edf' in ds:
-            del ds['t_edf']
-        if 'accept' in ds:
-            del ds['accept']
+
         return ds
 
     def _reject_blinks(self, ds, treject=25):
+
+        edf_path = self.get('edf-file', match=False)
+        edf = E.load.eyelink.Edf(path=edf_path)
+
+        if edf.triggers.size != ds.n_cases:
+            self.logger.info('edf: dimension mismatch, '
+                             'eyelink disabled')
+        # For the first five subjects in NMG, the voice trigger was
+        # mistakenly overlapped with the prime triggers.
+        # Repairs voice trigger value problem, if needed.
+        else:
+            index = range(3, edf.triggers.size, 4)
+            for trial, idx in zip(edf.triggers[index], index):
+                a = trial[0]
+                b = trial[1] - 128 if trial[1] > 128 else trial[1]
+                edf.triggers[idx] = (a, b)
+
+            try:
+                edf.add_t_to(ds)
+                edf.mark(ds, tstart=-0.2, tstop=0.4, good=None,
+                         bad=False, use=['EBLINK'], T='t_edf',
+                         target='accept')
+            except ValueError:
+                edf = False
+                pass
+
         if 'accept' in ds:
             ds['accept'] = E.Var(np.array(ds['accept'].x, bool))
             dsx = ds.sub('accept')
@@ -277,8 +272,7 @@ class NMG(FileTree):
             else:
                 self.logger.info('edf: %d' % remainder + r'% ' + 'remains')
                 ds = dsx
-            del ds['t_edf']
-            del ds['accept']
+            del ds['t_edf'], ds['accept']
         else:
             self.logger.info('edf: has no Eyelink data')
             ds = ds
@@ -484,11 +478,11 @@ class NMG(FileTree):
         else:
             ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
                                         baseline=baseline, reject=reject['mag'],
-                                        decim=decim, mult=1e12)
+                                        decim=decim, mult=1e12, name='epochs')
         remainder = ds.n_cases * 100 / orig_N
         self.logger.info('epochs: %d' % remainder + r'% ' +
                          'of trials remain')
-        if remainder < 50:
+        if remainder < 75:
             self.logger.info('subject %s is excluded due to large number '
                              % self.get('subject') + 'of rejections')
             del ds['epochs']
@@ -496,7 +490,7 @@ class NMG(FileTree):
         else:
             ds.info['use'] = True
             # do compression
-            if evoked and mne:
+            if evoked:
                 ds = ds.aggregate(model, drop_bad=True)
                 ds.info['use'] = True
         return ds
@@ -580,6 +574,27 @@ class NMG(FileTree):
         else:
             return cov
 
+    def make_fwd(self, overwrite=False):
+        # create the forward solution
+        os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
+
+        src = self.get('src')
+        trans = self.get('trans')
+        bem = self.get('bem-sol')
+        fwd = self.get('fwd')
+        rawfif = self.get('raw-file')
+
+        mne.forward.make_forward_solution(rawfif, trans, src, bem, fwd,
+                                          eeg=False, ignore_ref=True,
+                                          overwrite=overwrite)
+
+        if os.path.exists(fwd):
+            self.logger.info('fwd: Forward Solution written to file')
+        else:
+            print '\n> ERROR:'
+            err = "fwd-file not created"
+            raise RuntimeError(err)
+
     def make_fwd_c(self, fromfile=True, overwrite=False):
         # create the forward solution
         os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
@@ -621,7 +636,7 @@ class NMG(FileTree):
             raise RuntimeError(err)
 
 
-    def make_stcs(self, ds, labels=None, evoked=True, verbose=False,
+    def make_stcs(self, ds, roi=None, evoked=True, verbose=False,
                   **kwargs):
 
         """Creates an stc object of transformed data from the ds
@@ -630,8 +645,7 @@ class NMG(FileTree):
         ----------
         ds: Dataset
             data
-        labels: list of tuples
-            a list of ROIs
+        roi: str instance of ROI
         orient: 'fixed' | 'free'
             'fixed' = Fixed orientation, 'free' = Free orientation
         evoked: bool
@@ -658,20 +672,23 @@ class NMG(FileTree):
                                                      depth=None, fixed=fixed,
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
+        # for ROI analyses
+        roi = self.read_label(roi)
+
         # makes stc epochs or evoked
         if evoked == True:
             stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
-                                                  lambda2=1. / 3 ** 2,
+                                                  lambda2=1. / 2 ** 2,
                                                   verbose=verbose)
+            stcs = stcs.in_label(roi)
             return stcs
         else:
-            # for ROI analyses
-            rois = self.read_label(labels)
             # a list of stcs within label per epoch.
             stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
-                                                         label=rois,
+                                                         label=roi,
                                                          lambda2=1. / 2 ** 2,
                                                          verbose=verbose)
+
             return stcs
 
     def make_custom_labels(self):
@@ -710,23 +727,16 @@ class NMG(FileTree):
             rois = rois[0]
         return rois
 
-    def analyze_source(self, ds, evoked=False, rois=None, avg=True, **kwargs):
+    def analyze_source(self, ds, evoked=False, rois=None, morph=False,
+                       **kwargs):
+        """
+        """
         orient = self.get('orient')
         if 'orient' in kwargs:
             orient = kwargs['orient']
         common_brain = self.get('common_brain')
         subject = self.get('subject')
 
-        # do source transformation
-        stcs = []
-#         if rois == None:
-#             if evoked:
-#                 for d in ds.itercases():
-#                     stcs.append(self.make_stcs(d, orient=orient, evoked=evoked))
-#             ds['stcs'] = stcs
-#             return ds
-#         else:
-#             raise NotImplementedError('Check back later.')
 
         if 'roilabels' in kwargs:
             roilabels = kwargs['roilabels']
@@ -735,52 +745,29 @@ class NMG(FileTree):
             rois = zip(rois, rois)
 
         for roi, roilabel in rois:
+            # do source transformation
+            stcs = []
             if evoked:
                 for d in ds.itercases():
-                    stcs.append(self.make_stcs(d, orient=orient, evoked=evoked))
-                else:
-                    roi_stcs = []
-                    for stc in stcs:
-                        fs_roi = self.read_label(roi)
-                        fs_roi = stc.in_label(fs_roi)
-                        if not avg:
-                            morpher = mne.compute_morph_matrix(subject,
-                                                               common_brain,
-                                                               vertices_from='?',
-                                                               vertices_to='?')
-                            fs_roi = mne.morph_data_precomputed(subject,
-                                                                common_brain,
-                                                                fs_roi,
-                                                                '?',  # vertices_to
-                                                                morpher)
-#                         fs_roi = E.load.fiff.stc_ndvar(fs_roi,
-#                                                        subject=self.subject,
-#                                                        src='ico-4')
-                        roi_stcs.append(fs_roi)
-                    ds[roilabel] = E.combine(roi_stcs)
-            else:
-                stcs = self.make_stcs(ds, labels=[roi], evoked=evoked,
-                                              orient=orient)
-                if not avg:
-                    for i, stc in enumerate(stcs):
-                        morpher = mne.compute_morph_matrix(subject,
-                                                           common_brain,
-                                                           vertices_from='?',
-                                                           vertices_to='?')
-                        stcs[i] = mne.morph_data_precomputed(subject,
-                                                             common_brain,
-                                                             stc,
-                                                             '?',  # vertices_to
-                                                             morpher)
-                    ds[roilabel] = stcs
-                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=self.subject,
-                                                     src='ico-4')
+                    stc = self.make_stcs(d, roi=roi, evoked=evoked,
+                                         orient=orient)
+                    if morph:
+                        stc = mne.morph_data(subject, common_brain,
+                                                stc, grade=4)
+                    stc = E.load.fiff.stc_ndvar(stc, subject=subject,
+                                                src='ico-4')
+                    stc = stc.summary('source', name='stc')
+                    stcs.append(stc)
+                ds[roilabel] = E.combine(stcs)
 
-            if avg:
-                ds[roilabel] = ds[roilabel].summary('source', name='stc')
-                # collapsing across sources
-#                 ds[roilabel] = [E.NDVar.summary(x, 'source', name='stc')
-#                                 for x in stcs]
+            else:
+                stcs = self.make_stcs(ds, roi=roi, evoked=evoked, orient=orient)
+                if morph:
+                    stcs = mne.morph_data(subject, common_brain, stcs,
+                                          grade=4)
+                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=subject,
+                                                     src='ico-4')
+                ds[roilabel] = ds[roilabel].summary('source', name=roilabel)
 
         del stcs, ds['epochs']
         return ds

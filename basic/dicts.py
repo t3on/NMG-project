@@ -91,6 +91,7 @@ t = {
     # fwd model
     'bem_head': os.path.join('{mri_sdir}', 'bem', '{subject}-head.fif'),
     'bem': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem.fif'),
+    'bem-sol': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem-sol.fif'),
     'src': os.path.join('{mri_sdir}', 'bem', '{subject}-ico-4-src.fif'),
 
     # raw files
@@ -142,7 +143,10 @@ t = {
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
            'R0414',  # lost 3/4 of trials by accident
-           'R0580']
+           'R0494',
+           'R0576',
+           'R0580',
+           'R0605']
 
 old = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504', 'R0547', 'R0569', 'R0574',
        'R0575', 'R0576', 'R0580']

@@ -25,7 +25,7 @@ group_ds = []
 
 for _ in e:
     print e.subject
-    ds = e.load_events(drop_bad_chs=False)
+    ds = e.load_events(drop_bad_chs=True)
     index = ds['target'].isany('prime')
     ds = ds[index]
 
@@ -33,9 +33,10 @@ for _ in e:
     ds = e.make_epochs(ds, tmin=tmin, tmax=tmax, baseline=(None, 0),
                        reject=reject, decim=decim, evoked=True, model='target',
                        mne=False)
-    group_ds.append(ds)
+    if 'epochs' in ds:
+        group_ds.append(ds)
 
 # Append to group level datasets
 group_ds = E.combine(group_ds)
-p = E.plot.Butterfly('meg', Xax='subject', ds=group_ds)
+p = E.plot.Butterfly('epochs', Xax='subject', ds=group_ds)
 p.figure.savefig(e.get('plot-file'))

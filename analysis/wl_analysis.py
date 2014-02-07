@@ -13,7 +13,7 @@ import numpy as np
 redo = True
 
 # raw data parameters
-raw = 'calm_iir_hp1_lp40'
+raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
@@ -43,18 +43,11 @@ else:
     for _ in e:
         # Selection Criteria
         ds = e.load_events()
-        ds['st'] = E.Var(ds['c1_rating'].x + ds['c2_rating'].x)
-        idx = ds['target'] == 'prime'
-        idx2 = ds['condition'] == 'identity'
-        idx3 = np.isnan(ds['st'].x) == False
-        idx4 = ds['st'].x != 0
-        idx5 = ds['wordtype'].isany('transparent', 'opaque')
-        idx = reduce(np.logical_and, [idx,idx2,idx3,idx4, idx5])
-        ds = ds[idx]
+        ds = ds[ds['target'].isany('prime', 'target')]
 
         ds = e.make_epochs(ds, evoked=False, raw=raw, decim=decim)
         if ds.info['use']:
-            ds = e.analyze_source(ds, rois=rois, roilabels=roilabels, 
+            ds = e.analyze_source(ds, rois=rois, roilabels=roilabels,
                                   tmin=tmin, avg=avg)
             # Append to group level datasets
             datasets.append(ds)
@@ -72,7 +65,7 @@ analyses = []
 for roilabel in roilabels:
     title = 'Correlation of Word Length in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='word_length', norm='subject',
-                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
+                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds,
                       samples=1000, tmin=.01, match='subject')
     p = E.plot.UTSClusters(a, title=None, axtitle=title, w=10)
     e.set(analysis='%s_%s' % (analysis, roilabel))

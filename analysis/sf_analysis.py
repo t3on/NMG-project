@@ -10,10 +10,10 @@ import os
 import cPickle as pickle
 import numpy as np
 
-redo=False
+redo = True
 
 # raw data parameters
-raw = 'NR_iir_hp1_lp40'
+raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
@@ -26,7 +26,8 @@ cstart = 0
 cstop = None
 pmin = .05
 
-rois = roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal']
+rois = roilabels = ['lh.fusiform', 'lh.inferiortemporal', 'lh.middletemporal',
+                    'lh.cuneus', 'lh.LPTL']
 
 e = process.NMG()
 e.set(raw=raw)
@@ -60,7 +61,7 @@ e.logger.info('%d subjects entered into stats.\n %s'
 for roilabel in roilabels:
     title = 'Correlation of Surface Frequency in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='log_freq', norm='subject',
-                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
+                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds,
                       samples=1000, tmin=.01, match='subject')
     p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
     e.set(analysis='%s_%s' % (analysis, roilabel))

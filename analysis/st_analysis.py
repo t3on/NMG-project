@@ -11,16 +11,16 @@ import cPickle as pickle
 import numpy as np
 
 # raw data parameters
-raw = 'NR_iir_hp1_lp40'
+raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
 reject = 3e-12
-decim = 2
-analysis='st'
-redo = False
+decim = 1
+analysis = 'st'
+redo = True
 
 # analysis paramaters
-cstart = 0
+cstart = 0.2
 cstop = None
 pmin = .1
 
@@ -45,7 +45,7 @@ else:
         idx3 = np.isnan(ds['st'].x) == False
         idx4 = ds['st'].x != 0
         idx5 = ds['wordtype'].isany('transparent', 'opaque')
-        idx = reduce(np.logical_and, [idx,idx2,idx3,idx4, idx5])
+        idx = reduce(np.logical_and, [idx, idx2, idx3, idx4, idx5])
         ds = ds[idx]
 
         ds = e.make_epochs(ds, evoked=False, raw=raw, decim=decim)
@@ -67,7 +67,7 @@ analyses = []
 for roilabel in roilabels:
     title = 'Correlation of Semantic Transparency in %s' % roilabel
     a = E.testnd.corr(Y=group_ds[roilabel], X='st', norm='subject',
-                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds, 
+                      tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds,
                       samples=1000, tmin=.01, match='subject')
     p = E.plot.UTSClusters(a, title=None, axtitle=title, w=10)
     e.set(analysis='%s_%s' % (analysis, roilabel))
