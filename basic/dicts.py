@@ -12,7 +12,7 @@ t = {
     # experiment
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
-    'root': os.path.join(os.path.expanduser('~'), 'data'),
+    'root': os.path.join(os.path.expanduser('~'), 'Experiments'),
     'server': os.path.join('/Volumes', 'server', 'MORPHLAB', 'Teon'),
 
     # keywords
@@ -20,20 +20,20 @@ t = {
     'raw_raw': os.path.join('{raw_sdir}', '{subject}_{experiment}'),
     's_e': '{subject}_{experiment}',
     'denoise': 'calm',
-    'raw': 'hp1_lp40',
+    'filter': 'fft_hp1_lp40',
+    'raw': '{denoise}_{filter}',
     'analysis': '',
-    'orient': '',
+    'orient': 'free',
     'test': '',
     'datatype': '',
     'stat': '',
 
     # db dirs
-    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox',
-                            'Experiments'),
+    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments'),
     'results': os.path.join('{db_dir}', '{experiment}', 'results'),
-    'plots_dir': os.path.join('{results}', '{datatype}', '{stat}'),
-    'stats_dir': os.path.join('{results}', '{datatype}', '{stat}',
-                              '{orient}', 'stats'),
+    'plots_dir': os.path.join('{results}', '{datatype}', 'plots'),
+    'stats_dir': os.path.join('{results}', '{datatype}', 'stats'),
+
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
@@ -44,7 +44,7 @@ t = {
     'server_dir': os.path.join('{server}', 'data', '{experiment}'),
 
     # MNE dir
-    'fif_sdir': os.path.join('{exp_sdir}', 'fifs'),
+    'fif_sdir': os.path.join('{exp_sdir}', 'mne'),
 
     # BESA dir
     'BESA_dir': os.path.join('{meg_dir}', 'BESA'),
@@ -53,62 +53,58 @@ t = {
     'BESA_MN': os.path.join('{BESA_dir}', 'BESA_MN'),
 
     # mri dir
-    'mri_dir': os.path.join('{root}', 'MRI'),  # contains subject-name folders for MRI data
+    'mri_dir': os.path.join('{root}', 'MRI'),
     'mri_sdir': os.path.join('{mri_dir}', '{subject}'),
     'label_sdir': os.path.join('{mri_sdir}', 'label'),
 
     # raw folders
-    'param_sdir': os.path.join('{exp_sdir}', 'parameters'),
-    'raw_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-    'meg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'meg'),
-    'eeg_sdir': os.path.join('{exp_sdir}', 'rawdata', 'eeg'),
-    'beh_sdir': os.path.join('{exp_sdir}', 'rawdata', 'behavioral'),
-    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims', 'transcripts'),
+    'raw_sdir': os.path.join('{exp_sdir}', 'raw'),
+    'eeg_sdir': os.path.join('{exp_sdir}', 'eeg'),
+    'beh_sdir': os.path.join('{exp_sdir}', 'behavioral'),
+    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims',
+                               'transcripts'),
     'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
 
-    # fif files
-    'raw-base': os.path.join('{fif_sdir}', '{s_e}_{raw}'),
-    'raw-file': '{raw-base}-raw.fif',
-    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p. 196
-
     # saved data
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
-    'analysis-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
+    'bads-file': os.path.join('{data_sdir}', '{s_e}_{raw}_bads.txt'),
+    'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
-    'group-file': os.path.join('{group_dir}', 'group_{analysis}-{orient}.pickled'),
+    'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
 
-    # fif files derivatives
-    'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
+    'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
+    'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
+    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
+
+    # mne files
+    'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
+    'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
-    'proj': os.path.join('{fif_sdir}', '{s_e}_proj.fif'),
+
     'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
+    'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
+    'proj': os.path.join('{fif_sdir}', '{s_e}_{raw}-proj.fif'),
     'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
                               '-proj.pdf'),
 
     # fwd model
-    # replaces 5120-bem-sol.fif
-    'bem': os.path.join('{mri_sdir}', 'bem',
-                        '{subject}-*-bem.fif'),
-    'src': os.path.join('{mri_sdir}', 'bem',
-                        '{subject}-ico-4-src.fif'),
-    'bem_head': os.path.join('{mri_sdir}', 'bem',
-                             '{subject}-head.fif'),
-
-    # parameter files
-    'mrk': os.path.join('{param_sdir}', '{s_e}_marker.txt'),
-    'elp': os.path.join('{param_sdir}', '{s_e}_elp.txt'),
-    'hsp': os.path.join('{param_sdir}', '{s_e}_hsp.txt'),
-    'fsn': os.path.join('{param_sdir}', '{subject}*.fsn'),
-    'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
-    'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
+    'bem_head': os.path.join('{mri_sdir}', 'bem', '{subject}-head.fif'),
+    'bem': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem.fif'),
+    'bem-sol': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem-sol.fif'),
+    'src': os.path.join('{mri_sdir}', 'bem', '{subject}-ico-4-src.fif'),
 
     # raw files
-    'raw-sqd': os.path.join('{meg_sdir}', '{s_e}' + '_{denoise}.sqd'),
+    'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
-    'stim_info': os.path.join('{db_dir}', '{experiment}', 'stims', 'stims_info.mat'),
-    'helmet_png': os.path.join('{results}', 'visuals', 'helmet',
-                             '{s_e}' + '.png'),
+    'stim_info': os.path.join('{db_dir}', '{experiment}',
+                              'exp', 'stims', 'stims_info.mat'),
+    'mrk': os.path.join('{raw_sdir}', '{subject}*marker*'),
+    'posttest-mrk': os.path.join('{raw_sdir}',
+                                 '{subject}_*_marker_posttest_*.sqd'),
+    'elp': os.path.join('{raw_sdir}', '{s_e}_elp.txt'),
+    'hsp': os.path.join('{raw_sdir}', '{s_e}_hsp.txt'),
+    'fsn': os.path.join('{raw_sdir}', '{subject}*.fsn'),
 
     # eye-tracker
     'edf_sdir': os.path.join('{beh_sdir}', 'eyelink'),
@@ -125,6 +121,8 @@ t = {
     'besa_pos': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.pos'),
     'besa_sfp': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.sfp'),
     'besa_evt': os.path.join('{BESA_sdir}', '{s_e}_{analysis}-epochs.evt'),
+    'elp_legacy': os.path.join('{BESA_sdir}', '{s_e}.elp'),
+    'hsp_legacy': os.path.join('{BESA_sdir}', '{s_e}.hsp'),
 
     # BESA files
     'besa_pdg': os.path.join('{BESA_dir}', '{experiment}.PDG'),
@@ -132,21 +130,11 @@ t = {
     'besa_fsg': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.fsg'),
     'besa_elv': os.path.join('{BESA_Averages}', '{s_e}_epochs_av.elv'),
     'besa_dat': os.path.join('{BESA_MN}', '{s_e}_*-*.dat'),
-    
+
     # audio dir
     'textgrid': os.path.join('{data_sdir}', '*.TextGrid'),
     'sound-file': os.path.join('{data_sdir}', '*.wav'),
     }
-
-
-# bad chs
-bad_channels = defaultdict(lambda: [])
-bad_channels['R0498'].extend(['MEG 065', 'MEG 066'])
-bad_channels['R0504'].extend(['MEG 030', 'MEG 031', 'MEG 065', 'MEG 138'])
-bad_channels['R0576'].extend(['MEG 065', 'MEG 143'])
-bad_channels['R0580'].extend(['MEG 001', 'MEG 065', 'MEG 084', 'MEG 143',
-                              'MEG 160', 'MEG161'])
-bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 
 ###############################
 # Experiment class attributes #
@@ -155,9 +143,14 @@ bad_channels['R0605'].extend(['MEG 041', 'MEG 065', 'MEG 114'])
 # subject to exclude
 exclude = ['R0224',  # large noise artifacts
            'R0414',  # lost 3/4 of trials by accident
-           'R0576',  # noise issues
-           'R0580',  # noise issues
-           'R0605']  # noise issues
+           'R0494',
+           'R0576',
+           'R0580',
+           'R0605']
+
+old = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504', 'R0547', 'R0569', 'R0574',
+       'R0575', 'R0576', 'R0580']
+new = ['R0338', 'R0370', 'R0494', 'R0560', 'R0562', 'R0605']
 
 # color palette
 cm = dict()

@@ -1,91 +1,82 @@
 '''
-Created on Feb 25, 2013
+Created on Nov 27, 2012
 
 @author: teon
 '''
 
-import os
 import eelbrain.eellab as E
 import basic.process as process
+import os
+import cPickle as pickle
+import numpy as np
+
+
+redo = True
 
 # raw data parameters
-raw = 'hp1_lp40'
-tstart = -0.1
-tstop = 0.6
-reject = {'mag': 3e-12}
+raw = 'calm_fft_hp1_lp40'
+tmin = -0.1
+tmax = 0.6
+reject = 3e-12
+analysis = 'prime'
+orient = 'fixed'
 
-# analysis parameter
-orient = 'free'
-e_type = 'evoked'
-test = 'prime_analysis'
+# analysis paramaters
+cstart = 0
+cstop = None
+pmin = .1
 
-# initialize experiment
+plt_clrs = {'ortho': 'orchid', 'novel': 'steelblue', 'transparent': 'steelblue',
+            'opaque': 'steelblue'}
+
+roilabels = ['anterior_fusiform', 'vmPFC', 'LATL', 'LPTL']
+rois = ['lh.ant_fusiform', ['lh.VMPFC', 'rh.VMPFC'], 'lh.LATL', 'lh.LPTL']
+
 e = process.NMG()
-datasets = []
+e.set(raw=raw)
+e.set(datatype='meg')
+e.set(analysis='prime', orient='free')
 
-# directory info
-plots_dir = e.get('plots_dir', dtype='meg', stat='anovas', orient=orient, mkdir=True)
-wf_dir = e.get('wf_dir', dtype='meg', stat='waveforms', orient=orient, mkdir=True)
-stats_dir = e.get('stats_dir', dtype='meg', stat='anovas', orient=orient, mkdir=True)
+if os.path.lexists(e.get('group-file')) and not redo:
+    group_ds = pickle.load(open(e.get('group-file')))
+else:
+    datasets = []
+    for _ in e:
+        # Selection Criteria
+        ds = e.load_events()
+        idx = ds['target'] == 'prime'
+        idy = ds['condition'] == 'identity'
+        ds = ds[idx * idy]
 
-# rois
-rois = [['lh.vmPFC', 'rh.vmPFC'], 'lh.LATL', 'lh.fusiform']
-roilabels = ['vmPFC', 'LATL', 'fusiform']
-
-for _ in e.iter_vars(['subject']):
-    meg_ds = e.process_evoked(raw=raw, e_type=e_type, tstart=tstart,
-                              tstop=tstop, reject=reject)
-    if meg_ds is None:
-        continue
-    # filter
-    idx = meg_ds['target'] == 'prime'
-    idy = meg_ds['condition'] == 'identity'
-    meg_ds = meg_ds[idx * idy]
-    # source computation
-    meg_ds = e.source_evoked(meg_ds, rois, roilabels, tstart, tstop)
-    # append to group level datasets
-    datasets.append(meg_ds)
-
-#combines the datasets for group
-group_ds = E.combine(datasets)
-E.save.pickle(group_ds, e.get('group-file', test=test, orient=orient))
-del datasets
+        ds = e.make_epochs(ds, evoked=True, raw=raw, model='wordtype')
+        if ds.info['use']:
+            ds = e.analyze_source(ds, evoked=True, rois=rois, orient=orient,
+                                  roilabels=roilabels, tmin=tmin)
+            # Append to group level datasets
+            datasets.append(ds)
+            del ds
+    # combines the datasets for group
+    group_ds = E.combine(datasets)
+    del datasets
+    E.save.pickle(group_ds, e.get('group-file', analysis=analysis))
 
 sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
               % (sub, group_ds['subject'].cells))
 
-# creates index for only the prime only identity conditions
-wordtypes = ['opaque', 'transparent', 'novel']
-
 for roilabel in roilabels:
-    for wtype in wordtypes:
-        title = 'Cluster ANOVA of %s vs ortho in %s: %s' % (wtype, roilabel, orient)
+    wtypes = group_ds['wordtype'].cells
+    wtypes.remove('ortho')
+    for wtype in wtypes:
         idx = group_ds['wordtype'].isany('ortho', wtype)
-        ds = group_ds[idx]
-        ds = ds.compress(ds['wordtype'] % ds['subject'], drop_bad=True)
-        a = E.testnd.cluster_anova(Y=ds[roilabel],
-                                   X=ds.eval('wordtype*subject'))
-        stat = os.path.join(stats_dir, '%s_%s_%s_vs_ortho.txt' % (test, roilabel, wtype))
-        with open(stat , 'w') as FILE:
-            FILE.write(title + os.linesep * 2)
-            FILE.write(str(a.as_table()))
-        # analysis plot
-        p = E.plot.uts.clusters(a, figtitle=title, axtitle=None,
-                                t={'color': 'g', 'linestyle': 'dashed'})
-        p.figure.savefig(os.path.join(plots_dir,
-                            '%s_%s_%s_vs_ortho.pdf' % (test, roilabel, wtype)))
-        # subject plots
-        p = E.plot.uts.stat(Y=ds[roilabel], X=ds['wordtype'],
-                            Xax=ds['subject'], dev=None,
-                            figtitle=title, ylabel='dSPM', legend='upper left',
-                            width=15, height=9)
-        p.figure.savefig(os.path.join(wf_dir, 'subjects',
-                                      'subject_%s_%s_%s_vs_ortho.pdf'
-                                      % (test, roilabel, wtype)))
-        # group plot
-        p = E.plot.uts.stat(Y=ds[roilabel], X=ds['wordtype'],
-                            figtitle=title, ylabel='dSPM', legend='upper left',
-                            width=15, height=9)
-        p.figure.savefig(os.path.join(wf_dir, '%s_%s_%s_vs_ortho.pdf'
-                                      % (test, roilabel, wtype)))
+	ds = group_ds[idx]
+        title = 'Cluster TTest of %s vs ortho in %s: %s' % (wtype, roilabel, orient)
+        a = E.testnd.ttest_rel(Y=roilabel, X='wordtype', match='subject',
+                               tstart=cstart, tstop=cstop, pmin=pmin, ds=ds,
+                               samples=10000, tmin=.01)
+        p = E.plot.UTSStat(Y=ds[roilabel], X='wordtype', ds=ds, w=10,
+                           clusters=a.clusters, colors=plt_clrs,
+                           axtitle=title)
+        e.set(analysis='%s_%s_%s_%s' % (analysis, orient, roilabel, wtype))
+        p.figure.savefig(e.get('plot-file'))
+        p.close()

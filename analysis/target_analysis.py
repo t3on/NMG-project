@@ -9,9 +9,9 @@ import eelbrain.eellab as E
 import basic.process as process
   
 # raw data parameters
-raw = 'hp1_lp40'
-tstart = -0.1
-tstop = 0.6
+raw = 'NR_iir_hp1_lp40'
+tmin = -0.1
+tmax = 0.6
 reject = {'mag': 3e-12}
   
 # initialize experiment
@@ -38,14 +38,15 @@ if os.path.lexists(e.get('group-file')):
     group_ds = pickle.load(open(e.get('group-file')))
 else:
     for _ in e:
-        meg_ds = e.process_evoked(raw=raw, e_type=e_type, tstart=tstart,
-                                  tstop=tstop, reject=reject)
+        meg_ds = e.process_evoked(raw=raw, e_type=e_type, tmin=tmin,
+                                  tmax=tmax, reject=reject,
+                                  model='condition % wordtype % target')
         if meg_ds is None:
             continue
         # filter
         meg_ds = meg_ds[meg_ds['target'] == 'target']
         # source computation
-        meg_ds = e.source_evoked(meg_ds, rois, roilabels, tstart, tstop)
+        meg_ds = e.source_evoked(meg_ds, rois, roilabels, tmin, tmax)
         # append to group level datasets
         datasets.append(meg_ds)
         # combines the datasets for group
