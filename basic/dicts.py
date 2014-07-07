@@ -76,9 +76,11 @@ t = {
     'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
     'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
     'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
+    'report-file': os.path.join('{plots_dir}', '{analysis}_analysis.html'),
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
+    'ica-epochs': os.path.join('{fif_sdir}', '{s_e}_{raw}-ica.ds'),
     'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
 
@@ -93,6 +95,8 @@ t = {
     'bem': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem.fif'),
     'bem-sol': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem-sol.fif'),
     'src': os.path.join('{mri_sdir}', 'bem', '{subject}-ico-4-src.fif'),
+    'common_src': os.path.join('{mri_dir}', 'fsaverage', 'bem',
+                               'fsaverage-ico-4-src.fif'),
 
     # raw files
     'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
