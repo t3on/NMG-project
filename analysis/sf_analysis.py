@@ -10,6 +10,8 @@ import os
 import cPickle as pickle
 import numpy as np
 
+from mne.stats.regression import linear_regression as lr
+
 
 redo = True
 
@@ -53,28 +55,28 @@ else:
             design_matrix = np.ones([ds.n_cases, 2])
             design_matrix[:, 1] = ds['log_freq'].x
             names = ['intercept', 'log_freq']
-            ds = e.analyze_source(ds, evoked=False, morph=True, method=method)
-            ols_fit = mne.stats.ols_source_estimate(ds['stc'], design_matrix, names)
+            ols_fit = lr(ds['epochs'], design_matrix, names)
             ds = ds.aggregate('subject', drop_bad=True)
-            ds['stc'] = [ols_fit['b']['log_freq']]
+            ds['epochs'] = ols_fit['log_freq'].beta
+            ds = e.analyze_source(ds, evoked=True, morph=True, method=method)
             # Append to group level datasets
-#             datasets.append(ds)
-#             del ds
-#     # combines the datasets for group
-#     group_ds = E.combine(datasets)
-#     del datasets
+            datasets.append(ds)
+            del ds
+    # combines the datasets for group
+    group_ds = E.combine(datasets)
+    del datasets
 #     E.save.pickle(group_ds, e.get('group-file'))
 #
-# sub = len(group_ds['subject'].cells)
-# e.logger.info('%d subjects entered into stats.\n %s'
-#               % (sub, group_ds['subject'].cells))
-# #
-# # for roilabel in roilabels:
-# #     title = 'Correlation of Surface Frequency in %s' % roilabel
-# #     a = E.testnd.corr(Y=group_ds[roilabel], X='log_freq', norm='subject',
-# #                       tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds,
-# #                       samples=100, tmin=.01, match='subject')
-# #     p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
+sub = len(group_ds['subject'].cells)
+e.logger.info('%d subjects entered into stats.\n %s'
+              % (sub, group_ds['subject'].cells))
+#
+# for roilabel in roilabels:
+title = 'Correlation of Surface Frequency in %s' % roilabel
+a = E.testnd.corr(Y=group_ds, X='log_freq', norm='subject',
+                  tstart=cstart, tstop=cstop, pmin=pmin, ds=group_ds,
+                  samples=100, mintime=.01, match='subject')
+p = E.plot.UTSClusters(a, title=title, axtitle=None, w=10)
 # #     e.set(analysis='%s_%s' % (analysis, roilabel))
 # #     p.figure.savefig(e.get('plot-file'))
 #

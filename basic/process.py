@@ -36,7 +36,6 @@ class NMG(FileTree):
         if exclude:
             self._exclude()
         self.logger = logging.getLogger('mne')
-        self.cm = dicts.cm
         self.old = dicts.old
         self.new = dicts.new
         self.store_state()
@@ -372,7 +371,7 @@ class NMG(FileTree):
         return ds
 
 
-    def check_bad_chs(self, threshold=0.05, reject=3e-12, n_chan=5):
+    def check_bad_chs(self, threshold=0.05, reject=4e-12, n_chan=5):
         """
         Check for flat-line channels or channels that repeatedly exceeded
         threshold.
@@ -390,7 +389,7 @@ class NMG(FileTree):
             bads = bads[bads['n'] > threshold]['cell'].as_labels()
         else:
             bads = []
-        picks = mne.io.pick_types(epochs.info, exclude=[])
+        picks = mne.pick_types(epochs.info, exclude=[])
         data = epochs.get_data()[:, picks, :]
         flats = []
         diffs = np.diff(data) == 0
@@ -634,7 +633,7 @@ class NMG(FileTree):
 
         src = self.get('src')
         trans = self.get('trans')
-        bem = self.get('bem-sol')
+        bem = self.get('bem-sol', fmatch=True)
         fwd = self.get('fwd')
         rawfif = self.get('raw-file')
 

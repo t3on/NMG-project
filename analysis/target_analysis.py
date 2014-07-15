@@ -185,5 +185,5 @@ for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
 
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_LATL'))
+report.save_html(e.get('report-file', analysis=analysis + '_'.join((raw, 'LATL'))))
 

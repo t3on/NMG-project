@@ -17,7 +17,7 @@ redo = False
 raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
-reject = {'mag':3e-12}
+reject = {'mag':5e-12}
 orient = 'fixed'
 decim = 2
 morph = True
@@ -79,13 +79,12 @@ section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
 analyses = []
 wtypes = list(group_ds['wordtype'].cells)
 wtypes.remove('ortho')
-wtypes.remove('novel')
 for wtype in wtypes:
     idx = group_ds['wordtype'].isany('ortho', wtype)
     a = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi), X='wordtype',
                            c0='ortho', c1=wtype, match='subject', tstart=cstart,
-                           tstop=cstop, pmin=pmin, ds=group_ds, sub=idx, tail=1,
-                           samples=10000)
+                           tstop=cstop, ds=group_ds, sub=idx, tail=1,
+                           tfce=True, samples=1000)
     analyses.append(a)
     title = 'Cluster TTest of %s vs ortho in %s: %s' % (wtype, roi.name, orient)
     for i, cluster in enumerate(a.clusters[a.clusters['p'] < .1].itercases()):
@@ -128,7 +127,7 @@ for wtype in wtypes:
         section.add_figure(caption='Difference Plots', content=im)
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_temporal+_3p05d2'))
+report.save_html(e.get('report-file', analysis=analysis + '_temporal+_5p05d10'))
 
 
 
