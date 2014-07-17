@@ -371,7 +371,7 @@ class NMG(FileTree):
         return ds
 
 
-    def check_bad_chs(self, threshold=0.05, reject=4e-12, n_chan=5):
+    def check_bad_chs(self, threshold=0.1, reject=4e-12, n_chan=5):
         """
         Check for flat-line channels or channels that repeatedly exceeded
         threshold.

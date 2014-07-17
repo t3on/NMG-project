@@ -11,22 +11,22 @@ import cPickle as pickle
 import numpy as np
 
 
-redo = True
+redo = False
 
 # raw data parameters
 raw = 'calm_fft_hp1_lp40'
-tmin = -0.2
+tmin = -0.1
 tmax = 0.4
 reject = {'mag':4e-12}
-orient = 'free'
+orient = 'fixed'
 analysis = 'target-%s-all' % orient
 decim = 2
 title = 'Cluster TTest of Wordtype (Diff in Constituent Priming)'
 
 # analysis paramaters
-cstart = 0.2
-cstop = 0.4
-pmin = .1
+cstart = 0.1
+cstop = None
+pmin = .05
 morph = True
 
 
@@ -35,12 +35,12 @@ e.set(raw=raw)
 e.set(datatype='meg')
 e.set(analysis='target', orient=orient)
 
-# l1 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.fusiform.label')
-# l2 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.inferiortemporal.label')
-# roi = l1 + l2
-l1 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LATL.label')
-l2 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LPTL.label')
+l1 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.fusiform.label')
+l2 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.inferiortemporal.label')
 roi = l1 + l2
+# l1 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LATL.label')
+# l2 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LPTL.label')
+# roi = l1 + l2
 
 e.exclude['subject'] = []
 
@@ -49,7 +49,7 @@ if os.path.lexists(e.get('group-file')) and not redo:
 else:
     datasets = []
     for _ in e:
-        ds = e.load_events(edf=False)
+        ds = e.load_events(edf=True)
         ds = ds[ds['target'] == 'target']
 
         ds = e.make_epochs(ds, evoked=True, raw=raw, decim=decim,
@@ -62,27 +62,31 @@ else:
             del ds
     # combines the datasets for group
     group_ds = E.combine(datasets)
-#     E.save.pickle(group_ds, e.get('group-file'))
+    E.save.pickle(group_ds, e.get('group-file'))
     del datasets
 
 n_sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
               % (n_sub, group_ds['subject'].cells))
 
-group_ds['stc'] = group_ds['stc'].sub(source=roi)
+# group_ds['stc'] = group_ds['stc'].sub(source=roi)
 
 
 # Identity Priming
 sub_idx = group_ds['condition'].isany('identity', 'control_identity')
 res = E.testnd.ttest_rel(Y='stc', X='condition', c0='control_identity',
                          c1='identity', match='subject', tstart=cstart,
-                         tstop=cstop, pmin=pmin, ds=group_ds, samples=1000,
-                         mintime=.01)
+                         tstop=cstop, pmin=pmin, ds=group_ds, samples=10000)
 res.clusters.sort("p")
 # Create a report
 report = E.Report("Target Analyses", author="Teon")
 section = report.add_section("Info")
-section.append("Analysis of the location of the identity priming effects.")
+section.append('%d subjects entered into stats.\n\n %s\n\n'
+              % (n_sub, group_ds['subject'].cells))
+section = report.add_section("Analysis of the location of "
+                             "the identity priming effects.")
+section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
+                                                                decim))
 
 from surfer import Brain
 brain = Brain('fsaverage', 'lh', 'inflated')
@@ -159,7 +163,8 @@ group_diffs = E.Dataset(subjects, Y, X)
 analyses = []
 
 for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
-    sections[i].append("Analysis of the location of the priming effects.")
+    sections[i].append("Analysis of the priming effects in "
+                       "functionally-defined ROI.")
 
     r = cluster['cluster'].sum('time')
     r = r != 0
@@ -175,6 +180,7 @@ for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
                                c1=wtype, match='subject', tstart=cstart,
                                tstop=cstop, pmin=pmin, ds=group_diffs,
                                samples=10000, sub=idx)
+
         analyses.append(a)
         title = '%s vs ortho' % wtype
         p = E.plot.UTSStat(Y=stc, X='wordtype', ds=group_diffs, sub=idx,
@@ -185,5 +191,5 @@ for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
 
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_'.join((raw, 'LATL'))))
+report.save_html(e.get('report-file', analysis=analysis + '_'.join(('', raw, 'vwfa'))))
 
