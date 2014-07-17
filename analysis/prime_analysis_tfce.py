@@ -17,7 +17,7 @@ redo = False
 raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
-reject = {'mag':4e-12}
+reject = {'mag':5e-12}
 orient = 'fixed'
 decim = 2
 morph = True
@@ -45,7 +45,7 @@ else:
     datasets = []
     for _ in e:
         # Selection Criteria
-        ds = e.load_events(edf=True)
+        ds = e.load_events(edf=False)
         idx = ds['target'] == 'prime'
         idy = ds['condition'] == 'identity'
         ds = ds[idx * idy]
@@ -62,7 +62,7 @@ else:
     del datasets
     E.save.pickle(group_ds, e.get('group-file', analysis=analysis))
 
-n_sub = len(group_ds['subject'].cells)
+sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
               % (sub, group_ds['subject'].cells))
 
@@ -70,7 +70,7 @@ e.logger.info('%d subjects entered into stats.\n %s'
 report = E.Report("Prime Analyses", author="Teon")
 section = report.add_section("Info")
 section.append('%d subjects entered into stats.\n\n %s\n\n'
-              % (n_sub, group_ds['subject'].cells))
+              % (sub, group_ds['subject'].cells))
 section = report.add_section("Planned Comparison of Word Type "
                              "Differences in Temporal Lobe.")
 section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
@@ -79,13 +79,12 @@ section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
 analyses = []
 wtypes = list(group_ds['wordtype'].cells)
 wtypes.remove('ortho')
-wtypes.remove('novel')
 for wtype in wtypes:
     idx = group_ds['wordtype'].isany('ortho', wtype)
     a = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi), X='wordtype',
                            c0='ortho', c1=wtype, match='subject', tstart=cstart,
-                           tstop=cstop, pmin=pmin, ds=group_ds, sub=idx, tail=1,
-                           samples=10000)
+                           tstop=cstop, ds=group_ds, sub=idx, tail=1,
+                           tfce=True, samples=1000)
     analyses.append(a)
     title = 'Cluster TTest of %s vs ortho in %s: %s' % (wtype, roi.name, orient)
     for i, cluster in enumerate(a.clusters[a.clusters['p'] < .1].itercases()):
@@ -128,7 +127,7 @@ for wtype in wtypes:
         section.add_figure(caption='Difference Plots', content=im)
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_temporal+_3p05d2_more'))
+report.save_html(e.get('report-file', analysis=analysis + '_temporal+_5p05d10'))
 
 
 

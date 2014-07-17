@@ -6,7 +6,6 @@ Created on Nov 25, 2012
 Collection of functions used on an experiment class.
 '''
 
-from math import ceil
 import re
 import os
 import logging
@@ -17,7 +16,7 @@ import numpy as np
 from numpy import hstack as nphs
 import scipy.io as sio
 import mne
-from mne.fiff.kit import read_raw_kit
+from mne.io.kit import read_raw_kit
 from eelbrain import eellab as E
 from eelbrain.experiment import FileTree
 from pyphon import pyphon as pyp
@@ -34,14 +33,12 @@ class NMG(FileTree):
                  **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
         self.bad_channels = defaultdict(list)
-        self.exclude = []
         if exclude:
-            self.exclude = dicts.exclude
             self._exclude()
         self.logger = logging.getLogger('mne')
-        self.cm = dicts.cm
         self.old = dicts.old
         self.new = dicts.new
+        self.store_state()
 
     @property
     def subject(self):
@@ -87,12 +84,13 @@ class NMG(FileTree):
         FileTree.set(self, **state)
 
     def _exclude(self):
-        for subject in self.iter('subject'):
+        subjects = set()
+        for subject in self.iter('subject', exclude=False):
             drop, bad_chs = load_bad_chs_info(self.get('bads-file'))
             if drop:
-                self.exclude.append(subject)
+                subjects.add(subject)
             self.bad_channels[subject] = bad_chs
-        self.exclude = list(np.unique(self.exclude))
+        self.exclude['subject'] = list(subjects)
 
     #################
     #    process    #
@@ -188,7 +186,7 @@ class NMG(FileTree):
             if proj:
                 proj = os.path.lexists(self.get('proj'))
 
-            raw = mne.fiff.Raw(raw_file)
+            raw = mne.io.Raw(raw_file)
             if proj:
                 proj = mne.read_proj(self.get('proj'))
                 raw.add_proj(proj, remove_existing=True)
@@ -219,7 +217,7 @@ class NMG(FileTree):
 
         ds.info['subject'] = subject
         try:
-            ds.info['raw'] = mne.fiff.Raw(self.get('raw-file'), verbose=False)
+            ds.info['raw'] = mne.io.Raw(self.get('raw-file'), verbose=False)
             if drop_bad_chs:
                 ds.info['raw'].info['bads'].extend(self.bad_channels[subject])
             else:
@@ -373,7 +371,7 @@ class NMG(FileTree):
         return ds
 
 
-    def check_bad_chs(self, threshold=0.05, reject=3e-12, n_chan=5):
+    def check_bad_chs(self, threshold=0.1, reject=4e-12, n_chan=5):
         """
         Check for flat-line channels or channels that repeatedly exceeded
         threshold.
@@ -391,7 +389,7 @@ class NMG(FileTree):
             bads = bads[bads['n'] > threshold]['cell'].as_labels()
         else:
             bads = []
-        picks = mne.fiff.pick_types(epochs.info, exclude=[])
+        picks = mne.pick_types(epochs.info, exclude=[])
         data = epochs.get_data()[:, picks, :]
         flats = []
         diffs = np.diff(data) == 0
@@ -421,6 +419,8 @@ class NMG(FileTree):
         """
         Parameters
         ----------
+        denoise : str
+            Denoising method.
         lp : int
             Lowpass filter.
         hp : int
@@ -449,51 +449,104 @@ class NMG(FileTree):
         if (not redo) and os.path.exists(dest_file):
             return
 
-        raw = mne.fiff.Raw(src_file, preload=True)
+        raw = mne.io.Raw(src_file, preload=True)
         raw.filter(hp, lp, n_jobs=n_jobs, method=method, **kwargs)
         raw.verbose = False
         raw.save(dest_file, overwrite=True, verbose=False)
 
+    def do_ica(self):
+        ds = self.load_events(edf=False)
+        ds = ds[ds['experiment'] == 'experiment']
+        ds = self.make_epochs(ds, reject=None, redo=True)
+        picks = mne.io.pick_types(ds.info['raw'].info, meg=True, eeg=False,
+                                    eog=False, stim=False, exclude='bads')
+        rs = np.random.RandomState(42)
+        ica = mne.preprocessing.ICA(n_components=0.90, n_pca_components=64,
+                                    max_pca_components=100, noise_cov=None,
+                                    random_state=rs)
+        ica.decompose_epochs(ds['epochs'], decim=None, picks=picks)
+        ds.info['ica'] = ica
+        ica.plot_topomap(range(0, ica.n_components_), ch_type='mag');
+
+        return ds
+
+    def make_ica_epochs(self, ds, exclude):
+        ds.info['ica'].exclude = exclude
+        ds['epochs'] = ds.info['ica'].pick_sources_epochs(ds['epochs'])
+        E.save.pickle(ds, self.get('ica-epochs'))
+        return ds
+
     def make_epochs(self, ds, evoked=False, tmin=-0.2, tmax=0.6, decim=2,
                     baseline=(None, 0), reject={'mag': 3e-12},
-                    model=None, redo=False, mne=True, **kwargs):
+                    model=None, redo=True, mne_obj=True, **kwargs):
 
         if evoked and not model:
                 raise ValueError('No aggregation model specified.')
+        if redo:
+            if 'raw' in kwargs:
+                self.set(raw=kwargs['raw'])
+            lp = ds.info['raw'].info['lowpass']
+            nyq = lp * 2  # nyquist rate requires at least twice the sampling.
+            sfreq = ds.info['raw'].info['sfreq']
+            if decim > sfreq / nyq:
+                raise NotImplementedError('Decimated value will cause '
+                                          'aliasing.')
 
-        if 'raw' in kwargs:
-            self.set(raw=kwargs['raw'])
-        lp = ds.info['raw'].info['lowpass']
-        nyq = lp * 2  # nyquist rate requires at least twice the sampling.
-        sfreq = ds.info['raw'].info['sfreq']
-        if decim > sfreq / nyq:
-            raise NotImplementedError('Decimated value will cause aliasing.')
-
-        # add epochs to the Dataset after excluding bad channels
-        orig_N = ds.n_cases
-        if mne:
-            ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
-                                            baseline=baseline, reject=reject,
-                                            verbose=False, decim=decim)
-        else:
-            ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
-                                        baseline=baseline, reject=reject['mag'],
-                                        decim=decim, mult=1e12, name='epochs')
-        remainder = ds.n_cases * 100 / orig_N
-        self.logger.info('epochs: %d' % remainder + r'% ' +
-                         'of trials remain')
-        if remainder < 75:
-            self.logger.info('subject %s is excluded due to large number '
-                             % self.get('subject') + 'of rejections')
-            del ds['epochs']
-            ds.info['use'] = False
-        else:
-            ds.info['use'] = True
-            # do compression
-            if evoked:
-                ds = ds.aggregate(model, drop_bad=True)
+            # add epochs to the Dataset after excluding bad channels
+            orig_N = ds.n_cases
+            if mne_obj:
+                ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
+                                                baseline=baseline,
+                                                reject=reject,
+                                                verbose=False, decim=decim)
+            else:
+                ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
+                                            baseline=baseline,
+                                            reject=reject['mag'], decim=decim,
+                                            mult=1e12, name='epochs')
+            remainder = ds.n_cases * 100 / orig_N
+            self.logger.info('epochs: %d' % remainder + r'% ' +
+                             'of trials remain')
+            if remainder < 75:
+                self.logger.info('subject %s is excluded due to large number '
+                                 % self.get('subject') + 'of rejections')
+                del ds['epochs']
+                ds.info['use'] = False
+            else:
                 ds.info['use'] = True
+                # do compression
+                if evoked:
+                    ds = ds.aggregate(model, drop_bad=True)
+                    ds.info['use'] = True
+        else:
+            ds = pickle.load(open(self.get('ica-epochs')))
+            self.set(raw=self.get('raw') + '-ica')
+            if reject:
+                ds, idx = self.reject_epochs(ds, threshold=reject['mag'])
+                reject = sum(idx) * 100 / len(idx)
+                if reject < 75:
+                    self.logger.info('subject %s is excluded due to large '
+                                     % self.get('subject') +
+                                     'number of rejections')
+                    del ds['epochs']
+                    ds.info['use'] = False
+                else:
+                    ds.info['use'] = True
+                    if evoked:
+                        ds = ds.aggregate(model, drop_bad=True)
+
+
         return ds
+
+    def reject_epochs(self, ds, threshold=3e-12):
+        picks = mne.io.pick_types(ds['epochs'].info)
+        epochs = ds['epochs'].get_data()
+        idx = threshold >= np.max(np.max(epochs[:, picks, :], 2) -
+                                  np.min(epochs[:, picks, :], 2), 1)
+        ds = ds[idx]
+
+        print E.table.frequencies(idx)
+        return ds, idx
 
     def make_BESA_files(self, asc=False):
         tstart = -.1
@@ -580,7 +633,7 @@ class NMG(FileTree):
 
         src = self.get('src')
         trans = self.get('trans')
-        bem = self.get('bem-sol')
+        bem = self.get('bem-sol', fmatch=True)
         fwd = self.get('fwd')
         rawfif = self.get('raw-file')
 
@@ -636,7 +689,7 @@ class NMG(FileTree):
             raise RuntimeError(err)
 
 
-    def make_stcs(self, ds, roi=None, evoked=True, verbose=False,
+    def make_stcs(self, ds, roi=None, evoked=True, verbose=False, method='dSPM',
                   **kwargs):
 
         """Creates an stc object of transformed data from the ds
@@ -673,21 +726,30 @@ class NMG(FileTree):
                                                      forward=fwd, noise_cov=cov,
                                                      loose=None, verbose=verbose)
         # for ROI analyses
-        roi = self.read_label(roi)
+        if roi:
+            roi = self.read_label(roi)
 
         # makes stc epochs or evoked
         if evoked == True:
             stcs = mne.minimum_norm.apply_inverse(ds['epochs'], inv,
                                                   lambda2=1. / 2 ** 2,
-                                                  verbose=verbose)
-            stcs = stcs.in_label(roi)
+                                                  method=method, verbose=verbose)
+            if roi:
+                stcs = stcs.in_label(roi)
             return stcs
         else:
-            # a list of stcs within label per epoch.
-            stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
-                                                         label=roi,
-                                                         lambda2=1. / 2 ** 2,
-                                                         verbose=verbose)
+            if roi:
+                # a list of stcs within label per epoch.
+                stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
+                                                             label=roi,
+                                                             lambda2=1. / 2 ** 2,
+                                                             method=method,
+                                                             verbose=verbose)
+            else:
+                stcs = mne.minimum_norm.apply_inverse_epochs(ds['epochs'], inv,
+                                                             lambda2=1. / 2 ** 2,
+                                                             method=method,
+                                                             verbose=verbose)
 
             return stcs
 
@@ -706,13 +768,18 @@ class NMG(FileTree):
         from mayavi import mlab
         import eelbrain.data.plot.coreg as coreg
 
-        raw = mne.fiff.Raw(self.get('raw-file'))
+        raw = mne.io.Raw(self.get('raw-file'))
         p = coreg.dev_mri(raw, head_mri_t=self.get('trans'))
         p.save_views(fname, overwrite=True)
         mlab.close()
 
-    def read_label(self, labels):
+    def read_label(self, labels, subject=None):
         "label: list"
+
+        if subject is None:
+            self.set(subject='fsaverage', match=False)
+        else:
+            self.set(subject=subject)
         rois = []
         if not isinstance(labels, list):
             labels = [labels]
@@ -727,47 +794,97 @@ class NMG(FileTree):
             rois = rois[0]
         return rois
 
+    def make_morph_matrix(self, hemi=None):
+        from mne.source_estimate import compute_morph_matrix as cmm
+
+        ss = mne.source_space.read_source_spaces(self.get('src'))
+        common_ss = mne.source_space.read_source_spaces(self.get('common_src'))
+        if hemi == 'lh':
+            ss = [ss[0]['vertno']]
+            common_ss = [common_ss[0]['vertno']]
+        elif hemi == 'rh':
+            ss = [ss[1]['vertno']]
+            common_ss = [common_ss[1]['vertno']]
+        else:
+            ss = [ss[0]['vertno'], ss[1]['vertno']]
+            common_ss = [common_ss[0]['vertno'], common_ss[1]['vertno']]
+
+        morph = cmm(subject_from=self.subject,
+                    subject_to=self.get('common_brain'),
+                    vertices_from=ss, vertices_to=common_ss)
+        return morph, common_ss
+
     def analyze_source(self, ds, evoked=False, rois=None, morph=False,
-                       **kwargs):
+                       mne_obj=False, method='dSPM', **kwargs):
         """
         """
         orient = self.get('orient')
         if 'orient' in kwargs:
             orient = kwargs['orient']
+        if 'hemi' in kwargs:
+            hemi = kwargs['hemi']
+        else:
+            hemi = None
         common_brain = self.get('common_brain')
         subject = self.get('subject')
 
+        if morph:
+            morph_mat, verts = self.make_morph_matrix(hemi)
 
-        if 'roilabels' in kwargs:
-            roilabels = kwargs['roilabels']
-            rois = zip(rois, roilabels)
-        else:
-            rois = zip(rois, rois)
-
-        for roi, roilabel in rois:
-            # do source transformation
-            stcs = []
-            if evoked:
-                for d in ds.itercases():
-                    stc = self.make_stcs(d, roi=roi, evoked=evoked,
-                                         orient=orient)
-                    if morph:
-                        stc = mne.morph_data(subject, common_brain,
-                                                stc, grade=4)
-                    stc = E.load.fiff.stc_ndvar(stc, subject=subject,
-                                                src='ico-4')
-                    stc = stc.summary('source', name='stc')
-                    stcs.append(stc)
-                ds[roilabel] = E.combine(stcs)
-
+        if rois:
+            if 'roilabels' in kwargs:
+                roilabels = kwargs['roilabels']
+                rois = zip(rois, roilabels)
             else:
-                stcs = self.make_stcs(ds, roi=roi, evoked=evoked, orient=orient)
+                rois = zip(rois, rois)
+
+        if evoked:
+            stcs = []
+            if rois:
+                for roi, roilabel in rois:
+                    # do source transformation
+                    for d in ds.itercases():
+                        stc = self.make_stcs(d, roi=roi, evoked=evoked,
+                                             orient=orient, method=method)
+                        stc = E.load.fiff.stc_ndvar(stc, subject=subject,
+                                                    src='ico-4')
+                        stc = stc.summary('source', name='stc')
+                        stcs.append(stc)
+                    ds[roilabel] = E.combine(stcs)
+            # whole brain
+            else:
+                for d in ds.itercases():
+                    stc = self.make_stcs(d, evoked=evoked, orient=orient,
+                                         method=method)
+                    # temporary fix
+                    if stc.subject == common_brain:
+                        morph = False
+                    if morph:
+                        stc = mne.morph_data_precomputed(subject, common_brain,
+                                                         stc, verts, morph_mat)
+                    stcs.append(stc)
+                ds['stc'] = E.load.fiff.stc_ndvar(stcs, subject=common_brain,
+                                                  src='ico-4')
+
+
+        else:
+            if rois:
+                for roi, roilabel in rois:
+                    stcs = self.make_stcs(ds, roi, evoked=evoked, orient=orient)
+                    if morph:
+                        stcs = mne.morph_data_precomputed(subject, common_brain,
+                                                          stcs, verts, morph_mat)
+                    ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=subject,
+                                                         src='ico-4')
+                    ds[roilabel] = ds[roilabel].summary('source', name=roilabel)
+            else:
+                stcs = self.make_stcs(ds, evoked=evoked, orient=orient)
                 if morph:
-                    stcs = mne.morph_data(subject, common_brain, stcs,
-                                          grade=4)
-                ds[roilabel] = E.load.fiff.stc_ndvar(stcs, subject=subject,
-                                                     src='ico-4')
-                ds[roilabel] = ds[roilabel].summary('source', name=roilabel)
+                    stcs = mne.morph_data_precomputed(subject, common_brain,
+                                                      stcs, verts, morph_mat)
+                ds['stc'] = E.load.fiff.stc_ndvar(stcs, subject=subject,
+                                                  src='ico-4')
+
 
         del stcs, ds['epochs']
         return ds
@@ -800,7 +917,7 @@ class NMG(FileTree):
         force_align(data_sdir=self.get('data_sdir'))
 
     def get_word_duration(self, block=1, **kwargs):
-        dataset = self.load_events(edf=False, remove_bad_chs=False, **kwargs)
+        dataset = self.load_events(edf=False, drop_bad_chs=False, **kwargs)
         dataset = dataset[dataset['target'] == 'target']
         ds = []
         fmatch = self.format('{textgrid}')
@@ -819,6 +936,8 @@ class NMG(FileTree):
             c2_dur = E.Var(c2_dur, 'c2_dur')
 
             dataset.update(E.Dataset(c1_dur, c2_dur))
+#             idx = np.setdiff1d(range(dataset.n_cases), ds.info['reject'])
+            dataset = dataset[ds['accept'] == True]
         else:
             raise ValueError('Words do not match up.')
 

@@ -16,10 +16,10 @@ redo = True
 raw = 'calm_fft_hp1_lp40'
 tmin = -0.1
 tmax = 0.6
-reject = 3e-12
+reject = 4e-12
 decim = 2
 analysis = 'wl'
-orient = 'free'
+orient = 'fixed'
 avg = True
 
 
@@ -28,13 +28,13 @@ cstart = 0
 cstop = None
 pmin = .1
 
-roilabels = ['fusiform', 'cuneus']
-rois = ['lh.fusiform', 'lh.cuneus']
+# roilabels = ['fusiform', 'cuneus']
+# rois = ['lh.fusiform', 'lh.cuneus']
 
 e = process.NMG()
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis=analysis, orient='free')
+e.set(analysis=analysis, orient=orient)
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
@@ -46,6 +46,16 @@ else:
         ds = ds[ds['target'].isany('prime', 'target')]
 
         ds = e.make_epochs(ds, evoked=False, raw=raw, decim=decim)
+
+        if ds.info['use']:
+            design_matrix = np.ones([ds.n_cases, 2])
+            design_matrix[:, 1] = ds['st'].x
+            names = ['intercept', 'st']
+            ols_fit = mne.stats.regression.ols_epochs(ds['epochs'],
+                                                      design_matrix, names)
+            ds = ds.aggregate('subject', drop_bad=True)
+            ds['epochs'] = [ols_fit['t']['st']]
+
         if ds.info['use']:
             ds = e.analyze_source(ds, rois=rois, roilabels=roilabels,
                                   tmin=tmin, avg=avg)

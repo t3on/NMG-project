@@ -76,9 +76,11 @@ t = {
     'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
     'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
     'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
+    'report-file': os.path.join('{plots_dir}', '{analysis}_analysis.html'),
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
+    'ica-epochs': os.path.join('{fif_sdir}', '{s_e}_{raw}-ica.ds'),
     'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
 
@@ -93,6 +95,8 @@ t = {
     'bem': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem.fif'),
     'bem-sol': os.path.join('{mri_sdir}', 'bem', '{subject}-*-bem-sol.fif'),
     'src': os.path.join('{mri_sdir}', 'bem', '{subject}-ico-4-src.fif'),
+    'common_src': os.path.join('{mri_dir}', 'fsaverage', 'bem',
+                               'fsaverage-ico-4-src.fif'),
 
     # raw files
     'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
@@ -141,33 +145,14 @@ t = {
 ###############################
 
 # subject to exclude
-exclude = ['R0224',  # large noise artifacts
-           'R0414',  # lost 3/4 of trials by accident
-           'R0494',
-           'R0576',
-           'R0580',
-           'R0605']
+# exclude = ['R0224',  # large noise artifacts
+#            'R0414',  # lost 3/4 of trials by accident
+#            'R0494',
+#            'R0576',
+#            'R0580',
+#            'R0605']
 
 old = ['R0095', 'R0224', 'R0498', 'R0499', 'R0504', 'R0547', 'R0569', 'R0574',
        'R0575', 'R0576', 'R0580']
 new = ['R0338', 'R0370', 'R0494', 'R0560', 'R0562', 'R0605']
 
-# color palette
-cm = dict()
-cm['ortho'] = 'b'
-cm['transparent'] = 'g'
-cm['opaque'] = 'r'
-cm['novel'] = 'm'
-
-cm['control_identity'] = cm['control_constituent'] = 'b'
-cm['identity'] = cm['first_constituent'] = 'g'
-
-cm[('control_identity', 'novel')] = cm[('control_constituent', 'novel')] = (0.137, 0.07, 0.906)
-cm[('control_identity', 'transparent')] = cm[('control_constituent', 'transparent')] = (0.055, 0.25, 0.906)
-cm[('control_identity', 'opaque')] = cm[('control_constituent', 'opaque')] = (0.078, 0.594, 0.906)
-cm[('control_identity', 'ortho')] = cm[('control_constituent', 'ortho')] = (0.055, 0.832, 0.906)
-
-cm[('identity', 'novel')] = cm[('first_constituent', 'novel')] = (0.906, 0.0, 0.309)
-cm[('identity', 'transparent')] = cm[('first_constituent', 'transparent')] = (0.906, 0.031, 0.133)
-cm[('identity', 'opaque')] = cm[('first_constituent', 'opaque')] = (0.906, 0.23, 0.035)
-cm[('identity', 'ortho')] = cm[('first_constituent', 'ortho')] = (0.906, 0.453, 0.047)
