@@ -12,8 +12,13 @@ t = {
     # experiment
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
-    'root': os.path.join(os.path.expanduser('~'), 'Experiments'),
+    'root': '{teon-backup_drive}',
+    
+    # drives
+    'neon_drive': os.path.join(os.path.expanduser('~'), 'Experiments'),
     'server': os.path.join('/Volumes', 'server', 'MORPHLAB', 'Teon'),
+    'teon-backup_drive': os.path.join('/Volumes', 'teon-backup', 'Experiments'),
+    'glyph_drive': os.path.join('/Volumes', 'GLYPH-1 TB', 'Experiments'),
 
     # keywords
     'common_brain': 'fsaverage',
@@ -25,12 +30,14 @@ t = {
     'analysis': '',
     'orient': 'free',
     'test': '',
-    'datatype': '',
+    'datatype': 'meg',
     'stat': '',
+    'proj_val': '',
+    'plot_ext': 'pdf',
 
     # db dirs
     'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments'),
-    'results': os.path.join('{db_dir}', '{experiment}', 'results'),
+    'results': os.path.join('{db_dir}', '{experiment}', 'output'),
     'plots_dir': os.path.join('{results}', '{datatype}', 'plots'),
     'stats_dir': os.path.join('{results}', '{datatype}', 'stats'),
 
@@ -42,6 +49,8 @@ t = {
     'meg_dir': os.path.join('{root}', '{experiment}', 'data'),
     'group_dir': os.path.join('{meg_dir}', 'group'),
     'server_dir': os.path.join('{server}', 'data', '{experiment}'),
+    'external_dir': os.path.join('{external}', 'Experiments'),
+    'backup_dir': os.path.join('{backup}', 'Experiments'),
 
     # MNE dir
     'fif_sdir': os.path.join('{exp_sdir}', 'mne'),
@@ -75,20 +84,25 @@ t = {
 
     'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
     'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
-    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.pdf'),
+    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.{plot_ext}'),
+    'proj_plot': os.path.join('{results}', '{datatype}', 'projs', '{s_e}' +
+                              '-proj.{plot_ext}'),
     'report-file': os.path.join('{plots_dir}', '{analysis}_analysis.html'),
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),
-    'ica-epochs': os.path.join('{fif_sdir}', '{s_e}_{raw}-ica.ds'),
     'trans': os.path.join('{fif_sdir}', '{subject}-trans.fif'),  # mne p.196
     'fwd': os.path.join('{fif_sdir}', '{s_e}_{raw}-fwd.fif'),
-
-    'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}-cov.fif'),
+    # proper cov with drop channels
+    'cov': os.path.join('{fif_sdir}', '{s_e}_{raw}{proj_val}-cov.fif'),
+    # for proj and drop channels
+    'cov_+proj': os.path.join('{fif_sdir}', '{s_e}_{raw}_+proj-cov.fif'),
+    # accidentally been using
+    'cov_-drop': os.path.join('{fif_sdir}', '{s_e}_{raw}_-drop-cov.fif'),    
     'fids': os.path.join('{mri_sdir}', 'bem', '{subject}-fiducials.fif'),
     'proj': os.path.join('{fif_sdir}', '{s_e}_{raw}-proj.fif'),
-    'proj_plot': os.path.join('{results}', 'visuals', 'pca', '{s_e}' +
-                              '-proj.pdf'),
+    'group_proj': os.path.join('{group_dir}', 'Empty_Room_Noise_910am_7.26.12_calm-proj.fif'),
+    'scaling-file': os.path.join('{mri_sdir}', 'MRI scaling parameters.txt'),
 
     # fwd model
     'bem_head': os.path.join('{mri_sdir}', 'bem', '{subject}-head.fif'),

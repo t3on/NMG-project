@@ -17,7 +17,7 @@ from numpy import hstack as nphs
 import scipy.io as sio
 import mne
 from mne.io.kit import read_raw_kit
-from eelbrain import eellab as E
+import eelbrain as E
 from eelbrain.experiment import FileTree
 from pyphon import pyphon as pyp
 import dicts
@@ -33,12 +33,14 @@ class NMG(FileTree):
                  **kwargs):
         super(NMG, self).__init__(root=root, subject=subject, **kwargs)
         self.bad_channels = defaultdict(list)
+        self.scaled_subjects = list()
         if exclude:
             self._exclude()
         self.logger = logging.getLogger('mne')
         self.old = dicts.old
         self.new = dicts.new
         self.store_state()
+        os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
 
     @property
     def subject(self):
@@ -90,6 +92,8 @@ class NMG(FileTree):
             if drop:
                 subjects.add(subject)
             self.bad_channels[subject] = bad_chs
+            if os.path.exists(self.get('scaling-file')):
+                self.scaled_subjects.append(subject)
         self.exclude['subject'] = list(subjects)
 
     #################
@@ -159,7 +163,7 @@ class NMG(FileTree):
                   names=names, overwrite=overwrite)
 
     def load_events(self, subject=None, redo=False, drop_bad_chs=True,
-                    proj=False, edf=True, treject=25):
+                    proj='group_proj', edf=True, treject=25):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -178,18 +182,10 @@ class NMG(FileTree):
             subject = self.get('subject')
         self.logger.info('Loading Subject: %s' % subject)
 
-        if redo or not os.path.lexists(self.get('ds-file')):
-            self.logger.info('subject: %s' % subject)
-            raw_file = self.get('raw-file')
-            if isinstance(proj, str):
-                proj = self.get('proj', projname=proj)
-            if proj:
-                proj = os.path.lexists(self.get('proj'))
 
-            raw = mne.io.Raw(raw_file)
-            if proj:
-                proj = mne.read_proj(self.get('proj'))
-                raw.add_proj(proj, remove_existing=True)
+        if redo or not os.path.lexists(self.get('ds-file')):
+            raw_file = self.get('raw-file')
+            raw = mne.io.Raw(raw_file, verbose=False)
             evts = mne.find_stim_steps(raw, merge=-1)
             idx = np.nonzero(evts[:, 2])
             evts = evts[idx]
@@ -217,7 +213,8 @@ class NMG(FileTree):
 
         ds.info['subject'] = subject
         try:
-            ds.info['raw'] = mne.io.Raw(self.get('raw-file'), verbose=False)
+            raw = mne.io.Raw(self.get('raw-file'), verbose=False)
+            ds.info['raw'] = raw
             if drop_bad_chs:
                 ds.info['raw'].info['bads'].extend(self.bad_channels[subject])
             else:
@@ -225,6 +222,18 @@ class NMG(FileTree):
         except IOError:
             print 'No Raw fif found. Loading dataset without raw...'
             pass
+        
+        # add proj
+        if isinstance(proj, str):
+            if proj == 'group_proj':
+                proj = self.get('group_proj')
+            else:
+                proj = self.get('proj', projname=proj)
+            proj = mne.read_proj(proj)
+            raw.add_proj(proj, remove_existing=True)
+        elif proj is True:
+            proj = mne.read_proj(self.get('proj'))
+            raw.add_proj(proj, remove_existing=True)
 
         # add edf
         if edf and os.path.lexists(edf_path):
@@ -478,7 +487,8 @@ class NMG(FileTree):
 
     def make_epochs(self, ds, evoked=False, tmin=-0.2, tmax=0.6, decim=2,
                     baseline=(None, 0), reject={'mag': 3e-12},
-                    model=None, redo=True, mne_obj=True, **kwargs):
+                    model=None, redo=True, mne_obj=True, name='epochs',
+                    **kwargs):
 
         if evoked and not model:
                 raise ValueError('No aggregation model specified.')
@@ -494,23 +504,32 @@ class NMG(FileTree):
 
             # add epochs to the Dataset after excluding bad channels
             orig_N = ds.n_cases
-            if mne_obj:
-                ds = E.load.fiff.add_mne_epochs(ds, tmin=tmin, tmax=tmax,
-                                                baseline=baseline,
-                                                reject=reject,
-                                                verbose=False, decim=decim)
-            else:
-                ds = E.load.fiff.add_epochs(ds, tmin=tmin, tmax=tmax,
-                                            baseline=baseline,
-                                            reject=reject['mag'], decim=decim,
-                                            mult=1e12, name='epochs')
+            
+            events = np.zeros((orig_N, 3), int)
+            events[:, 0] = ds['i_start'].x
+            events[:, 1] = np.arange(orig_N)
+            events[:, 2] = ds['trigger'].x
+            
+            raw = ds.info['raw']
+            
+            epochs = mne.Epochs(raw=raw, events=events, event_id=None, 
+                                tmin=tmin, tmax=tmax, decim=decim, 
+                                baseline=baseline, reject=reject, 
+                                preload=True, verbose=False)
+            
+            # trim to match events in epochs
+            if len(epochs) < ds.n_cases:
+                index = epochs.events[:, 1]
+                ds = ds.sub(index)
+            ds[name] = epochs
+
             remainder = ds.n_cases * 100 / orig_N
             self.logger.info('epochs: %d' % remainder + r'% ' +
                              'of trials remain')
             if remainder < 75:
                 self.logger.info('subject %s is excluded due to large number '
                                  % self.get('subject') + 'of rejections')
-                del ds['epochs']
+                del ds[name]
                 ds.info['use'] = False
             else:
                 ds.info['use'] = True
@@ -534,8 +553,6 @@ class NMG(FileTree):
                     ds.info['use'] = True
                     if evoked:
                         ds = ds.aggregate(model, drop_bad=True)
-
-
         return ds
 
     def reject_epochs(self, ds, threshold=3e-12):
@@ -605,10 +622,15 @@ class NMG(FileTree):
         else:
             return proj
 
-    def make_cov(self, write=True, raw='calm_fft_hp1_lp40', overwrite=False):
-        ds = self.load_events(proj=False, edf=False)
+    def make_cov(self, write=True, raw='calm_fft_hp1_lp40', proj=False, 
+                 reject={'mag':4e-12}, overwrite=False):
+        ds = self.load_events(proj=proj, edf=True)
+        if proj:
+            proj_val = '_+proj'
+        else:
+            proj_val = ''
         if write and not overwrite:
-            if os.path.lexists(self.get('cov')):
+            if os.path.lexists(self.get('cov', proj_val=proj_val)):
                 raise IOError("cov file at %r already exists"
                               % self.get('cov'))
 
@@ -617,7 +639,7 @@ class NMG(FileTree):
         ds_fix = ds[index]
 
         epochs = E.load.fiff.mne_epochs(ds_fix, baseline=(-.2, 0),
-                                        reject={'mag':3e-12}, tmin=-.2,
+                                        reject=reject, tmin=-.2,
                                         tmax=0, verbose=False)
         cov = mne.cov.compute_covariance(epochs, verbose=False)
 
@@ -625,7 +647,7 @@ class NMG(FileTree):
             cov.save(self.get('cov'))
             self.logger.info('cov: Covariance Matrix written to file')
         else:
-            return cov
+                return cov
 
     def make_fwd(self, overwrite=False):
         # create the forward solution
@@ -784,8 +806,10 @@ class NMG(FileTree):
         if not isinstance(labels, list):
             labels = [labels]
         for label in labels:
-            rois.append(mne.read_label(os.path.join(self.get('label_sdir'),
-                                                    label + '.label')))
+            label = os.path.join(self.get('label_sdir'), label)
+            if os.path.splitext(label)[-1] != '.label':
+                label = label + '.label'
+            rois.append(mne.read_label(label))
 
         if len(rois) > 1:
             roi = rois.pop(0)
@@ -800,11 +824,11 @@ class NMG(FileTree):
         ss = mne.source_space.read_source_spaces(self.get('src'))
         common_ss = mne.source_space.read_source_spaces(self.get('common_src'))
         if hemi == 'lh':
-            ss = [ss[0]['vertno']]
-            common_ss = [common_ss[0]['vertno']]
+            ss = [ss[0]['vertno'], np.array([])]
+            common_ss = [common_ss[0]['vertno'], np.array([])]
         elif hemi == 'rh':
-            ss = [ss[1]['vertno']]
-            common_ss = [common_ss[1]['vertno']]
+            ss = [np.array([]), ss[1]['vertno']]
+            common_ss = [np.array([]), common_ss[1]['vertno']]
         else:
             ss = [ss[0]['vertno'], ss[1]['vertno']]
             common_ss = [common_ss[0]['vertno'], common_ss[1]['vertno']]

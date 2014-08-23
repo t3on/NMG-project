@@ -4,12 +4,14 @@ Created on Nov 27, 2012
 @author: teon
 '''
 
-import eelbrain.eellab as E
+import datetime
+import eelbrain as E
 import basic.process as process
 import os
 import cPickle as pickle
 import numpy as np
 
+timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 redo = False
 
@@ -22,30 +24,32 @@ orient = 'fixed'
 decim = 2
 morph = True
 analysis = 'prime-%s-all-%s' % (orient, raw)
-# e.exclude['subject'] = []
+proj_val = ''
+plot_ext='jpg'
 
 # analysis paramaters
-cstart = 0.4
+cstart = 0.3
 cstop = None
 pmin = .05
 
-l1 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LATL.label')
-l2 = mne.read_label(u'/Users/teon/Experiments/MRI/fsaverage/label/lh.LPTL.label')
+l1 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LATL.label')
+l2 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LPTL.label')
 
 roi = l1 + l2
 
-e = process.NMG()
+e = process.NMG(None, '{teon-backup_drive}')
 e.set(raw=raw)
 e.set(datatype='meg')
-e.set(analysis=analysis, orient=orient)
+e.set(analysis=analysis, orient=orient, proj_val=proj_val, plot_ext=plot_ext)
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
 else:
     datasets = []
     for _ in e:
+        print e.subject
         # Selection Criteria
-        ds = e.load_events(edf=True)
+        ds = e.load_events(edf=True, proj=False)
         idx = ds['target'] == 'prime'
         idy = ds['condition'] == 'identity'
         ds = ds[idx * idy]
@@ -64,7 +68,7 @@ else:
 
 n_sub = len(group_ds['subject'].cells)
 e.logger.info('%d subjects entered into stats.\n %s'
-              % (sub, group_ds['subject'].cells))
+              % (n_sub, group_ds['subject'].cells))
 
 # Create a report
 report = E.Report("Prime Analyses", author="Teon")
@@ -76,10 +80,11 @@ section = report.add_section("Planned Comparison of Word Type "
 section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
                                                                 decim))
 
+group_ds = group_ds[group_ds['condition'] == 'identity']
+
 analyses = []
 wtypes = list(group_ds['wordtype'].cells)
 wtypes.remove('ortho')
-wtypes.remove('novel')
 for wtype in wtypes:
     idx = group_ds['wordtype'].isany('ortho', wtype)
     a = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi), X='wordtype',
@@ -87,15 +92,20 @@ for wtype in wtypes:
                            tstop=cstop, pmin=pmin, ds=group_ds, sub=idx, tail=1,
                            samples=10000)
     analyses.append(a)
-    title = 'Cluster TTest of %s vs ortho in %s: %s' % (wtype, roi.name, orient)
+    title = 'TTest in Temporal Lobe'
     for i, cluster in enumerate(a.clusters[a.clusters['p'] < .1].itercases()):
         c_0 = cluster['cluster']
         p = cluster['p']
+        c_tstart = cluster['tstart']
+        c_tstop = cluster['tstop']
         section = report.add_section("Cluster %s, p=%s" % (i, p))
+        report.add_section('Cluster start: %s, Cluster stop: %s' %(c_tstart,
+                                                                   c_tstop))
         c_extent = c_0.sum('time')
         plt_extent = E.plot.brain.cluster(c_extent)
         image = E.plot.brain.image(plt_extent, "cluster %s extent.png" % i,
                                    alt=None, close=True)
+        image.save_image(e.get('plot-file', analysis=wtype+'_brain'))
         section.add_image_figure(image, "Extent of the largest "
                                  "cluster, p=%s" % p)
         plt_extent.close()
@@ -116,19 +126,20 @@ for wtype in wtypes:
 
         index = c_extent != 0
         c_timecourse = group_ds['stc'].sub(source=roi).mean(index)
+        color_maps = {wtype: 'green', 'ortho': 'blue'}
         plt_tc = E.plot.UTSStat(c_timecourse, X='wordtype', ds=group_ds,
-                                sub=idx, axtitle=title)
+                                sub=idx, axtitle=title, colors=color_maps)
         # plot the cluster
-        c_tstart = cluster['tstart']
-        c_tstop = cluster['tstop']
         for ax in plt_tc._axes:
             ax.axvspan(c_tstart, c_tstop, color='r', alpha=0.2, zorder=-2)
+        plt_tc.figure.savefig(e.get('plot-file', analysis=wtype+'_rp3'))
         im = plt_tc.image()
         plt_tc.close()
         section.add_figure(caption='Difference Plots', content=im)
+        
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_temporal+_3p05d2_more'))
+report.save_html(e.get('report-file', analysis=analysis + '_temporal-target'))
 
 
 
