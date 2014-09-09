@@ -1,5 +1,6 @@
 '''
 Created on Nov 27, 2012
+Analysis for Frontiers
 
 @author: teon
 '''
@@ -32,15 +33,19 @@ cstart = 0.3
 cstop = None
 pmin = .05
 
-l1 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LATL.label')
-l2 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LPTL.label')
-
-roi = l1 + l2
 
 e = process.NMG(None, '{teon-backup_drive}')
+# e = process.NMG(None, '{glyph_drive}')
 e.set(raw=raw)
 e.set(datatype='meg')
 e.set(analysis=analysis, orient=orient, proj_val=proj_val, plot_ext=plot_ext)
+
+# l1 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LATL.label')
+l1 = e.read_label('lh.LATL')
+# l2 = mne.read_label(u'/Volumes/teon-backup/Experiments/MRI/fsaverage/label/lh.LPTL.label')
+l2 = e.read_label('lh.LPTL')
+
+roi = l1 + l2
 
 if os.path.lexists(e.get('group-file')) and not redo:
     group_ds = pickle.load(open(e.get('group-file')))
@@ -80,11 +85,11 @@ section = report.add_section("Planned Comparison of Word Type "
 section.append('Rejection: %s. Cluster start: %s. Decim: %s' % (reject, cstart,
                                                                 decim))
 
-group_ds = group_ds[group_ds['condition'] == 'identity']
-
 analyses = []
 wtypes = list(group_ds['wordtype'].cells)
 wtypes.remove('ortho')
+
+
 for wtype in wtypes:
     idx = group_ds['wordtype'].isany('ortho', wtype)
     a = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi), X='wordtype',
@@ -93,7 +98,7 @@ for wtype in wtypes:
                            samples=10000)
     analyses.append(a)
     title = 'TTest in Temporal Lobe'
-    for i, cluster in enumerate(a.clusters[a.clusters['p'] < .1].itercases()):
+    for i, cluster in enumerate(a.clusters[a.clusters['p'] < .15].itercases()):
         c_0 = cluster['cluster']
         p = cluster['p']
         c_tstart = cluster['tstart']
@@ -102,10 +107,11 @@ for wtype in wtypes:
         report.add_section('Cluster start: %s, Cluster stop: %s' %(c_tstart,
                                                                    c_tstop))
         c_extent = c_0.sum('time')
-        plt_extent = E.plot.brain.cluster(c_extent)
+        plt_extent = E.plot.brain.cluster(c_extent, surf='inflated',
+                                          views=['frontal', 'lateral'])
         image = E.plot.brain.image(plt_extent, "cluster %s extent.png" % i,
                                    alt=None, close=True)
-        image.save_image(e.get('plot-file', analysis=wtype+'_brain'))
+        image.save_image(e.get('plot-file', analysis=wtype+'_prime_brain'))
         section.add_image_figure(image, "Extent of the largest "
                                  "cluster, p=%s" % p)
         plt_extent.close()
@@ -113,35 +119,21 @@ for wtype in wtypes:
         # extract and analyze the value in the cluster in each trial
         index = c_0 != 0
         c_value = group_ds['stc'].sum(index)
-        # index is a boolean NDVar over space and time, so here we are summing in the
-        # whole spatio-temporal cluster
-        plt_box = E.plot.uv.boxplot(c_value, 'wordtype', ds=group_ds, match='subject')
-        pw_table = E.test.pairwise(c_value, 'wordtype', ds=group_ds, match='subject')
-        print pw_table
-
-        image = plt_box.image('image.png')
-        figure = section.add_figure("Cluster value")
-        figure.append(image)
-        figure.append(pw_table)
 
         index = c_extent != 0
         c_timecourse = group_ds['stc'].sub(source=roi).mean(index)
         color_maps = {wtype: 'green', 'ortho': 'blue'}
         plt_tc = E.plot.UTSStat(c_timecourse, X='wordtype', ds=group_ds,
-                                sub=idx, axtitle=title, colors=color_maps)
+                                sub=idx, axtitle=title, colors=color_maps,
+                                ylabel='dSPM')
         # plot the cluster
         for ax in plt_tc._axes:
-            ax.axvspan(c_tstart, c_tstop, color='r', alpha=0.2, zorder=-2)
-        plt_tc.figure.savefig(e.get('plot-file', analysis=wtype+'_rp3'))
+            ax.axvspan(c_tstart, c_tstop, color='r', alpha=0.15, zorder=-2)
+        plt_tc.figure.savefig(e.get('plot-file', analysis=wtype+'_prime'))
         im = plt_tc.image()
         plt_tc.close()
         section.add_figure(caption='Difference Plots', content=im)
         
 
 # save the report
-report.save_html(e.get('report-file', analysis=analysis + '_temporal-target'))
-
-
-
-
-# add the contrast to this test: '+min( transparent > ortho, opaque > ortho)'
+report.save_html(e.get('report-file', analysis=analysis + '_temporal-prime'))

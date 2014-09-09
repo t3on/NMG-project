@@ -36,11 +36,8 @@ t = {
     'plot_ext': 'pdf',
 
     # db dirs
-    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'Experiments'),
-    'results': os.path.join('{db_dir}', '{experiment}', 'output'),
-    'plots_dir': os.path.join('{results}', '{datatype}', 'plots'),
-    'stats_dir': os.path.join('{results}', '{datatype}', 'stats'),
-
+    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'academic', 'Experiments'),
+    'results_dir': os.path.join('{db_dir}', '{experiment}', 'output', '{datatype}'),
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
@@ -82,12 +79,9 @@ t = {
     'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
     'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
 
-    'helmet_png': os.path.join('{plots_dir}', 'coreg', '{s_e}' + '.png'),
-    'analysis-file': os.path.join('{stats_dir}', '{analysis}_analysis'),
-    'plot-file': os.path.join('{plots_dir}', '{analysis}_analysis.{plot_ext}'),
-    'proj_plot': os.path.join('{results}', '{datatype}', 'projs', '{s_e}' +
-                              '-proj.{plot_ext}'),
-    'report-file': os.path.join('{plots_dir}', '{analysis}_analysis.html'),
+    'helmet_png': os.path.join('{results_dir}', 'coreg', '{s_e}' + '.png'),
+    'plot-file': os.path.join('{results_dir}', 'images', '{analysis}_analysis.{plot_ext}'),
+    'report-file': os.path.join('{results_dir}', '{analysis}_analysis.html'),
 
     # mne files
     'raw-file': os.path.join('{fif_sdir}', '{s_e}_{raw}-raw.fif'),

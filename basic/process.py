@@ -783,7 +783,8 @@ class NMG(FileTree):
         custom_labels.make_vmPFC_label(self)
 
     def plot_coreg(self, redo=False):
-        fname = self.get('helmet_png', datatype='meg')
+        s_e = self.get('{s_e}')
+        fname = self.get('plot-file', datatype='meg', analysis='%s-helmet' %s_e)
         if not redo and os.path.exists(fname):
             return
 

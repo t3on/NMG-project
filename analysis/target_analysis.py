@@ -38,9 +38,9 @@ e.set(analysis='target', orient=orient)
 
 l1 = 'lh.fusiform.label'
 l2 = 'lh.inferiortemporal.label'
-l3 = 'rh.fusiform.label'
-l4 = 'rh.inferiortemporal.label'
- 
+l3 = 'lh.LATL.label'
+l4 = 'lh.LPTL.label'
+
 roi = e.read_label([l1, l2, l3, l4])
 
 if os.path.lexists(e.get('group-file')) and not redo:
@@ -50,6 +50,7 @@ else:
     for _ in e:
         ds = e.load_events(edf=True, proj=False)
         ds = ds[ds['target'] == 'target']
+        # ds = ds[ds['condition'].isany('control_constituent', 'first_constituent')]
 
         ds = e.make_epochs(ds, evoked=True, raw=raw, decim=decim,
                            model='condition % wordtype', reject=reject)
@@ -61,6 +62,7 @@ else:
             del ds
     # combines the datasets for group
     group_ds = E.combine(datasets)
+    group_ds['stc'] = group_ds['stc'].sub(source=roi)
     E.save.pickle(group_ds, e.get('group-file'))
     del datasets
 
@@ -76,7 +78,7 @@ tests = [test2]
 
 for test in tests:
     idx = group_ds['condition'].isany(*test)
-    res = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi), 
+    res = E.testnd.ttest_rel(Y=group_ds['stc'].sub(source=roi),
                              X='condition', c0=test[0],
                              c1=test[1], match='subject', tstart=cstart,
                              tstop=cstop, pmin=pmin, ds=group_ds, samples=10000)
@@ -101,66 +103,74 @@ section.add_figure(caption='Selected Subsection of Cortex associated with WF',
                    content=im)
 
 sections = []
-for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
-    c_0 = cluster['cluster']
-    p = cluster['p']
-    section = report.add_section("Cluster %s, p=%s" % (i, p))
+# for i, cluster in enumerate(res.clusters[res.clusters['p'] < .05].itercases()):
+#     c_0 = cluster['cluster']
+#     p = cluster['p']
+#     section = report.add_section("Cluster %s, p=%s" % (i, p))
+#
+#     c_extent = c_0.mean('time')
+#     plt_extent = E.plot.brain.cluster(c_extent, surf='inflated',
+#                                       views=['lateral', 'medial', 'ventral'])
+#     image = E.plot.brain.image(plt_extent, "cluster %s extent.png" % i, alt=None,
+#                                close=True)
+#     image.save_image(e.get('plot-file', analysis='brain_%s_%s' %(test[1], i)))
+#     section.add_image_figure(image, "Extent of the largest cluster, p=%s" % p)
+#     plt_extent.close()
+#
+#     # extract and analyze the value in the cluster in each trial
+#     index = c_0 != 0
+#     c_value = group_ds['stc'].sum(index)
+#     # index is a boolean NDVar over space and time, so here we are summing in the
+#     # whole spatio-temporal cluster
+#     plt_box = E.plot.uv.boxplot(c_value, 'condition', ds=group_ds, sub=idx)
+#     pw_table = E.test.pairwise(c_value, 'condition', ds=group_ds, sub=idx)
+#     print pw_table
+#
+#     image = plt_box.image('image.png')
+#     figure = section.add_figure("Cluster value")
+#     figure.append(image)
+#     figure.append(pw_table)
+#
+#     index = c_extent != 0
+#     c_timecourse = group_ds['stc'].mean(index)
+#     # c_extent is a boolean NDVar over space only, so here we are summing over the
+#     # spatial extent of the cluster for every time point but keep the time dimension
+#     plt_tc = E.plot.UTSStat(c_timecourse, 'condition', ds=group_ds, sub=idx)
+#     # plot the cluster
+#     c_tstart = cluster['tstart']
+#     c_tstop = cluster['tstop']
+#     for ax in plt_tc._axes:
+#         ax.axvspan(c_tstart, c_tstop, color='r', alpha=0.2, zorder=-2)
+#     plt_tc.figure.savefig(e.get('plot-file', analysis='waveform_%s_%s' %(test[1], i)))
+#     # add to report
+#     image = plt_tc.image()
+#
+#     section.add_image_figure(image, "Time course of the average in the largest "
+#                              "cluster extent from %s to %s" %(c_tstart, c_tstop))
+#     sections.append(section)
+#     plt.close('all')
+#
+#     report.save_html(e.get('report-file', analysis=analysis + '_' + test[1]))
 
-    c_extent = c_0.mean('time')
-    plt_extent = E.plot.brain.cluster(c_extent, surf='inflated', 
-                                      views=['lateral', 'medial', 'ventral'])
-    image = E.plot.brain.image(plt_extent, "cluster %s extent.png" % i, alt=None,
-                               close=True)
-    image.save_image(e.get('plot-file', analysis='brain_%s_%s' %(test[1], i)))
-    section.add_image_figure(image, "Extent of the largest cluster, p=%s" % p)
-    plt_extent.close()
-
-    # extract and analyze the value in the cluster in each trial
-    index = c_0 != 0
-    c_value = group_ds['stc'].sum(index)
-    # index is a boolean NDVar over space and time, so here we are summing in the
-    # whole spatio-temporal cluster
-    plt_box = E.plot.uv.boxplot(c_value, 'condition', ds=group_ds, sub=idx)
-    pw_table = E.test.pairwise(c_value, 'condition', ds=group_ds, sub=idx)
-    print pw_table
-
-    image = plt_box.image('image.png')
-    figure = section.add_figure("Cluster value")
-    figure.append(image)
-    figure.append(pw_table)
-
-    index = c_extent != 0
-    c_timecourse = group_ds['stc'].mean(index)
-    # c_extent is a boolean NDVar over space only, so here we are summing over the
-    # spatial extent of the cluster for every time point but keep the time dimension
-    plt_tc = E.plot.UTSStat(c_timecourse, 'condition', ds=group_ds, sub=idx)
-    # plot the cluster
-    c_tstart = cluster['tstart']
-    c_tstop = cluster['tstop']
-    for ax in plt_tc._axes:
-        ax.axvspan(c_tstart, c_tstop, color='r', alpha=0.2, zorder=-2)
-    plt_tc.figure.savefig(e.get('plot-file', analysis='waveform_%s_%s' %(test[1], i)))
-    # add to report
-    image = plt_tc.image()
-    
-    section.add_image_figure(image, "Time course of the average in the largest "
-                             "cluster extent from %s to %s" %(c_tstart, c_tstop))
-    sections.append(section)
-    plt.close('all')
-
-    report.save_html(e.get('report-file', analysis=analysis + '_' + test[1]))
-
+analyses = []
+wtypes = list(group_ds['wordtype'].cells)
 wtypes.remove('ortho')
+
+vwfa = e.read_label([l1,l2])
+
 for wtype in wtypes:
     idx = group_ds['wordtype'].isany('ortho', wtype)
-    a = E.testnd.anova(Y='stc', X='wordtype % condition', 
+    idx2 = group_ds['condition'].isany('first_constituent', 'control_constituent')
+    ds = group_ds[idx*idx2]
+    ds['stc'] = ds['stc'].sub(source=vwfa)
+    a = E.testnd.anova(Y='stc', X='condition*wordtype', 
                        match='subject', tstart=cstart,
-                       tstop=cstop, pmin=pmin, ds=group_ds,
-                       samples=10000, sub=idx)
+                       tstop=cstop, pmin=pmin, ds=ds,
+                       samples=1000)
 
     analyses.append(a)
     title = '%s vs ortho' % wtype
-    p = E.plot.UTSStat(Y='stc', X='wordtype % condition', ds=group_ds, sub=idx,
+    p = E.plot.UTSStat(Y='stc', X='condition % wordtype', ds=ds,
                        clusters=a.clusters, axtitle=title)
     p.figure.savefig((e.get('plot-file', analysis='waveform_anova_%s' %wtype)))
     im = p.image()
