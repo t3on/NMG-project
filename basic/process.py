@@ -424,7 +424,7 @@ class NMG(FileTree):
         return bad_chs
 
     def make_bpf_raw(self, denoise='calm', hp=1, lp=40, redo=False,
-                     method='fft', n_jobs=2, **kwargs):
+                     method='iir', n_jobs=2, **kwargs):
         """
         Parameters
         ----------

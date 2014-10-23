@@ -4,7 +4,7 @@
 
 import os
 
-celex_english_dir = os.path.expanduser('~/Dropbox/Experiments/tools/celex_english')
+celex_english_dir = os.path.expanduser('~/Dropbox/academic/Experiments/tools/celex_english')
 
 field_documentation = {
     'Attr_A':  'for adjectives: attributive',
