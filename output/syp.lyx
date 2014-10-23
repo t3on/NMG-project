@@ -1,0 +1,2082 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{booktabs}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize 12
+\spacing double
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine natbib_authoryear
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+There's No 
+\begin_inset Quotes eld
+\end_inset
+
+Tea
+\begin_inset Quotes erd
+\end_inset
+
+ in 
+\begin_inset Quotes eld
+\end_inset
+
+Team
+\begin_inset Quotes erd
+\end_inset
+
+: The effects of morphological complexity on word naming
+\end_layout
+
+\begin_layout Author
+Teon Brooks
+\end_layout
+
+\begin_layout Abstract
+This study used a word constituent-priming word naming paradigm to determine
+ the planning units necessary for encoding word representations into speech.
+ This study demonstrates that compound words use their constituent word
+ forms as planning units of speech.
+ This effect of morphological structure was seen not only for semantically
+ transparent compounds but also for semantically opaque compounds with shorter
+ onset latency when primed.
+ These effects were robust for all compounds as well as for novel compounding.
+ These results support a morphological based encoding model of speech production.
+\end_layout
+
+\begin_layout Description
+Keywords: encoding, priming, semantic transparency, lexical access, word
+ production
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+\begin_inset Quotes eld
+\end_inset
+
+There's no 
+\series bold
+I
+\series default
+ in team
+\begin_inset Quotes erd
+\end_inset
+
+
+\emph default
+.
+ This is a parable we have often heard emphasizing that it's not the individual
+ that matters, but it is cooperation of all its members.
+ Research in psycholinguistics, but most critically in lexical processing,
+ has several variations on this theme of how individual units contribute
+ to an overall representation.
+ The classic debate over whole-word representation 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Butterworth:1983fk"
+
+\end_inset
+
+ versus morpheme storage 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Taft:1975fd"
+
+\end_inset
+
+ has persisted over the past forty years along while both camps have discovered
+ more evidence for their claim.
+ On the one hand, in modern debates the former side ascribes to the 
+\emph on
+supralexical hypothesis
+\emph default
+ 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Giraudo:2000wm,Giraudo:2001fk"
+
+\end_inset
+
+ that maintains the notion of whole-word representation-first in lexical
+ access, only then does this access lead to morphological representation
+ downstream.
+ 
+\end_layout
+
+\begin_layout Standard
+On the other hand, the latter side, which ascribes to the 
+\emph on
+sublexical hypothesis
+\emph default
+ or morpheme access-first, has formed factions over the semantic relevance
+ in morphological composition.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Marslen-Wilson:1994er"
+
+\end_inset
+
+ proposed a model where a morphologically complex was decomposed into its
+ morphemic constituent if and only if the composition of the morphemes was
+ 
+\emph on
+semantically transparent
+\emph default
+ to the complex word's overall meaning.
+ For example, in a series of cross-modal repetition priming tasks, 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Marslen-Wilson:1994er"
+
+\end_inset
+
+ found that words such as 
+\series bold
+\emph on
+department
+\series default
+\emph default
+, which have an 
+\emph on
+opaque
+\emph default
+ morphological structure, do not prime their constituent word form 
+\series bold
+\emph on
+depart
+\series default
+\emph default
+,
+\series bold
+ 
+\series default
+but words like 
+\series bold
+\emph on
+departure
+\series default
+\emph default
+, which have a transparent morphological structure, do exhibit priming effects
+ on their constituent morphemes resulting in faster reaction times to a
+ lexical decision.
+ 
+\end_layout
+
+\begin_layout Standard
+In contrast, 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Rastle:2004bh"
+
+\end_inset
+
+ found evidence that in early stages of lexical access, we do, in fact,
+ have access to all of a word's constituent word forms regardless of their
+ 
+\emph on
+semantic transparency
+\emph default
+, or their semantic contribution to the word's overall meaning.
+ Using 
+\emph on
+masked priming
+\emph default
+ with lexical decision, a technique which uses brief exposures of a stimulus
+ to probe at subliminal and automatic processes, 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Rastle:2004bh"
+
+\end_inset
+
+ found that there were significant but indistinguishable priming effects
+ of faster reaction times to a lexical decision for both opaque and transparent
+ words when compared to their mono-morphemic simple words counterparts.
+ This demonstration asserted that word forms are accessible in early stages
+ of lexical access with the constraints of morphological well-formedness.
+ That is, mere orthographic overlap is not sufficient for modulating lexical
+ access.
+\end_layout
+
+\begin_layout Standard
+Most research on morphological processing in lexical access has been conducted
+ in a comprehension domain, often with participants making some linguistic
+ judgment on a given word.
+ These studies probe interesting questions about how language is processed
+ and understood but it has left us begging the question of how these words
+ are produced in speech.
+ There are only a handful of studies investigating the role of morphology
+ in production.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Levelt:1999uq"
+
+\end_inset
+
+ proposed a multi-stage model of lexical access for speech production where
+ we begin with the conceptualization of the lexical item, which leads to
+ its retrieval, and then ultimately to its articulation.
+ The basis of the 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Levelt:1999uq"
+
+\end_inset
+
+ model works on the independence of the conceptual system and the articulatory
+ motor system.
+ These systems are interfaced with their respective encoding stage.
+ The conceptual system has a morpho-phonological encoding stage that is
+ responsible for giving form to the concept while the articulatory motor
+ system is fed input from phonetic encoding stage where articulatory gestures
+ are planned for speech.
+ The crux of this model lies at a separation of meaning from its articulatory
+ realized form.
+ In order to marry these two distinct systems, it is critical to understand
+ the nature of these encoding processes that are involved in transforming
+ concepts into a fully articulated form.
+\end_layout
+
+\begin_layout Subsection
+Encoding
+\end_layout
+
+\begin_layout Standard
+Here, we are taking the notion of 
+\emph on
+encoding
+\emph default
+ to be a set of operations necessary for interpreting information from one
+ domain, (e.g.
+ form representation), and expressing its message in another domain (e.g.
+ articulation).
+ Focusing in on the representational level, its encoding provides a crucial
+ stage for production: providing the planning units of speech.
+ For complex word production, it is unclear what the planning units are
+ for speech production.
+ Models vary in their encoding specificity 
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+\begin_inset Quotes eld
+\end_inset
+
+mini-parser
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ ranging from phonological only models to those with a mediating morphological
+ stage.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Meyer:1990fk,Meyer:1991uq"
+
+\end_inset
+
+ found that repetition of phoneme clusters alone can lead to preparatory
+ effect in production with results suggesting that syllables are planning
+ units for speech.
+ In contrast, in 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Levelt:1999uq"
+
+\end_inset
+
+ model, it proposes that the encoding process involves a stage of morphological
+ access where word forms are designated as planning units, but the model
+ does not specify whether the word forms are accessible in words with an
+ opaque structure.
+ Similarly, 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Roelofs:2002fk"
+
+\end_inset
+
+ reported that the production of polymorphemic words relied on the use of
+ their morphemic constituents for the encoding process supporting a morphologica
+l 
+\begin_inset Quotes eld
+\end_inset
+
+autonomy
+\begin_inset Quotes erd
+\end_inset
+
+ view.
+ Using an on-line preparation paradigm, they concluded that these word forms
+ are not only used as planning units but that they are accessible regardless
+ of the word's semantic transparency.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Dohmes:2004fk"
+
+\end_inset
+
+ provide additional support for a morphologically-mediated encoding.
+ In a picture-naming task, they found a strong facilitation in picture naming
+ for complex words that suggested that there is a form representational
+ level in speech production where morphologically complex words are represented
+ by their constituent morphemes independent of semantic transparency.
+ 
+\end_layout
+
+\begin_layout Subsection
+
+\series bold
+Priming
+\end_layout
+
+\begin_layout Standard
+Although previous studies have presented evidence of morphemic effects on
+ production, it remains unclear to what extent are these word forms modulated
+ in production.
+ Word duration and onset latency are acoustic properties that have been
+ implicated as modulatory indicators of lexical access 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Arnold:2012fk"
+
+\end_inset
+
+.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Gahl:2008nm"
+
+\end_inset
+
+ discusses how word duration and shortening of frequent words have been
+ shown to be markers lexical processing.
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+(Bell et al.
+ 2003, Bybee 2001, Fosler-Lussier & Morgan 1999, Jurafsky 2003, Jurafsky
+ et al.
+ 2001b, Krug 1998, Losie- wicz 1995, Pluymaekers et al.
+ 2005a,b)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In their study, 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Gahl:2008nm"
+
+\end_inset
+
+ showed that word frequency can modulate the word duration of homophones
+ demonstrating that there are distinctions in these words' representations
+ even when they are shown to have the same phonetic realization.
+ These effects of word frequency have found their analog in repetition priming.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Bybee:2001uq"
+
+\end_inset
+
+ describes 
+\emph on
+repetition priming
+\emph default
+ as an articulatory routinization where 
+\begin_inset Quotes eld
+\end_inset
+
+neuromotor routines become more compressed and more reduced
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Priming, a phenomenon observed as a modulation in response due to repeated
+ exposure to a stimulus, can be used to probe at the representation status
+ of a previously activated word.
+ This routinization would suggest that words that have been repeated would
+ result in shorten durations and as well as a host of other articulatory
+ effects 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Gahl:2008nm,Fiorentino:2007kw,Bard:2000vn,Arnold:2012fk"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+The body of literature is steadily growing demonstrating these effects priming
+ on production.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Arnold:2012fk"
+
+\end_inset
+
+ used images and visual cues to prime different referents in a discourse
+ and found that this priming modulates the production of the referent resulting
+ in reduction in their duration.
+ 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Balota:1989kx"
+
+\end_inset
+
+ explored the effects of priming of related items parametrically using various
+ SOAs.
+ Using associative priming, they found that a related response cue led to
+ a reduction in the target word's production duration.
+ Interestingly, they found that SOA of the associated cue to be independent
+ of the production duration of its target.
+ This model predicts that there is some semantic governance for word production
+ where only semantically associated items lead to facilitatory effects.
+ The results from this study pattern with a semantic governance view 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Marslen-Wilson:1994er"
+
+\end_inset
+
+ while diverging from the morphological autonomy view 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roelofs:2002fk"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The study of these effects on the encoding operation in word production
+ has largely remained uncharted territory.
+ Few studies have looked at the mechanism of how the internal structure
+ of word may lead to its production 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Roelofs:2002fk"
+
+\end_inset
+
+.
+ Findings in comprehension present disagreements in the role of semantics
+ in morphological structure 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Marslen-Wilson:1994er,Rastle:2004bh"
+
+\end_inset
+
+.
+ Our study takes this a few steps forward to ask what is the nature of this
+ boost to for having morphological structure.
+ Does this reflect the use of word forms as planning units of word production?
+ If so, can we modulate the representation status of these word form independent
+ of the word meaning?  
+\end_layout
+
+\begin_layout Standard
+Our study used a word naming paradigm to assess these prediction.
+ In this study, we used spatially unified, bi-morphemic, compound words
+ since they provide a rich testing bed for assessing these predictions.
+ We compared these compounds to mono-morphemic simple words to evaluate
+ the nature of the morphological structure.
+ These simple words were selected to have an embedded word within its orthograph
+y and they were selected to have overlapping phonology.
+ This will test whether these effects can be reduced to overlap in orthography
+ or phonology.
+ In addition to comparing our compounds to simple words, we included a selection
+ of novel compounds to test the effects of planning in light of no prior
+ experience and and with a strictly, and compulsory, transparent interpretation.
+ To test whether semantics constrain the accessibility of word forms within
+ compound words, we varied the degree of semantic fit of its constituents
+ to its overall meaning.
+ We examined 
+\emph on
+onset latency
+\emph default
+, the reaction time to speak, to evaluate the effects of morphological structure
+ and its semantic constraints based on 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Fiorentino:2007kw"
+
+\end_inset
+
+, which predicts that since RT is sensitive to lexical processes, that compounds
+ will differ from single words, due to the properties of the constituents
+ rather than the whole word, whereas a non-decompositional account predicts
+ no differences due to word structure
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+, as the overall word properties are matched
+\end_layout
+
+\end_inset
+
+.
+ If there is a decomposition effect, onset latency can be used to disentangle
+ whether decomposition occurs at an early or a late stage of processing.
+ In an early decomposition model, we expect there to be a faster latency
+ times for all compounds regardless of semantic transparency because this
+ occurs before access to semantics.
+ If this reflects a late decomposition model, where decomposition follows
+ lexical access, then we do not expect decomposition to occur for opaque
+ compounds since the semantics would constrain the access of the word forms
+ related to the compound to those that are meaningfully related.
+ 
+\end_layout
+
+\begin_layout Standard
+Given our assumption that word forms are used as planning units for speech,
+ we tested whether we can modulate the representational status of these
+ word form using a priming paradigm where the constituent is used to prime
+ the underlying structure of its compound word.
+ This study aims to distinguish whether the decomposition of the compound
+ words occurs early or late.
+ The current literature posits three possible encoding models of production
+ for our results: (1) a syllable-based model, which predicts that there
+ will be a reduction in constituent duration regardless of morphological
+ structure; (2) a morphology-based model, which predicts that there will
+ be a reduction in constituent duration for all morphologically structured
+ words regardless of their transparency but not for simple words; (3) a
+ morpho-semantics based model, which predicts that there will to be a reduction
+ in constituent duration but only for words with a transparent morphological
+ structure.
+ This study argues for an early decomposition model with a morphologically-based
+ encoding operation where word forms are used as planning units for production
+ regardless of semantics.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+make it clear that the onset latency encompasses both word form effects
+ and lexical effects.
+ it makes a prediction for them both.
+\end_layout
+
+\begin_layout Plain Layout
+make clearer predictions of these models
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Methods
+\end_layout
+
+\begin_layout Subsection
+Stimuli
+\end_layout
+
+\begin_layout Standard
+A sizable corpus of compounds were compiled from prior studies (
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Drieghe:2010vn,Fiorentino:2007kw,Fiorentino:2009:xi,Juhasz:2003ka"
+
+\end_inset
+
+) and were normed using a semantic relatedness survey administered through
+ Amazon Mechanical Turk.
+ The semantic relatedness survey asked participants to rate on a Likert
+ scale from 1 to 7 how related the meaning of the one of compounds' constituents
+ is to the compound itself where 
+\begin_inset Quotes eld
+\end_inset
+
+1
+\begin_inset Quotes erd
+\end_inset
+
+ was not related and 
+\begin_inset Quotes eld
+\end_inset
+
+7
+\begin_inset Quotes erd
+\end_inset
+
+ was very related.
+ 20 participants were randomly given only one constituent per compound to
+ judge.
+ The ratings were largely consistent with prior work.
+ 
+\end_layout
+
+\begin_layout Standard
+We defined constituents as semantically opaque (e.g.
+ deadline) with a score between 1 to 3 and semantically transparent (e.g.
+ dollhouse) between 5 to 7.
+ Compounds were considered fully opaque if their summed ratings were 1-6
+ and fully transparent if 10-14.
+ For example, the opaque compound 'deadline' received a summed rating of
+ 3.76 with 'dead' contributing a transparency rating of 1.44 and 'line' contributi
+ng a rating of 2.32.
+ Similarly, the compound 'dollhouse' received a summed rating of 11.79 with
+ 'doll' contributing a transparency rating of 6.47 and 'house' contributing
+ a rating of 5.32.
+ Sixty fully opaque and sixty fully transparent compounds were randomly
+ selected from the corpus.
+ 
+\end_layout
+
+\begin_layout Standard
+In addition to the opaque and transparent compounds, we included novel compounds
+ to look at production effects for words with possible morphological structure
+ but with no established overall meaning.
+ Sixty novel compounds were randomly generated using the remaining compounds
+ from the relatedness survey.
+ These novel compounds were generated by concatenating randomly selected
+ constituents from their remaining respective pools.
+ Since these constituents are words that are likely to be compounded with
+ others, they make good candidates for novel word formation.
+ To prevent the random formation of an existing word, the word frequency
+ of these compounds were checked using the English Lexicon Project's word
+ frequencies 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Balota:2007fk"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Lastly, to test whether duration reduction was merely a function of phonological
+ overlap, mono-morphemic words consisting of an embedded but no possible
+ internal morphological construction (e.g.
+ BROTHel), which we will simply referred to as mono-morphemics were added
+ for comparison.
+ The mono-morphemic words were pooled from 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Rastle:2004bh"
+
+\end_inset
+
+ and the English Lexicon Project
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Balota:2007fk"
+
+\end_inset
+
+, were selected to have overlapping punctuation between the mono-morphemic
+ and its embedded word (e.g.
+ HATCH-hatchet vs.
+ CORD-cordial).
+ Sixty mono-morphemics were selected for this study: thirty of them having
+ the embedded words at the beginning of the word (e.g.
+ HATCH-hatchet) while thirty others with the embedded words at the end (LOG-dial
+og) 
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+The analysis should have the comparison to ortho-a, ortho-b, then ortho-ab,
+ to ensure it's not an order effect
+\end_layout
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Subsection
+Experimental Design and Task
+\end_layout
+
+\begin_layout Standard
+This study contrasted four different word types, each with 60 items: mono-morphe
+mics, and transparent, opaque, and novel compounds.
+ These word types were compared in two types of priming, repetition and
+ constituent.
+ For the repetition priming condition, the word of interest was shown as
+ both the prime and the target as compared with the constituent priming
+ where the constituent of word (for this study, first-constituent only)
+ is used as a prime for its whole word target.
+ These priming conditions were compared to their semantically unrelated
+ controls.
+ Each word appeared once per block in one of the four different conditions
+ across four blocks.
+ They were counterbalanced so that all words appeared in all conditions
+ per subject and were latin-squared for condition order across subjects
+ producing a completely within-subjects, fully factorial design: Word Type
+ (4) 
+\begin_inset Formula $\times$
+\end_inset
+
+ Constituency (2) 
+\begin_inset Formula $\times$
+\end_inset
+
+ Priming (2).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="6" columns="9">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<column alignment="center" valignment="top" width="0">
+<row>
+<cell multirow="3" alignment="left" valignment="middle" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="1" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Transparent
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="2" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="1" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Opaque
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="2" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="1" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Novel
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="2" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="1" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Simple
+\end_layout
+
+\end_inset
+</cell>
+<cell multicolumn="2" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell multirow="4" alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+target
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+target
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+target
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+prime
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+target
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+control
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+doorbell
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+teacup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+heirloom
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hogwash
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+keybook
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ladyfork
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mailbox
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spinach
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+identity
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+teacup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+teacup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hogwash
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hogwash
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ladyfork
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ladyfork
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spinach
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spinach
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+control
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+door
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+teacup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+heir
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hogwash
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+key
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ladyfork
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+mail
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spinach
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+constituent
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+tea
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+teacup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hog
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+hogwash
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+lady
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ladyfork
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spin
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+spinach
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Design Matrix
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The study used a repetition priming paradigm with word naming as its task.
+ Psychtoolbox 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Brainard:1997vn"
+
+\end_inset
+
+ was used for the presentation of stimulus.
+ In this task, the trial begins with a fixation cross, which appears in
+ the center of the screen, followed by a prime then a target.
+ Prime words are presented in all capital letters while target words are
+ presented in lowercase letters.
+ All of the visual presentations are for 300 ms with an inter-stimulus interval
+ of 600ms.
+ The objective of the participant is to read aloud the target word in each
+ trial.
+ The next trial does not proceed until a response is uttered.
+ The onset latency was measured from the presentation of the target word
+ to the threshold activation of the voice trigger.
+ Their production was recorded from the point at which voice trigger was
+ activated.
+ Each participant was presented with 960 trials: 60 words in each of four
+ word types counterbalanced for each of the four condition.
+ This study includes 17 participants who were recruited from the New York
+ City community.
+\end_layout
+
+\begin_layout Subsection
+Results 
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+see Appendix for supplementary tables.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In this study, the effects of priming on both naming latency and word durations
+ were analyzed using a repeated-measures ANOVA.
+ Naming latencies were defined as the duration from the visual onset of
+ the target stimulus to the onset of speech.
+ 
+\end_layout
+
+\begin_layout Standard
+To obtain the duration measures from the production data, we use the Penn
+ Forced Aligner 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Yuan:2008kx"
+
+\end_inset
+
+.
+ We provided transcripts for each target word where each constituent was
+ considered a separate word.
+ A textgrid was created for each target word with boundary markings for
+ both the phone and word, which were generated using the Hidden Markov Model
+ Toolkit (HTK).
+ The audio was checked for accuracy of the target word production.
+ These textgrids were hand-corrected 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "fig:spectrogram"
+
+\end_inset
+
+ in Praat 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Boersma:2002fk"
+
+\end_inset
+
+ with the following requirements: 
+\end_layout
+
+\begin_layout Enumerate
+The offset of the word boundaries were determined to be where there was
+ no energy in the spectrogram and waveform.
+ 
+\end_layout
+
+\begin_layout Enumerate
+the offset boundaries of words containing a stop were marked before aspiration
+ to maintain consistency across speakers.
+\end_layout
+
+\begin_layout Enumerate
+incorrect pronunciation or incorrect word utterance was marked and eliminated
+ from analysis 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Morrill:2012fk"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Enumerate
+a hesitation or pause before or after the test word that disrupted the fluency
+ of the reading 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Morrill:2012fk"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+These criteria were allow uniformity with proper discretion from the author.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /Users/teon/Dropbox/Experiments/NMG/results/behavioral/plots/spectrogram.tiff
+	lyxscale 25
+	scale 25
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:spectrogram"
+
+\end_inset
+
+Boundary labeling for target word
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Onset Latency 
+\end_layout
+
+\begin_layout Standard
+Analysis of onset latency time for identity condition revealed a very robust,
+ repetition priming effects such that naming latencies were shorter for
+ the target when it was primed 
+\begin_inset Formula $[F_{1}(1,16)=77.24$
+\end_inset
+
+, 
+\begin_inset Formula $p<.001]$
+\end_inset
+
+.
+ There was no interaction of wordtype 
+\begin_inset Formula $[F_{1}(1,16)=0.93$
+\end_inset
+
+, 
+\begin_inset Formula $p>.1]$
+\end_inset
+
+ .
+ Unsurprisingly, these findings are consistent with all predicted models.
+ 
+\end_layout
+
+\begin_layout Standard
+Analysis of onset latency time for the constituent condition revealed a
+ significant priming effect such that naming latencies were shorter for
+ the target when it was primed 
+\begin_inset Formula $[F_{1}(1,16)=40.06$
+\end_inset
+
+, 
+\begin_inset Formula $p<.001]$
+\end_inset
+
+.
+ This indicates that constituent priming has an effect on all of the wordtypes.
+ The difference presented is calculated by subtracting the primed condition
+ from the unprimed to reflect the amount of speed up in processing due to
+ priming.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /Users/teon/Dropbox/Experiments/NMG/results/behavioral/plots/latency_constituent_zero_analysis.pdf
+	lyxscale 50
+	scale 50
+	groupId plots
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Constituent Priming Onset Latency Difference Main effects plots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However, there was a significant wordtype by priming interaction such that
+ naming latency were faster for transparent, opaque and novel compounds
+ but not for the simple words 
+\begin_inset Formula $[F_{1}(1,16)=6.93$
+\end_inset
+
+, 
+\begin_inset Formula $p<.001]$
+\end_inset
+
+.
+ We can attribute the effect of priming seen for the simple words to that
+ of overlapping form but this interaction occurs above and beyond this effect
+ of overlap.
+ These results explain away that these constituent priming is only due to
+ form overlap and supports our claim that these word forms play a role in
+ planning speech.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /Users/teon/Dropbox/Experiments/NMG/results/behavioral/plots/latency_constituent_analysis.pdf
+	lyxscale 50
+	scale 50
+	groupId plots
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Constituent Priming Onset Latency Difference Interaction plots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This particular pattern of results was confirmed with planned comparisons
+ using the difference from the constituent conditions for each compound
+ wordtype compared to difference from the constituent conditions for the
+ simple words 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "table: latency-constituent-pairwise"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset CommandInset include
+LatexCommand include
+filename "/Users/teon/Dropbox/Experiments/NMG/results/behavioral/stats/latency_constituent_analysis-pairwise.tex"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "table: latency-constituent-pairwise"
+
+\end_inset
+
+Pairwise Comparison table for Constituent Priming Latencies
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The onset latency effect is largely consistent with the masked priming literatur
+e on word recognition where there is a processing benefit associated with
+ having a morphologically structure word that is not seen in simple words
+ 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Rastle:2004bh,Taft:2004uq,Morris:2007uq,McCormick:2008mn"
+
+\end_inset
+
+.
+ These results build upon 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Roelofs:2002fk"
+
+\end_inset
+
+ findings where word forms are used as planning units for production.
+\end_layout
+
+\begin_layout Subsubsection
+Duration
+\end_layout
+
+\begin_layout Standard
+Due to the nature of hand-correcting textgrids, the analysis of the word
+ duration is currently incomplete.
+ The data processing is ongoing.
+ Currently, 50% of the data for six participants have been hand-corrected.
+ Below, we have completed the same analysis over this subset of data.
+ Since this dataset is sparse, there is a large amount of variance in the
+ measurement, hence, the model is too unstable to provide any reliable estimates.
+\end_layout
+
+\begin_layout Standard
+Our study would predict that the duration data should pattern with the onset
+ latency duration where we have duration times will be reduced for compound
+ words but not for simple words.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /Users/teon/Dropbox/Experiments/NMG/results/behavioral/plots/duration_constituent_predicted_analysis.pdf
+	lyxscale 50
+	scale 50
+	groupId plots
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Predicted Constituent Priming Duration Difference plots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Our data analysis shows that it is premature to analyze the results due
+ to the large variance in our estimates.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /Users/teon/Dropbox/Experiments/NMG/results/behavioral/plots/duration_constituent_analysis.pdf
+	lyxscale 50
+	scale 50
+	groupId plots
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Constituent Priming Duration Difference plots
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If the results show a constituent priming effect for the opaque compounds
+ (e.g.
+ HOG-hogwash), then these word forms internal to the compound function like
+ the word forms in isolation.
+ This would confirm that there is access to the word forms in morphologically
+ structured word regardless of their semantic contribution and that these
+ word forms are not functioning as homophones but are the word forms themselves.
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+The results from our study fit in nicely with the morphology-based encoding
+ interpretation where word forms are used as planning units regardless of
+ their semantic contribution to the overall word meaning.
+ This is largely consistent with the mounting evidence in the lexical decision
+ literature where the first stages in parsing require segmentation of morphologi
+cally structured words into their constituent word forms prior to any access
+ of their semantics.
+ This study discredits syllable-only encoding hypothesis since there are
+ still morphological effects even after matching for phonological and orthograph
+ic overlap.
+ This is also evident in novel compounding where these words show evidence
+ of word form access even in the absence of semantics.
+ 
+\end_layout
+
+\begin_layout Standard
+This study presents clear evidence that there is a stage in lexical access
+ that follows from lemma selection 
+\begin_inset CommandInset citation
+LatexCommand citep
+key "Levelt:1999uq"
+
+\end_inset
+
+ responsible for organizing and planning of speech in units of word forms.
+ This stage is not constrained by semantics of the word forms' contribution
+ This study demonstrates the crucial role that morphology play a role in
+ both parsing and production.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+The study demonstrated a reliable and robust effect for morphologically
+ structured words when compared to morphologically simple words.
+ These results prove to be reliable for all of the compound wordtypes: transpare
+nt, opaque, and novel.
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Appendix
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset CommandInset include
+LatexCommand include
+filename "/Users/teon/Dropbox/Experiments/NMG/results/behavioral/stats/latency_identity_analysis.tex"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "table:latency-identity"
+
+\end_inset
+
+ANOVA table for Identity Priming Latencies
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset CommandInset include
+LatexCommand include
+filename "/Users/teon/Dropbox/Experiments/NMG/results/behavioral/stats/latency_constituent_analysis.tex"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "table: latency-constituent"
+
+\end_inset
+
+ANOVA table for Constituent Priming Latencies
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset CommandInset include
+LatexCommand include
+filename "/Users/teon/Dropbox/Experiments/NMG/results/behavioral/stats/duration_identity_analysis.tex"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "table:duration-identity"
+
+\end_inset
+
+ANOVA table for Identity Priming Duration
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset CommandInset include
+LatexCommand include
+filename "/Users/teon/Dropbox/Experiments/NMG/results/behavioral/stats/duration_constituent_analysis.tex"
+
+\end_inset
+
+
+\begin_inset Caption
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "table:duration-constituent"
+
+\end_inset
+
+ANOVA table for Constituent Priming Duration
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "/Users/teon/Dropbox/articles/library"
+options "bibtotoc,apalike2"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

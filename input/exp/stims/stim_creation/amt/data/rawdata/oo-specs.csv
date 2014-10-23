@@ -1,0 +1,3 @@
+"Total_Count","Distinct_Count","Invalid_Count","Mean_Length","Mean_Freq_KF","Mean_Freq_HAL","Mean_Log_Freq_HAL","Mean_SUBTLWF","Mean_SUBTLCD","Mean_Ortho_N","Mean_Phono_N","Mean_Phono_N_H","Mean_OG_N","Mean_OG_N_H","Mean_Freq_N","Mean_Freq_N_P","Mean_Freq_N_PH","Mean_BG_Sum","Mean_BG_Mean","Mean_BG_Freq_By_Pos","Mean_NSyll","Mean_NMorph","Mean_I_Mean_RT","Mean_I_Zscore","Mean_I_SD","Mean_Obs","Mean_I_Mean_Accuracy","Mean_I_NMG_Mean_RT","Mean_I_NMG_Zscore","Mean_I_NMG_SD","Mean_I_NMG_Obs","Mean_I_NMG_Mean_Accuracy"
+"67","67","5","8.60","4.08","3896.52","5.82","1.95","0.75","0.05","0.19","0.19","0.05","0.05","4.87","4.09","4.09","12274.74","1606.92","1891.85","2.23","2.03","760.48","-0.09","275.94","29.73","0.89","687.62","-0.17","153.54","26.79","0.99"
+

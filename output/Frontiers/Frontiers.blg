@@ -1,0 +1,92 @@
+This is BibTeX, Version 0.99d (TeX Live 2014)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: Frontiers.aux
+White space in argument---line 33 of file Frontiers.aux
+ : \citation{Zweig:2009,Lewis:2011,Solomyak:
+ :                                           2010}
+I'm skipping whatever remains of this command
+The style file: frontiersinSCNSENG.bst
+I couldn't open database file library.BIB.bib
+---line 56 of file Frontiers.aux
+ : \bibdata{library.BIB
+ :                     }
+I'm skipping whatever remains of this command
+I found no database files---while reading file Frontiers.aux
+Warning--I didn't find a database entry for "Butterworth:1983"
+Warning--I didn't find a database entry for "Giraudo:2001"
+Warning--I didn't find a database entry for "Rastle:2003"
+Warning--I didn't find a database entry for "Taft:1975"
+Warning--I didn't find a database entry for "Taft:2004"
+Warning--I didn't find a database entry for "Marslen-Wilson:1994"
+Warning--I didn't find a database entry for "Rastle:2004"
+Warning--I didn't find a database entry for "Zwitserlood:1994"
+Warning--I didn't find a database entry for "Longtin:2003"
+Warning--I didn't find a database entry for "Fiorentino:2007"
+Warning--I didn't find a database entry for "McCormick:2008"
+Warning--I didn't find a database entry for "Solomyak:2010"
+Warning--I didn't find a database entry for "Morris:2007"
+Warning--I didn't find a database entry for "Dehaene:2010"
+Warning--I didn't find a database entry for "Meunier:2007"
+Warning--I didn't find a database entry for "Fiorentino:2013"
+Warning--I didn't find a database entry for "Hickok:2007"
+Warning--I didn't find a database entry for "Lau:2008"
+Warning--I didn't find a database entry for "Bemis:2011"
+Warning--I didn't find a database entry for "Drieghe:2010"
+Warning--I didn't find a database entry for "Fiorentino:2009"
+Warning--I didn't find a database entry for "Juhasz:2003"
+Warning--I didn't find a database entry for "Balota:2007"
+Warning--I didn't find a database entry for "Libben:1998"
+Warning--I didn't find a database entry for "Adachi:2001"
+Warning--I didn't find a database entry for "Gramfort:2013"
+Warning--I didn't find a database entry for "Gramfort:2013a"
+Warning--I didn't find a database entry for "Cohen:2004"
+Warning--I didn't find a database entry for "Zweig:2009"
+Warning--I didn't find a database entry for "Lewis:2011"
+Warning--I didn't find a database entry for "Maris:2007"
+Warning--I didn't find a database entry for "Hansen:2010"
+Warning--I didn't find a database entry for "Friederici:2000"
+Warning--I didn't find a database entry for "Pylkkanen:2003"
+Warning--I didn't find a database entry for "Roelofs:2002"
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+You've used 0 entries,
+            3038 wiz_defined-function locations,
+            676 strings with 5462 characters,
+and the built_in function-call counts, 35 in all, are:
+= -- 0
+> -- 0
+< -- 0
++ -- 0
+- -- 1
+* -- 2
+:= -- 10
+add.period$ -- 0
+call.type$ -- 0
+change.case$ -- 0
+chr.to.int$ -- 1
+cite$ -- 0
+duplicate$ -- 0
+empty$ -- 1
+format.name$ -- 0
+if$ -- 1
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 0
+newline$ -- 8
+num.names$ -- 0
+pop$ -- 0
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 1
+stack$ -- 0
+substring$ -- 0
+swap$ -- 0
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 0
+width$ -- 0
+write$ -- 7
+(There were 3 error messages)
