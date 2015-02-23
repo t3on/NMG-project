@@ -9,60 +9,62 @@ from scipy.io.wavfile import read, write
 import os
 import subprocess
 import fnmatch
-import eelbrain.eellab as E
+import eelbrain as E
+from glob import glob
+from basic import process
+from pyphon import pyphon as pyp
 
 
-def load_soundfiles(audio_sdir, script_dir):
-    files = os.listdir(audio_sdir)
-    exp = []
-    for FILE in files:
-        if os.path.splitext(FILE)[1] == '.wav':
-            lab = os.path.splitext(FILE)[0] 
-            lab = lab.split('_')
-            if lab[0].isdigit():
-                word = lab[-1]
-                timestamp = lab[:-1]
-            elif len(lab[0]) == 0:
-                word = lab[-1]
-                timestamp = lab[1:-1]
-            else:
-                word = lab[0]
-                timestamp = lab[1:] 
-            if word.lower() in ['practice', 'is', 'very', 'important', 'no', 'name']:
-                continue
-            else:
-#                 date = timestamp[:3]
-                time = timestamp[3:]
-                time = map(int, time)
-                time = (time[0]*60*60   # hours to secs
-                        + time[1]*60    # minutes to secs
-                        + time[2])      # secs
-                
-                trans_file = os.path.join(script_dir, word + '.txt')
-                transcript = open(trans_file, 'r').readlines()
-                word1, word2 = [a.strip() for a in transcript]
-                
-                FILE = os.path.join(audio_sdir, FILE)
-                
-                exp.append([time, word, word1, word2, FILE])
-    exp.sort()
+def order_textgrids(data_sdir):
+    subject = os.path.basename(data_sdir)
+    script_dir = '/Volumes/GLYPH-1 TB/Experiments/NMG/data/group/transcripts'
+    textgrids = glob(os.path.join(data_sdir, 'behavioral', 'audio', '*.TextGrid'))
+    grids = [os.path.splitext(os.path.basename(grid))[0] for grid in textgrids] 
+    grids = [grid.split('_') for grid in grids]
+    if grids[0][0].isdigit():
+        words = [grid[-1] for grid in grids]
+        timestamp = [grid[:-1] for grid in grids]
+    elif len(grids[0][0]) == 0:
+        words = [grid[-1] for grid in grids]
+        timestamps = [grid[1:-1] for grid in grids]
+    else:
+        words = [grid[0] for grid in grids]
+        timestamps = [grid[1:] for grid in grids]
+    
+    timestamps = [timestamp[3:] for timestamp in timestamps]
+    timestamps = [map(int, time) for time in timestamps]
+    timestamps = [time[0]*60*60 + time[1]*60 + time[2] for time in timestamps]
+    ordered_textgrids = zip(timestamps, range(len(timestamps)), words, textgrids)
+    ordered_textgrids.sort()
+    
+    parts = []
+    for case in ordered_textgrids:
+        word = case[-2]
+        trans_file = os.path.join(script_dir, word + '.txt')
+        transcript = open(trans_file, 'r').readlines()
+        parts.append([a.strip() for a in transcript])
 
-    times, words, word1s, word2s, files = zip(*exp)
-    ds = E.dataset()
-    ds['time'] = E.var(times)
-    ds['word'] = E.factor(words)
-    ds['file'] = E.factor(files)
-    ds['word1'] = E.factor(word1s)
-    ds['word2'] = E.factor(word2s)
-    p = -1
-    block = []
-    for i in xrange(ds.n_cases):
-        if i%240 == 0:
-            p += 1
-        block.append(p)
-    ds['block'] = E.var(block)
-        
-    return ds
+    word1s, word2s = zip(*parts)
+    times, order, words, textgrids = zip(*ordered_textgrids)
+
+    ds = E.Dataset()
+    ds['time'] = E.Var(times)
+    ds['order'] = E.Var(order)
+    ds['word'] = E.Factor(words)
+    ds['word1'] = E.Factor(word1s)
+    ds['word2'] = E.Factor(word2s)
+    ds['textgrid'] = E.Factor(textgrids)
+    
+    e = process.NMG(subject)
+    dataset = e.load_events(edf=False, drop_bad_chs=False)
+    dataset = dataset[dataset['target'] == 'target']
+    if all(ds['word'] == dataset['word']):
+        dataset.update(ds)
+    else:
+        raise ValueError("Words don't match up.")
+    
+    return dataset
+    
 
 
 def make_transcripts(audio_sdir, script_dir, data_sdir, name):
@@ -75,84 +77,71 @@ def make_transcripts(audio_sdir, script_dir, data_sdir, name):
                                              delim = os.linesep, 
                                              header = False)
 
-
-def cat_soundfiles(audio_sdir, script_dir, data_sdir, name):
-    ds = load_soundfiles(audio_sdir, script_dir)
-    for blocknum in np.unique(ds['block']):
-        filename = '_'.join((name, 'block-' + str(blocknum), 'concatenated.wav'))
-        filename = os.path.join(data_sdir, filename)
-        idx = ds['block'] == blocknum
-        cat_list = ds['file'][idx]
-        cat_soundfile = []
-        rates = []
-        for FILE in cat_list:
-            rate, data = read(FILE)
-            cat_soundfile.append(data)
-            rates.append(rate)
-        if all(rate == rates[0] for rate in rates):
-            if cat_soundfile[0].ndim == 1:
-                cat_soundfile = np.hstack(cat_soundfile)
-            elif cat_soundfile[0].ndim == 2:
-                cat_soundfile = np.vstack(cat_soundfile)
-            else:
-                raise TypeError('Not a proper soundfile!')
-            write(filename, rate, cat_soundfile)
+    # for d in targets.itercases():
+    #     if d['orthotype'] == 'ortho-2':
+    #         transcript = d['word'][:-len(d['c2'])]+'\n'+d['c2']
+    #     else:
+    #         transcript = d['c1']+'\n'+d['word'][len(d['c1']):]
+    #     f = open('/Users/teon/Desktop/transcripts/'+d['word']+'.txt', 'w')
+    #     f.write(transcript)
+    #     f.close()
 
 
 def force_align(data_sdir):
-
+    group_dir = '/Volumes/GLYPH-1 TB/Experiments/NMG/data/group'
     os.environ['PATH'] = ':'.join([os.getenv('PATH'), '/Applications/p2fa', 
                                    '/Applications/htk'])
-    
+    data_sdir = os.path.join(data_sdir, 'behavioral', 'audio')
     import tempfile
     tmp_dir = tempfile.mkdtemp()
     files = os.listdir(data_sdir)
     files = fnmatch.filter(files, '*.wav')
 
-    for FILE in files:
+    for FILE in files:    
+        lab = os.path.splitext(FILE)[0] 
+        lab = lab.split('_')
+        if lab[0].isdigit():
+            word = lab[-1]
+        elif len(lab[0]) == 0:
+            word = lab[-1]
+        else:
+            word = lab[0]
+            timestamp = lab[1:]
         title, _ = os.path.splitext(FILE)
-        transcript = title + '.txt'
+        transcript = word + '.txt'
         textgrid = title + '.TextGrid'
         
-        cmd = ['/opt/local/bin/sox', os.path.join(data_sdir, FILE), 
-               '-r 11025',  '-c 1', 
-               os.path.join(tmp_dir, 'temp.wav')]        
-        cwd = '/Applications/p2fa/'
-        sp = subprocess.call(cmd, cwd = cwd)
+        if word.lower() in ['practice', 'is', 'very', 'important', 'no', 'name']:
+            continue
+        else:
+            cmd = ['/usr/local/Cellar/sox/14.4.1_1/bin/sox', os.path.join(data_sdir, FILE), 
+                   '-r 11025',  '-c 1', 
+                   os.path.join(tmp_dir, 'temp.wav')]        
+            cwd = '/Applications/packages/p2fa/'
+            sp = subprocess.call(cmd, cwd = cwd)
         
-        cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'), 
-               os.path.join(data_sdir, transcript),
-               os.path.join(data_sdir, textgrid)]
+            cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'), 
+                   os.path.join(group_dir, 'transcripts', transcript),
+                   os.path.join(data_sdir, textgrid)]
 
-        sp = subprocess.Popen(cmd, cwd=cwd,
-                              stdout=subprocess.PIPE, 
-                              stderr=subprocess.PIPE)
-        stdout, stderr = sp.communicate()
+            sp = subprocess.Popen(cmd, cwd=cwd,
+                                  stdout=subprocess.PIPE, 
+                                  stderr=subprocess.PIPE)
+            stdout, stderr = sp.communicate()
 
-        if stderr:
-            print '\n> ERROR:'
-            print '%s\n%s' %(stderr, stdout)
-    
+            if stderr:
+                print '\n> ERROR:'
+                print '%s\n%s' %(stderr, stdout)
 
-def wav(soundfile):
-    rate, data = read(soundfile)
-    return rate, data
-    
-def window_rms(soundfile, window_size):
-    rate, data = wav(soundfile)
-    data2 = np.power(data, 2)
 
-#This is done to in order for the convolution to be the mean of the squared sound pressure    
-    window = np.ones(window_size) / float(window_size)
+def get_word_duration(dataset):
+    ds = []
+    for d in dataset.itercases():
+        grid = pyp.Textgrid(d['textgrid'])
+        ds.append(grid.export_durs())
+    ds = E.combine(ds)
+    dataset.update(ds['c1_dur', 'c2_dur'])
 
-#The padding added is 2(w-1)    
-#This returns an array A, that is A.N - w (window size).
-#The sqrt finishes the RMS
-    return np.sqrt(np.convolve(data2, window, 'valid'))
-    
+    return dataset
 
-def detect_onset(soundfile, window_size, threshold):
-    rms_data = window_rms(soundfile, window_size)
-    index = rms_data > threshold
-    exceed = np.flatnonzero(index)[0]
     

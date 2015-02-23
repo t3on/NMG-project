@@ -163,7 +163,7 @@ class NMG(FileTree):
                   names=names, overwrite=overwrite)
 
     def load_events(self, subject=None, redo=False, drop_bad_chs=True,
-                    proj='group_proj', edf=True, treject=25):
+                    proj=False, edf=True, treject=25):
         """
 
         Loads events from the corresponding raw file, adds the raw to the info
@@ -199,7 +199,7 @@ class NMG(FileTree):
             ds = E.Dataset(trigger, i_start, info=info)
 
             # Add subject as a dummy variable to the dataset
-            ds['subject'] = E.Factor([subject], rep=ds.n_cases, random=True)
+            ds['subject'] = E.Factor([subject], repeat=ds.n_cases, random=True)
 
             # Loads logfile and adds it to the ds
             log_ds = read_log(self.get('log-file'))
@@ -333,7 +333,7 @@ class NMG(FileTree):
                                                 0: 'prime', 1: 'target'})
         ds['wordtype'] = E.Factor(wtype, labels={None: 'None', 1: 'transparent',
                                                  2: 'opaque', 3: 'novel',
-                                                 4: 'ortho', 5:'ortho'})
+                                                 4: 'simplex', 5:'simplex'})
         ds['orthotype'] = E.Factor(wtype, labels={None: 'compound', 1: 'compound',
                                                  2: 'compound', 3: 'compound',
                                                  4: 'ortho-1', 5:'ortho-2'})
@@ -552,7 +552,7 @@ class NMG(FileTree):
                 else:
                     ds.info['use'] = True
                     if evoked:
-                        ds = ds.aggregate(model, drop_bad=True)
+                        ds = ds.aggregate(model, drop_bad=True, equal_count=True)
         return ds
 
     def reject_epochs(self, ds, threshold=3e-12):
@@ -600,116 +600,6 @@ class NMG(FileTree):
         mne.gui.coregistration(raw=self.get('raw-file'),
                                trans_fname=self.get('trans'),
                                subjects_dir=self.get('mri_dir'))
-
-    def make_proj(self, write=True, overwrite=False, nprojs=5, verbose=False):
-        ds = self.load_events(proj=False, edf=False, drop_bad_chs=True)
-        if write and not overwrite:
-            if os.path.lexists(self.get('proj')):
-                raise IOError("proj file at %r already exists"
-                              % self.get('proj'))
-        ds_fix = ds[ds['experiment'] == 'fixation']
-        epochs = E.load.fiff.mne_epochs(ds_fix, tmin=-0.2, tmax=.6,
-                                        baseline=(None, 0),
-                                        reject={'mag':3e-12})
-
-
-        # add the projections to this object by using
-        proj = mne.proj.compute_proj_epochs(epochs, n_grad=0, n_mag=nprojs,
-                                            n_eeg=0, verbose=verbose)
-        if write == True:
-            mne.write_proj(self.get('proj'), proj)
-            self.logger.info('proj: Projection written to file')
-        else:
-            return proj
-
-    def make_cov(self, write=True, raw='calm_fft_hp1_lp40', proj=False, 
-                 reject={'mag':4e-12}, overwrite=False):
-        ds = self.load_events(proj=proj, edf=True)
-        if proj:
-            proj_val = '_+proj'
-        else:
-            proj_val = ''
-        if write and not overwrite:
-            if os.path.lexists(self.get('cov', proj_val=proj_val)):
-                raise IOError("cov file at %r already exists"
-                              % self.get('cov'))
-
-        # create covariance matrix
-        index = ds['experiment'] == 'fixation'
-        ds_fix = ds[index]
-
-        epochs = E.load.fiff.mne_epochs(ds_fix, baseline=(-.2, 0),
-                                        reject=reject, tmin=-.2,
-                                        tmax=0, verbose=False)
-        cov = mne.cov.compute_covariance(epochs, verbose=False)
-
-        if write == True:
-            cov.save(self.get('cov'))
-            self.logger.info('cov: Covariance Matrix written to file')
-        else:
-                return cov
-
-    def make_fwd(self, overwrite=False):
-        # create the forward solution
-        os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
-
-        src = self.get('src')
-        trans = self.get('trans')
-        bem = self.get('bem-sol', fmatch=True)
-        fwd = self.get('fwd')
-        rawfif = self.get('raw-file')
-
-        mne.forward.make_forward_solution(rawfif, trans, src, bem, fwd,
-                                          eeg=False, ignore_ref=True,
-                                          overwrite=overwrite)
-
-        if os.path.exists(fwd):
-            self.logger.info('fwd: Forward Solution written to file')
-        else:
-            print '\n> ERROR:'
-            err = "fwd-file not created"
-            raise RuntimeError(err)
-
-    def make_fwd_c(self, fromfile=True, overwrite=False):
-        # create the forward solution
-        os.environ['SUBJECTS_DIR'] = self.get('mri_dir')
-
-        src = self.get('src')
-        trans = self.get('trans')
-        bem = self.get('bem')
-        fwd = self.get('fwd')
-        rawfif = self.get('raw-file')
-        mri_subject = self.get('subject')
-        cwd = self.get('mne_bin')
-
-        cmd = ['mne_do_forward_solution',
-           '--subject', mri_subject,
-           '--src', src,
-           '--bem', bem,
-           '--mri', trans,  # head-MRI coordinate transformation.
-           '--meas', rawfif,  # provides sensor locations
-           '--fwd', fwd,  # '--destdir', target_file_dir, # optional
-           '--megonly']
-
-        if overwrite:
-            cmd.append('--overwrite')
-        elif os.path.exists(fwd):
-            raise IOError("fwd file at %r already exists" % fwd)
-
-        sp = Popen(cmd, cwd=cwd, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = sp.communicate()
-
-        if stderr:
-            print stderr
-
-        if os.path.exists(fwd):
-            self.logger.info('fwd: Forward Solution written to file')
-        else:
-            print '\n> ERROR:'
-            err = "fwd-file not created"
-            err = os.linesep.join([err, "command out:", stdout])
-            raise RuntimeError(err)
-
 
     def make_stcs(self, ds, roi=None, evoked=True, verbose=False, method='dSPM',
                   **kwargs):
@@ -1006,7 +896,7 @@ def read_log(logfile, **kwargs):
     display = E.Factor(displays, name='display')
 
     if 'subject' in kwargs:
-        subject = E.Factor([kwargs['subject']], rep=len(latency), name='subject')
+        subject = E.Factor([kwargs['subject']], repeat=len(latency), name='subject')
         ds = E.Dataset(subject, display, ptb_trigger, latency, trigger_time)
     else:
         ds = E.Dataset(display, ptb_trigger, latency, trigger_time)
