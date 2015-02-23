@@ -1,4 +1,4 @@
-\begin{thebibliography}{35}
+\begin{thebibliography}{29}
 \providecommand{\natexlab}[1]{#1}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
@@ -25,22 +25,15 @@ Bemis, D.~K. and Pylkk{\"a}nen, L. (2011), Simple composition: a
   linguistic phrases, \emph{J Neurosci}, 31, 8, 2801--14,
   \doi{10.1523/JNEUROSCI.5003-10.2011}
 
+\bibitem[{\textbf{Binder et~al.}(2000)\textbf{Binder, Frost, Hammeke,
+  Bellgowan, Springer, Kaufman et~al.}}]{Binder:2000}
+Binder, J.~R., Frost, J.~A., Hammeke, T.~A., Bellgowan, P.~S., Springer, J.~A.,
+  Kaufman, J.~N., et~al. (2000), Human temporal lobe activation by speech and
+  nonspeech sounds, \emph{Cereb Cortex}, 10, 5, 512--28
+
 \bibitem[{\textbf{Butterworth}(1983)}]{Butterworth:1983}
 Butterworth, B. (1983), Lexical representation, in B.~Butterworth, ed.,
   Language production, volume~2 (Academic Press, London), chapter~2, 257--294
-
-\bibitem[{\textbf{Cohen et~al.}(2004)\textbf{Cohen, Jobert, Le~Bihan, and
-  Dehaene}}]{Cohen:2004}
-Cohen, L., Jobert, A., Le~Bihan, D., and Dehaene, S. (2004), Distinct unimodal
-  and multimodal regions for word processing in the left temporal cortex,
-  \emph{Neuroimage}, 23, 4, 1256--70, \doi{10.1016/j.neuroimage.2004.07.052}
-
-\bibitem[{\textbf{Dehaene et~al.}(2010)\textbf{Dehaene, Pegado, Braga, Ventura,
-  Filho, Jobert et~al.}}]{Dehaene:2010}
-Dehaene, S., Pegado, F., Braga, L.~W., Ventura, P., Filho, G.~N., Jobert, A.,
-  et~al. (2010), How learning to read changes the cortical networks for vision
-  and language, \emph{Science}, 330, 6009, 1359--1364,
-  \doi{10.1126/science.1194140}
 
 \bibitem[{\textbf{Drieghe et~al.}(2010)\textbf{Drieghe, Pollatsek, Juhasz, and
   Rayner}}]{Drieghe:2010}
@@ -111,17 +104,6 @@ Lau, E.~F., Phillips, C., and Poeppel, D. (2008), A cortical network for
   semantics: (de)constructing the n400, \emph{Nat Rev Neurosci}, 9, 12,
   920--33, \doi{10.1038/nrn2532}
 
-\bibitem[{\textbf{Lewis et~al.}(2011)\textbf{Lewis, Solomyak, and
-  Marantz}}]{Lewis:2011}
-Lewis, G., Solomyak, O., and Marantz, A. (2011), The neural basis of obligatory
-  decomposition of suffixed words, \emph{Brain Lang}, 118, 3, 118--27,
-  \doi{10.1016/j.bandl.2011.04.004}
-
-\bibitem[{\textbf{Libben}(1998)}]{Libben:1998}
-Libben, G. (1998), Semantic transparency in the processing of compounds:
-  consequences for representation, processing, and impairment, \emph{Brain
-  Lang}, 61, 1, 30--44, \doi{10.1006/brln.1997.1876}
-
 \bibitem[{\textbf{Longtin et~al.}(2003)\textbf{Longtin, Segui, and
   Hall{\'e}}}]{Longtin:2003}
 Longtin, C.-M., Segui, J., and Hall{\'e}, P.~A. (2003), Morphological priming
@@ -157,10 +139,6 @@ Morris, J., Frank, T., Grainger, J., and Holcomb, P.~J. (2007), Semantic
   \emph{Psychophysiology}, 44, 4, 506--21,
   \doi{10.1111/j.1469-8986.2007.00538.x}
 
-\bibitem[{\textbf{Pylkk{\"a}nen and Marantz}(2003)}]{Pylkkanen:2003}
-Pylkk{\"a}nen, L. and Marantz, A. (2003), Tracking the time course of word
-  recognition with meg, \emph{Trends Cogn Sci}, 7, 5, 187--189
-
 \bibitem[{\textbf{Rastle and Davis}(2003)}]{Rastle:2003}
 Rastle, K. and Davis, M.~H. (2003), Reading Morphologically Complex Words
   (Psychology Press, New York)
@@ -170,16 +148,6 @@ Rastle, K. and Davis, M.~H. (2003), Reading Morphologically Complex Words
 Rastle, K., Davis, M.~H., and New, B. (2004), The broth in my brother's
   brothel: morpho-orthographic segmentation in visual word recognition,
   \emph{Psychonomic Bulletin \& Review}, 11, 6, 1090--8
-
-\bibitem[{\textbf{Roelofs and Baayen}(2002)}]{Roelofs:2002}
-Roelofs, A. and Baayen, H. (2002), Morphology by itself in planning the
-  production of spoken words, \emph{Psychonomic Bulletin \& Review}, 9, 1,
-  132--8
-
-\bibitem[{\textbf{Solomyak and Marantz}(2010)}]{Solomyak:2010}
-Solomyak, O. and Marantz, A. (2010), Evidence for early morphological
-  decomposition in visual word recognition, \emph{J Cogn Neurosci}, 22, 9,
-  2042--57, \doi{10.1162/jocn.2009.21296}
 
 \bibitem[{\textbf{Taft}(2004)}]{Taft:2004}
 Taft, M. (2004), Morphological decomposition and the reverse base frequency
