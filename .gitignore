@@ -34,3 +34,7 @@ basic.egg-info/SOURCES.txt
 *.m
 
 /scripts/besa
+
+*.egg*
+
+*.tar*
