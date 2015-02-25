@@ -55,6 +55,8 @@ class NMG(FileTree):
             if re.match(pat, subject):
                 subjects.append(subject)
                 subjects.sort()
+            elif not subjects and 'group' in folders:
+                subjects.append('group')
 
         return FileTree._register_field(self, 'subject', subjects)
 

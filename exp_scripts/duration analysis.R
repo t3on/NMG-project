@@ -1,5 +1,16 @@
 library(lme4)
 library(ez)
+
+library('lme4')
+
+duration_ds <- read.delim("~/Dropbox/academic/Experiments/NMG/data/group/duration_ds.txt")
+
+constituent = duration_ds[(duration_ds$condition == 'control_constituent') | 
+                            (duration_ds$condition == 'first_constituent'),]
+model <- lmer(constituent_duration~log_freq + condition*wordtype + (1|subject) + (1+wordtype|word), 
+              data = constituent)
+
+# old
 setwd("/Users/teon/Dropbox/Experiments/NMG/data/group")
 
 data = read.table('duration_ds.txt', header=T)
