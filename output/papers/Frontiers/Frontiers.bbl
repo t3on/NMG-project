@@ -1,0 +1,172 @@
+\begin{thebibliography}{29}
+\providecommand{\natexlab}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+\providecommand{\selectlanguage}[1]{\relax}
+
+\bibitem[{\textbf{Adachi et~al.}(2001)\textbf{Adachi, Shimogawara, Higuchi,
+  Haruta, and Ochiai}}]{Adachi:2001}
+Adachi, Y., Shimogawara, M., Higuchi, M., Haruta, Y., and Ochiai, M. (2001),
+  Reduction of non-periodic environmental magnetic noise in meg measurement by
+  continuously adjusted least squares method, \emph{Applied Superconductivity,
+  IEEE Transactions on}, 11, 1, 669 --672, \doi{10.1109/77.919433}
+
+\bibitem[{\textbf{Balota et~al.}(2007)\textbf{Balota, Yap, Cortese, Hutchison,
+  Kessler, Loftis et~al.}}]{Balota:2007}
+Balota, D.~A., Yap, M.~J., Cortese, M.~J., Hutchison, K.~A., Kessler, B.,
+  Loftis, B., et~al. (2007), The english lexicon project, \emph{Behav Res
+  Methods}, 39, 3, 445--59
+
+\bibitem[{\textbf{Bemis and Pylkk{\"a}nen}(2011)}]{Bemis:2011}
+Bemis, D.~K. and Pylkk{\"a}nen, L. (2011), Simple composition: a
+  magnetoencephalography investigation into the comprehension of minimal
+  linguistic phrases, \emph{J Neurosci}, 31, 8, 2801--14,
+  \doi{10.1523/JNEUROSCI.5003-10.2011}
+
+\bibitem[{\textbf{Binder et~al.}(2000)\textbf{Binder, Frost, Hammeke,
+  Bellgowan, Springer, Kaufman et~al.}}]{Binder:2000}
+Binder, J.~R., Frost, J.~A., Hammeke, T.~A., Bellgowan, P.~S., Springer, J.~A.,
+  Kaufman, J.~N., et~al. (2000), Human temporal lobe activation by speech and
+  nonspeech sounds, \emph{Cereb Cortex}, 10, 5, 512--28
+
+\bibitem[{\textbf{Butterworth}(1983)}]{Butterworth:1983}
+Butterworth, B. (1983), Lexical representation, in B.~Butterworth, ed.,
+  Language production, volume~2 (Academic Press, London), chapter~2, 257--294
+
+\bibitem[{\textbf{Drieghe et~al.}(2010)\textbf{Drieghe, Pollatsek, Juhasz, and
+  Rayner}}]{Drieghe:2010}
+Drieghe, D., Pollatsek, A., Juhasz, B.~J., and Rayner, K. (2010), Parafoveal
+  processing during reading is reduced across a morphological boundary,
+  \emph{Cognition}, 116, 1, 136--42, \doi{10.1016/j.cognition.2010.03.016}
+
+\bibitem[{\textbf{Fiorentino and Fund-Reznicek}(2009)}]{Fiorentino:2009}
+Fiorentino, R. and Fund-Reznicek, E. (2009), Masked morphological priming of
+  compound constituents, \emph{The Mental Lexicon}, 4, 2, 159--193,
+  \doi{doi:10.1075/ml.4.2.01fio}
+
+\bibitem[{\textbf{Fiorentino et~al.}(2013)\textbf{Fiorentino, Naito-Billen,
+  Bost, and Fund-Reznicek}}]{Fiorentino:2013}
+Fiorentino, R., Naito-Billen, Y., Bost, J., and Fund-Reznicek, E. (2013),
+  Electrophysiological evidence for the morpheme-based combinatoric processing
+  of english compounds, \emph{Cognitive Neuropsychology}, 1--24,
+  \doi{10.1080/02643294.2013.855633}
+
+\bibitem[{\textbf{Fiorentino and Poeppel}(2007)}]{Fiorentino:2007}
+Fiorentino, R. and Poeppel, D. (2007), Compound words and structure in the
+  lexicon, \emph{Language and Cognitive Processes}, 22, 7, 953--1000,
+  \doi{10.1080/01690960701190215}
+
+\bibitem[{\textbf{Friederici et~al.}(2000)\textbf{Friederici, Wang, Herrmann,
+  Maess, and Oertel}}]{Friederici:2000}
+Friederici, A.~D., Wang, Y., Herrmann, C.~S., Maess, B., and Oertel, U. (2000),
+  Localization of early syntactic processes in frontal and temporal cortical
+  areas: a magnetoencephalographic study, \emph{Hum Brain Mapp}, 11, 1, 1--11
+
+\bibitem[{\textbf{Giraudo and Grainger}(2001)}]{Giraudo:2001}
+Giraudo, H. and Grainger, J. (2001), Priming complex words: evidence for
+  supralexical representation of morphology, \emph{Psychonomic Bulletin \&
+  Review}, 8, 1, 127--31
+
+\bibitem[{\textbf{Gramfort et~al.}(2013{\natexlab{a}})\textbf{Gramfort, Luessi,
+  Larson, Engemann, Strohmeier, Brodbeck et~al.}}]{Gramfort:2013a}
+Gramfort, A., Luessi, M., Larson, E., Engemann, D.~A., Strohmeier, D.,
+  Brodbeck, C., et~al. (2013{\natexlab{a}}), Meg and eeg data analysis with
+  mne-python, \emph{Frontiers in Neuroscience}, 7, 267,
+  \doi{10.3389/fnins.2013.00267}
+
+\bibitem[{\textbf{Gramfort et~al.}(2013{\natexlab{b}})\textbf{Gramfort, Luessi,
+  Larson, Engemann, Strohmeier, Brodbeck et~al.}}]{Gramfort:2013}
+Gramfort, A., Luessi, M., Larson, E., Engemann, D.~A., Strohmeier, D.,
+  Brodbeck, C., et~al. (2013{\natexlab{b}}), Mne software for processing meg
+  and eeg data, \emph{Neuroimage}, \doi{10.1016/j.neuroimage.2013.10.027}
+
+\bibitem[{\textbf{Hansen et~al.}(2010)\textbf{Hansen, Kringelbach, and
+  Salmelin}}]{Hansen:2010}
+Hansen, P.~C., Kringelbach, M.~L., and Salmelin, R. (2010), MEG: An
+  Introduction to Methods (Oxford University Press, USA)
+
+\bibitem[{\textbf{Hickok and Poeppel}(2007)}]{Hickok:2007}
+Hickok, G. and Poeppel, D. (2007), The cortical organization of speech
+  processing, \emph{Nat Rev Neurosci}, 8, 5, 393--402, \doi{10.1038/nrn2113}
+
+\bibitem[{\textbf{Juhasz et~al.}(2003)\textbf{Juhasz, Starr, Inhoff, and
+  Placke}}]{Juhasz:2003}
+Juhasz, B.~J., Starr, M.~S., Inhoff, A.~W., and Placke, L. (2003), The effects
+  of morphology on the processing of compound words: Evidence from naming,
+  lexical decisions and eye fixations, \emph{British Journal of Psychology},
+  94, 2, 223--244, \doi{10.1348/000712603321661903}
+
+\bibitem[{\textbf{Lau et~al.}(2008)\textbf{Lau, Phillips, and
+  Poeppel}}]{Lau:2008}
+Lau, E.~F., Phillips, C., and Poeppel, D. (2008), A cortical network for
+  semantics: (de)constructing the n400, \emph{Nat Rev Neurosci}, 9, 12,
+  920--33, \doi{10.1038/nrn2532}
+
+\bibitem[{\textbf{Longtin et~al.}(2003)\textbf{Longtin, Segui, and
+  Hall{\'e}}}]{Longtin:2003}
+Longtin, C.-M., Segui, J., and Hall{\'e}, P.~A. (2003), Morphological priming
+  without morphological relationship, \emph{Language and Cognitive Processes},
+  18, 3, 313--334, \doi{10.1080/01690960244000036}
+
+\bibitem[{\textbf{Maris and Oostenveld}(2007)}]{Maris:2007}
+Maris, E. and Oostenveld, R. (2007), Nonparametric statistical testing of eeg-
+  and meg-data, \emph{J Neurosci Methods}, 164, 1, 177--90
+
+\bibitem[{\textbf{Marslen-Wilson et~al.}(1994)\textbf{Marslen-Wilson, Tyler,
+  Waksler, and Older}}]{Marslen-Wilson:1994}
+Marslen-Wilson, W., Tyler, L.~K., Waksler, R., and Older, L. (1994), Morphology
+  and meaning in the english mental lexicon, \emph{Psychological Review}, 101,
+  1, 3--33
+
+\bibitem[{\textbf{McCormick et~al.}(2008)\textbf{McCormick, Rastle, and
+  Davis}}]{McCormick:2008}
+McCormick, S.~F., Rastle, K., and Davis, M.~H. (2008), Is there a 'fete' in
+  'fetish'? effects of orthographic opacity on morpho-orthographic segmentation
+  in visual word recognition, \emph{Journal of Memory and Language}, 58, 2, 307
+  -- 326, \doi{10.1016/j.jml.2007.05.006}
+
+\bibitem[{\textbf{Meunier and Longtin}(2007)}]{Meunier:2007}
+Meunier, F. and Longtin, C.-M. (2007), Morphological decomposition and semantic
+  integration in word processing, \emph{Journal of Memory and Language}, 56, 4,
+  457 -- 471, \doi{10.1016/j.jml.2006.11.005}
+
+\bibitem[{\textbf{Morris et~al.}(2007)\textbf{Morris, Frank, Grainger, and
+  Holcomb}}]{Morris:2007}
+Morris, J., Frank, T., Grainger, J., and Holcomb, P.~J. (2007), Semantic
+  transparency and masked morphological priming: an erp investigation,
+  \emph{Psychophysiology}, 44, 4, 506--21,
+  \doi{10.1111/j.1469-8986.2007.00538.x}
+
+\bibitem[{\textbf{Rastle and Davis}(2003)}]{Rastle:2003}
+Rastle, K. and Davis, M.~H. (2003), Reading Morphologically Complex Words
+  (Psychology Press, New York)
+
+\bibitem[{\textbf{Rastle et~al.}(2004)\textbf{Rastle, Davis, and
+  New}}]{Rastle:2004}
+Rastle, K., Davis, M.~H., and New, B. (2004), The broth in my brother's
+  brothel: morpho-orthographic segmentation in visual word recognition,
+  \emph{Psychonomic Bulletin \& Review}, 11, 6, 1090--8
+
+\bibitem[{\textbf{Taft}(2004)}]{Taft:2004}
+Taft, M. (2004), Morphological decomposition and the reverse base frequency
+  effect, \emph{Q J Exp Psychol A}, 57, 4, 745--65,
+  \doi{10.1080/02724980343000477}
+
+\bibitem[{\textbf{Taft and Forster}(1975)}]{Taft:1975}
+Taft, M. and Forster, K.~I. (1975), Lexical storage and retrieval of prefixed
+  words, \emph{Journal of Verbal Learning and Verbal Behavior}, 14, 6, 638 --
+  647, \doi{10.1016/S0022-5371(75)80051-X}
+
+\bibitem[{\textbf{Zweig and Pylkk{\"a}nen}(2009)}]{Zweig:2009}
+Zweig, E. and Pylkk{\"a}nen, L. (2009), A visual m170 effect of morphological
+  complexity, \emph{Language and Cognitive Processes}, 24, 3, 412--439,
+  \doi{10.1080/01690960802180420}
+
+\bibitem[{\textbf{Zwitserlood}(1994)}]{Zwitserlood:1994}
+Zwitserlood, P. (1994), The role of semantic transparency in the processing and
+  representation of dutch compounds, \emph{Language and Cognitive Processes},
+  9, 3, 341--368, \doi{10.1080/01690969408402123}
+
+\end{thebibliography}
