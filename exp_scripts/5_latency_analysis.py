@@ -12,19 +12,20 @@ import eelbrain as E
 
 
 group_ds = []
-e = process.NMG(None, '{db_dir}')
 e.exclude = {}
+e = process.NMG(None, '{home}')
 e.set(datatype='behavioral')
 e.set(analysis='latency_revision')
 
 
-if os.path.exists(e.get('agg-file')):
+if not redo and os.path.exists(e.get('agg-file')):
     group_ds = E.load.tsv(e.get('agg-file'))
     group_ds['subject'].random = True
 else:
     for _ in e:
         ds = e.load_events(proj=False)
         ds = ds[ds['target'] == 'target']
+        ds = ds[ds['wordtype'] != 'novel']
         orig_N = ds.n_cases
         ds['latency'].x = ds['latency'].x * 1e3
 
@@ -39,11 +40,9 @@ else:
         group_ds.append(ds)
 
     group_ds = E.combine(group_ds)
-    group_ds = group_ds.aggregate('condition % wordtype % subject', drop_bad=True)
     group_ds.save_txt(e.get('agg-file'))
 
-# exclude novel
-group_ds = group_ds[group_ds['wordtype'].isany('transparent', 'opaque', 'ortho')]
+group_ds = group_ds.aggregate('condition % wordtype % subject', drop_bad=True)
 ct = E.Celltable(Y='latency', X='wordtype % condition', match='subject', ds=group_ds)
 
 ###########################
@@ -57,62 +56,42 @@ t.save_pdf(e.get('analysis-file') + '.pdf')
 t.save_tex(e.get('analysis-file') + '.tex')
 
 opaque = ct.data[('opaque', 'first_constituent')] - ct.data[('opaque', 'control_constituent')]
-ortho = ct.data[('ortho', 'first_constituent')] - ct.data[('ortho', 'control_constituent')]
+simplex = ct.data[('simplex', 'first_constituent')] - ct.data[('simplex', 'control_constituent')]
 transparent = ct.data[('transparent', 'first_constituent')] - ct.data[('transparent', 'control_constituent')]
 
-Y = E.combine((opaque, ortho, transparent))
-X = E.Factor(('opaque', 'ortho', 'transparent'),
-             rep=len(group_ds['subject'].cells), name='wordtype')
-sub = E.Factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
-group_plot = E.Dataset()
-group_plot['sub'] = sub
-group_plot['Y'] = Y
-group_plot['X'] = X
+Y = E.combine((opaque, simplex, transparent))
+X = E.Factor(('opaque', 'simplex', 'transparent'),
+             repeat=len(group_ds['subject'].cells), name='wordtype')
+sub = E.Factor(group_ds['subject'].cells, tile=len(X.cells), name='subject', random=True)
+group_int = E.Dataset()
+group_int['subject'] = sub
+group_int['latency'] = Y
+group_int['wordtype'] = X
 
-p = E.plot.Barplot(Y, X, match=sub, corr=False,
+p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False,
                    ylabel='Priming Difference (ms)', xlabel='Word Type',
                    title="Partial-Repetition Priming Onset Latency Difference Means",
-                   show=False, test=False)
+                   show=False, test=False, ds=group_int)
 p.figure.savefig(e.get('plot-file'))
 
-# a = E.test.pairwise(Y,X, match=sub, corr=None)
-# a.save_tex(e.get('analysis-file') + '-pairwise.tex')
-# a.save_pdf(e.get('analysis-file') + '-pairwise.pdf')
-
-p = E.plot.Barplot(Y, X, match=sub, corr=False, test=0,
+p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False, test=0,
                    ylabel='Priming Difference (ms)', xlabel='Word Type',
                    title="Partial-Repetition Priming Onset Latency Difference Means",
-                   show=False)
+                   show=False, ds=group_int)
 e.set(analysis='latency_revision_constituent_zero')
 p.figure.savefig(e.get('plot-file'))
-a = E.test.ttests(Y,X, against=0, match=sub)
 
-#########################
-#    identity anova     #
-#########################
-e.set(analysis='latency_revision_identity')
-idx = group_ds['condition'].isany('control_identity', 'identity')
-a2 = E.test.anova(Y=group_ds['latency'], X='subject * wordtype * condition',
-                 sub=idx, ds=group_ds)
-t2 = a2.table()
-t2.save_pdf(e.get('analysis-file') + '.pdf')
-t2.save_tex(e.get('analysis-file') + '.tex')
+wtypes = list(group_int['wordtype'].cells)
+wtypes.remove('simplex')
+planned_comparisons = []
+for wtype in wtypes:
+    idx = group_int['wordtype'].isany('simplex', wtype)
+    ds = group_int[idx]
+    a = E.test.anova(Y='latency', X='subject*wordtype', ds=ds)
+    planned_comparisons.append((wtype, a))
 
-opaque = ct.data[('opaque', 'control_identity')] - ct.data[('opaque', 'identity')]
-ortho = ct.data[('ortho', 'control_identity')] - ct.data[('ortho', 'identity')]
-transparent = ct.data[('transparent', 'control_identity')] - ct.data[('transparent', 'identity')]
+idx = group_int['wordtype'].isany('transparent', 'opaque')
+ds = group_int[idx]
+a = E.test.anova(Y='latency', X='subject*wordtype', ds=ds)
+planned_comparisons.append(('compounds', a))
 
-Y = E.combine((opaque, ortho, transparent))
-X = E.Factor(('opaque', 'ortho', 'transparent'),
-             rep=len(group_ds['subject'].cells), name='wordtype')
-sub = E.Factor(group_ds['subject'].cells, rep=len(X.cells), name='subject', random=True)
-group_plot = E.Dataset(sub, Y, X)
-
-p2 = E.plot.uv.barplot(Y, X, match=sub, figsize=(10, 5), corr=False,
-                       ylabel='Latency Priming Difference in ms', test=0,
-                       title="Identity Priming Latency Difference Means")
-p2.fig.savefig(e.get('plot-file'))
-
-a2 = E.test.pairwise(Y,X, match=sub, corr=None)
-a2.save_tex(e.get('analysis-file') + '-pairwise.tex')
-a2.save_pdf(e.get('analysis-file') + '-pairwise.pdf')
