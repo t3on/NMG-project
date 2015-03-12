@@ -19,6 +19,7 @@ t = {
     'server': os.path.join('/Volumes', 'server', 'MORPHLAB', 'Teon'),
     'home': os.path.join('/Volumes', 'teon-backup', 'Experiments'),
     'office': os.path.join('/Volumes', 'GLYPH-1 TB', 'Experiments'),
+    'dropbox': os.path.join(os.path.expanduser('~'), 'Dropbox', 'academic', 'Experiments'),
 
     # keywords
     'common_brain': 'fsaverage',
@@ -35,15 +36,14 @@ t = {
     'plot_ext': 'pdf',
 
     # db dirs
-    'db_dir': os.path.join(os.path.expanduser('~'), 'Dropbox', 'academic', 'Experiments'),
-    'results_dir': os.path.join('/', 'Applications', 'packages', 'NMG-project', 'output', '{datatype}'),
+    'results_dir': os.path.join('{dropbox}', '{experiment}', 'output', '{datatype}'),
 
     # basic dir
     'exp_dir': os.path.join('{root}', '{experiment}', 'data'),
     'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
     'data_sdir': os.path.join('{exp_sdir}', 'data'),
     'meg_dir': os.path.join('{root}', '{experiment}', 'data'),
-    'group_dir': os.path.join('{meg_dir}', 'group'),
+    'group_dir': os.path.join('{dropbox}', '{experiment}', 'data', 'group'),
     'server_dir': os.path.join('{server}', 'data', '{experiment}'),
     'external_dir': os.path.join('{external}', 'Experiments'),
     'backup_dir': os.path.join('{backup}', 'Experiments'),
@@ -66,7 +66,7 @@ t = {
     'raw_sdir': os.path.join('{exp_sdir}', 'raw'),
     'eeg_sdir': os.path.join('{exp_sdir}', 'eeg'),
     'beh_sdir': os.path.join('{exp_sdir}', 'behavioral'),
-    'script_dir': os.path.join('{db_dir}', '{experiment}', 'stims',
+    'script_dir': os.path.join('{dropbox}', '{experiment}', 'stims',
                                'transcripts'),
     'audio_sdir': os.path.join('{beh_sdir}', 'audio'),
     'log_sdir': os.path.join('{beh_sdir}', 'logs'),
@@ -75,8 +75,6 @@ t = {
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
     'bads-file': os.path.join('{data_sdir}', '{s_e}_{raw}_bads.txt'),
     'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
-    'data-file': os.path.join('{data_sdir}', '{s_e}_{analysis}.pickled'),
-    'group-file': os.path.join('{group_dir}', 'group_{analysis}.pickled'),
 
     'helmet_png': os.path.join('{results_dir}', 'coreg', '{s_e}' + '.png'),
     'plot-file': os.path.join('{results_dir}', 'images', '{analysis}_analysis.{plot_ext}'),
@@ -105,7 +103,7 @@ t = {
     # raw files
     'raw-sqd': os.path.join('{raw_sdir}', '{s_e}' + '_{denoise}.sqd'),
     'log-file': os.path.join('{log_sdir}', '{subject}_log.txt'),
-    'stim_info': os.path.join('{db_dir}', '{experiment}', 'input',
+    'stim_info': os.path.join('{dropbox}', '{experiment}', 'input',
                               'exp', 'stims', 'stims_info.mat'),
     'mrk': os.path.join('{raw_sdir}', '{subject}*marker*'),
     'posttest-mrk': os.path.join('{raw_sdir}',

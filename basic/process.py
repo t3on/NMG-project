@@ -50,13 +50,13 @@ class NMG(FileTree):
                         eval_handler=None, post_set_handler=None):
         folders = os.listdir(self.get('exp_dir'))
         pat = re.compile('R[0-9]{4}')
-        subjects = []
+        subjects = []        
         for subject in folders:
             if re.match(pat, subject):
                 subjects.append(subject)
-                subjects.sort()
-            elif not subjects and 'group' in folders:
-                subjects.append('group')
+        if not subjects and 'group' in folders:
+            subjects.append('group')
+        subjects.sort()
 
         return FileTree._register_field(self, 'subject', subjects)
 
