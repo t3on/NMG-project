@@ -11,9 +11,9 @@ import basic.process as process
 import eelbrain as E
 
 
-group_ds = []
-e.exclude = {}
-e = process.NMG(None, '{home}')
+redo = False
+e = process.NMG(None, '{dropbox}')
+e.exclude['subject'] = ['R0414']
 e.set(datatype='behavioral')
 e.set(analysis='latency_revision')
 
@@ -52,8 +52,8 @@ e.set(analysis='latency_revision_constituent')
 idx = group_ds['condition'].isany('control_constituent', 'first_constituent')
 a = E.test.anova(Y='latency', X='subject*wordtype*condition', sub=idx, ds=group_ds)
 t = a.table()
-t.save_pdf(e.get('analysis-file') + '.pdf')
-t.save_tex(e.get('analysis-file') + '.tex')
+# t.save_pdf(e.get('analysis-file') + '.pdf')
+# t.save_tex(e.get('analysis-file') + '.tex')
 
 opaque = ct.data[('opaque', 'first_constituent')] - ct.data[('opaque', 'control_constituent')]
 simplex = ct.data[('simplex', 'first_constituent')] - ct.data[('simplex', 'control_constituent')]
@@ -68,18 +68,18 @@ group_int['subject'] = sub
 group_int['latency'] = Y
 group_int['wordtype'] = X
 
-p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False,
-                   ylabel='Priming Difference (ms)', xlabel='Word Type',
-                   title="Partial-Repetition Priming Onset Latency Difference Means",
-                   show=False, test=False, ds=group_int)
-p.figure.savefig(e.get('plot-file'))
-
-p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False, test=0,
-                   ylabel='Priming Difference (ms)', xlabel='Word Type',
-                   title="Partial-Repetition Priming Onset Latency Difference Means",
-                   show=False, ds=group_int)
-e.set(analysis='latency_revision_constituent_zero')
-p.figure.savefig(e.get('plot-file'))
+# p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False,
+#                    ylabel='Priming Difference (ms)', xlabel='Word Type',
+#                    title="Partial-Repetition Priming Onset Latency Difference Means",
+#                    show=False, test=False, ds=group_int)
+# p.figure.savefig(e.get('plot-file'))
+#
+# p = E.plot.Barplot('latency', 'wordtype', match='subject', corr=False, test=0,
+#                    ylabel='Priming Difference (ms)', xlabel='Word Type',
+#                    title="Partial-Repetition Priming Onset Latency Difference Means",
+#                    show=False, ds=group_int)
+# e.set(analysis='latency_revision_constituent_zero')
+# p.figure.savefig(e.get('plot-file'))
 
 wtypes = list(group_int['wordtype'].cells)
 wtypes.remove('simplex')

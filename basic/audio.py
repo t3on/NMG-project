@@ -15,10 +15,9 @@ from basic import process
 from pyphon import pyphon as pyp
 
 
-def order_textgrids(data_sdir):
-    subject = os.path.basename(data_sdir)
-    script_dir = '/Volumes/GLYPH-1 TB/Experiments/NMG/data/group/transcripts'
-    textgrids = glob(os.path.join(data_sdir, 'behavioral', 'audio', '*.TextGrid'))
+def order_textgrids(subject, data_sdir):
+    script_dir = os.path.join(data_sdir, '../../../group/transcripts')
+    textgrids = glob(os.path.join(data_sdir, '*.TextGrid'))
     grids = [os.path.splitext(os.path.basename(grid))[0] for grid in textgrids] 
     grids = [grid.split('_') for grid in grids]
     if grids[0][0].isdigit():

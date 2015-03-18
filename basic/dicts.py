@@ -12,7 +12,7 @@ t = {
     # experiment
     'experiment': 'NMG',
     'mne_bin': os.path.join('/Applications/mne/bin'),
-    'root': '{office}',
+    'root': '{dropbox}',
     
     # drives
     'nyu': os.path.join(os.path.expanduser('~'), 'Experiments'),

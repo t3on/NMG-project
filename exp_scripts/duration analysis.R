@@ -4,11 +4,14 @@ library(ez)
 library('lme4')
 
 duration_ds <- read.delim("~/Dropbox/academic/Experiments/NMG/data/group/duration_ds.txt")
-
+duration_ds$compare = C(constituent$opaque + constituent$novel + constituent$transparent)
+duration_ds$wordtype = C(duration_ds$wordtype, base=3)
 constituent = duration_ds[(duration_ds$condition == 'control_constituent') | 
                             (duration_ds$condition == 'first_constituent'),]
 model <- lmer(constituent_duration~log_freq + condition*wordtype + (1|subject) + (1+wordtype|word), 
               data = constituent)
+model = lmer(constituent_duration~log_freq + opaque + transparent + novel + condition + (1+condition|subject)
+             + (1+condition|word), data = constituent)
 
 # old
 setwd("/Users/teon/Dropbox/Experiments/NMG/data/group")
