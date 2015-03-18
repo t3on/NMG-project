@@ -6,45 +6,45 @@ Database file #1: library.bib
 Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
 Warning--can't use both author and editor fields in Hansen:2010
 Warning--can't use both author and editor fields in Rastle:2003
-You've used 29 entries,
+You've used 34 entries,
             3038 wiz_defined-function locations,
-            841 strings with 10697 characters,
-and the built_in function-call counts, 20376 in all, are:
-= -- 1544
-> -- 1081
-< -- 15
-+ -- 534
-- -- 290
-* -- 1683
-:= -- 2772
+            880 strings with 11698 characters,
+and the built_in function-call counts, 23559 in all, are:
+= -- 1787
+> -- 1237
+< -- 19
++ -- 610
+- -- 332
+* -- 1936
+:= -- 3213
 add.period$ -- 0
-call.type$ -- 29
-change.case$ -- 239
-chr.to.int$ -- 30
-cite$ -- 31
-duplicate$ -- 1477
-empty$ -- 1541
-format.name$ -- 390
-if$ -- 4130
+call.type$ -- 34
+change.case$ -- 278
+chr.to.int$ -- 35
+cite$ -- 36
+duplicate$ -- 1721
+empty$ -- 1789
+format.name$ -- 451
+if$ -- 4772
 int.to.chr$ -- 2
 int.to.str$ -- 1
-missing$ -- 296
-newline$ -- 95
-num.names$ -- 118
-pop$ -- 657
+missing$ -- 343
+newline$ -- 110
+num.names$ -- 138
+pop$ -- 750
 preamble$ -- 1
-purify$ -- 212
+purify$ -- 246
 quote$ -- 0
-skip$ -- 816
+skip$ -- 951
 stack$ -- 0
-substring$ -- 843
-swap$ -- 831
+substring$ -- 964
+swap$ -- 963
 text.length$ -- 2
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 255
+type$ -- 300
 warning$ -- 2
-while$ -- 116
+while$ -- 136
 width$ -- 0
-write$ -- 343
+write$ -- 400
 (There were 2 warnings)

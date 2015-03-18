@@ -1,4 +1,4 @@
-\begin{thebibliography}{29}
+\begin{thebibliography}{34}
 \providecommand{\natexlab}[1]{#1}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
@@ -31,15 +31,31 @@ Binder, J.~R., Frost, J.~A., Hammeke, T.~A., Bellgowan, P.~S., Springer, J.~A.,
   Kaufman, J.~N., et~al. (2000), Human temporal lobe activation by speech and
   nonspeech sounds, \emph{Cereb Cortex}, 10, 5, 512--28
 
+\bibitem[{\textbf{Brainard}(1997)}]{Brainard:1997}
+Brainard, D.~H. (1997), The psychophysics toolbox, \emph{Spat Vis}, 10, 4,
+  433--6
+
 \bibitem[{\textbf{Butterworth}(1983)}]{Butterworth:1983}
 Butterworth, B. (1983), Lexical representation, in B.~Butterworth, ed.,
   Language production, volume~2 (Academic Press, London), chapter~2, 257--294
+
+\bibitem[{\textbf{Dale et~al.}(2000)\textbf{Dale, Liu, Fischl, Buckner,
+  Belliveau, Lewine et~al.}}]{Dale:2000}
+Dale, A.~M., Liu, A.~K., Fischl, B.~R., Buckner, R.~L., Belliveau, J.~W.,
+  Lewine, J.~D., et~al. (2000), Dynamic statistical parametric mapping:
+  combining fmri and meg for high-resolution imaging of cortical activity,
+  \emph{Neuron}, 26, 1, 55--67
 
 \bibitem[{\textbf{Drieghe et~al.}(2010)\textbf{Drieghe, Pollatsek, Juhasz, and
   Rayner}}]{Drieghe:2010}
 Drieghe, D., Pollatsek, A., Juhasz, B.~J., and Rayner, K. (2010), Parafoveal
   processing during reading is reduced across a morphological boundary,
   \emph{Cognition}, 116, 1, 136--42, \doi{10.1016/j.cognition.2010.03.016}
+
+\bibitem[{\textbf{Engemann and Gramfort}(2014)}]{Engemann:2014}
+Engemann, D.~A. and Gramfort, A. (2014), Automated model selection in
+  covariance estimation and spatial whitening of meg and eeg signals,
+  \emph{Neuroimage}, \doi{10.1016/j.neuroimage.2014.12.040}
 
 \bibitem[{\textbf{Fiorentino and Fund-Reznicek}(2009)}]{Fiorentino:2009}
 Fiorentino, R. and Fund-Reznicek, E. (2009), Masked morphological priming of
@@ -57,6 +73,12 @@ Fiorentino, R., Naito-Billen, Y., Bost, J., and Fund-Reznicek, E. (2013),
 Fiorentino, R. and Poeppel, D. (2007), Compound words and structure in the
   lexicon, \emph{Language and Cognitive Processes}, 22, 7, 953--1000,
   \doi{10.1080/01690960701190215}
+
+\bibitem[{\textbf{Forster and Davis}(1984)}]{Forster:1984}
+Forster, K.~I. and Davis, C. (1984), Repetition priming and frequency
+  attenuation in lexical access., \emph{Journal of Experimental Psychology:
+  Learning, Memory, and Cognition}, 10, 4, 680--698,
+  \doi{10.1037/0278-7393.10.4.680}
 
 \bibitem[{\textbf{Friederici et~al.}(2000)\textbf{Friederici, Wang, Herrmann,
   Maess, and Oertel}}]{Friederici:2000}
@@ -148,6 +170,11 @@ Rastle, K. and Davis, M.~H. (2003), Reading Morphologically Complex Words
 Rastle, K., Davis, M.~H., and New, B. (2004), The broth in my brother's
   brothel: morpho-orthographic segmentation in visual word recognition,
   \emph{Psychonomic Bulletin \& Review}, 11, 6, 1090--8
+
+\bibitem[{\textbf{Semenza and Luzzatti}(2014)}]{Semenza:2014}
+Semenza, C. and Luzzatti, C. (2014), Combining words in the brain: the
+  processing of compound words. introduction to the special issue, \emph{Cogn
+  Neuropsychol}, 31, 1-2, 1--7, \doi{10.1080/02643294.2014.898922}
 
 \bibitem[{\textbf{Taft}(2004)}]{Taft:2004}
 Taft, M. (2004), Morphological decomposition and the reverse base frequency
