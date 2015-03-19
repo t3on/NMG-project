@@ -11,21 +11,21 @@ import basic.process as process
 import eelbrain as E
 
 
-redo = False
-e = process.NMG(None, '{dropbox}')
+redo = True
+e = process.NMG(None, '{office}')
 e.exclude['subject'] = ['R0414']
 e.set(datatype='behavioral')
-e.set(analysis='latency_revision')
+e.set(analysis='latency')
 
 
 if not redo and os.path.exists(e.get('agg-file')):
     group_ds = E.load.tsv(e.get('agg-file'))
     group_ds['subject'].random = True
 else:
+    group_ds = []
     for _ in e:
         ds = e.load_events(proj=False)
         ds = ds[ds['target'] == 'target']
-        ds = ds[ds['wordtype'] != 'novel']
         orig_N = ds.n_cases
         ds['latency'].x = ds['latency'].x * 1e3
 

@@ -1,4 +1,4 @@
-\begin{thebibliography}{34}
+\begin{thebibliography}{36}
 \providecommand{\natexlab}[1]{#1}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
@@ -45,6 +45,13 @@ Dale, A.~M., Liu, A.~K., Fischl, B.~R., Buckner, R.~L., Belliveau, J.~W.,
   Lewine, J.~D., et~al. (2000), Dynamic statistical parametric mapping:
   combining fmri and meg for high-resolution imaging of cortical activity,
   \emph{Neuron}, 26, 1, 55--67
+
+\bibitem[{\textbf{Dohmes et~al.}(2004)\textbf{Dohmes, Zwitserlood, and
+  B{\"o}lte}}]{Dohmes:2004}
+Dohmes, P., Zwitserlood, P., and B{\"o}lte, J. (2004), The impact of semantic
+  transparency of morphologically complex words on picture naming, \emph{Brain
+  and Language}, 90, 1--3, 203--212,
+  \doi{http://dx.doi.org/10.1016/S0093-934X(03)00433-4}
 
 \bibitem[{\textbf{Drieghe et~al.}(2010)\textbf{Drieghe, Pollatsek, Juhasz, and
   Rayner}}]{Drieghe:2010}
@@ -160,6 +167,12 @@ Morris, J., Frank, T., Grainger, J., and Holcomb, P.~J. (2007), Semantic
   transparency and masked morphological priming: an erp investigation,
   \emph{Psychophysiology}, 44, 4, 506--21,
   \doi{10.1111/j.1469-8986.2007.00538.x}
+
+\bibitem[{\textbf{Neely}(1991)}]{Neely:1991}
+Neely, J.~H. (1991), Semantic priming effects in visual word recognition: A
+  selective review of current findings and theories, in D.~Besner and G.~W.
+  Humphreys, eds., Basic processes in reading: visual word recognition (L.
+  Erlbaum Associates, Hillsdale, N.J.), chapter~9, 264--336
 
 \bibitem[{\textbf{Rastle and Davis}(2003)}]{Rastle:2003}
 Rastle, K. and Davis, M.~H. (2003), Reading Morphologically Complex Words

@@ -2,37 +2,46 @@ library("languageR")
 library("lme4")
 library("ez")
 library("ggplot2")
+control = lmerControl(optimizer='bobyqa')
 
 
-data = read.delim('~/Dropbox/Experiments/NMG/data/group/group_duration_ds.txt', header=T)
-#data = data[data$condition == 'first_constituent' | data$condition == 'control_constituent',]
-#model = lmer(duration~(1|subject) + log_freq + condition + opaque + transparent + novel + opaque*condition + transparent*condition + 
-#               novel*condition, data= data)
+data = read.delim('~/Dropbox/academic/Experiments/NMG/data/latency_ds.txt', header=T)
 
 #Definition of constituent contrast
 data$condition = factor(data$condition)
-data$wordtype = factor(data$wordtype)
-model = lmer(latency ~ log_freq + condition*wordtype + (wordtype|subject), data=data)
-model = lmer(latency~(wordtype|subject) + log_freq + condition + opaque + transparent + novel + opaque*condition + transparent*condition + 
-            novel*condition, data= data)
+data$wordtype = C(data$wordtype, base=3)
+constituent = data[(data$condition == 'control_constituent') | (data$condition == 'first_constituent'),]
+identity = data[(data$condition == 'control_identity') | (data$condition == 'identity'),]
 
-###
-#this model is probably correct
-model = lmer(latency~(wordtype|subject) + log_freq + condition + opaque + transparent + novel + opaque*condition + transparent*condition + 
-              novel*condition + (1+wordtype|subject) + (1+condition|subject), data= data)
-###
-lml = lm(latency~log_freq + condition + opaque + transparent + novel + opaque*condition + transparent*condition + novel*condition, data= data)
-# anova = ezANOVA(
-#   data = data
-#   , dv = .(latency)
-#   , within_covariates = .(log_freq)
-#   , wid = .(subject)
-#   , within = .(condition, wordtype)
-#   , type =3
-# )
+model <- lmer(latency~condition*wordtype + (condition*wordtype|subject) + (condition|word),
+              data = constituent, control=control)
+model.f <- lmer(latency~log_freq + block + condition*wordtype + (condition*wordtype|subject) + (condition|word),
+              data = constituent, control=control)
+
+model_i <- lmer(latency~condition*wordtype + (condition*wordtype|subject) + (condition|word),
+                data = identity, control=control)
+model_i.f <- lmer(latency~log_freq + block + condition*wordtype + (condition*wordtype|subject) + (condition|word),
+              data = identity, control=control)
+
+anova = ezANOVA(
+  data = constituent
+  , dv = .(latency)
+#   , within_covariates = .(log_freq, block)
+  , wid = .(subject)
+  , within = .(condition, wordtype)
+  , type =3
+)
+
+anova = ezANOVA(dv = latency, within = .(condition, wordtype), wid = subject, data = constituent)
+anova.item = ezANOVA(dv = latency, within = condition, between = wordtype, wid = word, data = constituent)
+
+anova_i = ezANOVA(dv = latency, within = .(condition, wordtype), wid = subject, data = identity)
+anova_i.item = ezANOVA(dv = latency, within = condition, between = wordtype, wid = word, data = identity)
+
 
 #Marginal Means
-means = aggregate(latency ~ condition + wordtype, data = data, FUN = mean)
+means = aggregate(latency ~ condition + wordtype, data = constituent, FUN = mean)
+means_i = aggregate(latency ~ condition + wordtype, data = identity, FUN = mean)
 
 
 #Plots

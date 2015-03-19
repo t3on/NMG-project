@@ -43,7 +43,7 @@ t = {
     'exp_sdir': os.path.join('{exp_dir}', '{subject}'),
     'data_sdir': os.path.join('{exp_sdir}', 'data'),
     'meg_dir': os.path.join('{root}', '{experiment}', 'data'),
-    'group_dir': os.path.join('{dropbox}', '{experiment}', 'data', 'group'),
+    'group_dir': os.path.join('{dropbox}', '{experiment}', 'data'),
     'server_dir': os.path.join('{server}', 'data', '{experiment}'),
     'external_dir': os.path.join('{external}', 'Experiments'),
     'backup_dir': os.path.join('{backup}', 'Experiments'),
