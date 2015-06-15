@@ -3,6 +3,7 @@ library(ez)
 control = lmerControl(optimizer='bobyqa')
 
 data <- read.delim("~/Dropbox/academic/Experiments/NMG/data/duration_ds.txt")
+data$c1
 data$wordtype = C(data$wordtype, base=3)
 constituent = data[(data$condition == 'control_constituent') | (data$condition == 'first_constituent'),]
 identity = data[(data$condition == 'control_identity') | (data$condition == 'identity'),]
@@ -25,8 +26,8 @@ anova_i.item = ezANOVA(dv = duration, within = condition, between = wordtype, wi
 
 
 #Marginal Means
-means = aggregate(latency ~ condition + wordtype, data = constituent, FUN = mean)
-means_i = aggregate(latency ~ condition + wordtype, data = identity, FUN = mean)
+means = aggregate(duration ~ condition + wordtype, data = constituent, FUN = mean)
+means_i = aggregate(duration ~ condition + wordtype, data = identity, FUN = mean)
 
 
 # 

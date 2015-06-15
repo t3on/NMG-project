@@ -75,6 +75,7 @@ t = {
     'ds-file': os.path.join('{data_sdir}', '{s_e}_ds.txt'),
     'bads-file': os.path.join('{data_sdir}', '{s_e}_{raw}_bads.txt'),
     'agg-file': os.path.join('{group_dir}', '{analysis}_ds.txt'),
+    'group-file': os.path.join('{group_dir}', '{analysis}_ds.pickled'),
 
     'helmet_png': os.path.join('{results_dir}', 'coreg', '{s_e}' + '.png'),
     'plot-file': os.path.join('{results_dir}', 'images', '{analysis}_analysis.{plot_ext}'),

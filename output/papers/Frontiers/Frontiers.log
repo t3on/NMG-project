@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  23 FEB 2015 15:48
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  23 MAR 2015 11:30
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -449,14 +449,26 @@ LaTeX Font Info:    Font shape `OT1/phv/bx/n' in size <11> not available
 
 {/usr/local/texlive/2014/texmf-var/fonts/map/pdftex/updmap/pdftex.map} <./logo1
 .jpg>]
+./Frontiers.tex:53: Undefined control sequence.
+l.53 ...morphologically simple words (e.g., \texit
+                                                  {brothel}).  Faster lexica...
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
 LaTeX Font Info:    Font shape `OT1/phv/bx/it' in size <11> not available
-(Font)              Font shape `OT1/phv/b/it' tried instead on input line 58.
+(Font)              Font shape `OT1/phv/b/it' tried instead on input line 56.
 LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <11> not available
-(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 58.
+(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 56.
 
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
  [2]
+Overfull \vbox (2.151pt too high) has occurred while \output is active []
+
+ [3]
 LaTeX Font Info:    Try loading font information for OML+ptm on input line 63.
 
 (/usr/local/texlive/2014/texmf-dist/tex/latex/psnfss/omlptm.fd
@@ -477,9 +489,6 @@ Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no  in font ptmr7t!
 
-Overfull \vbox (2.151pt too high) has occurred while \output is active []
-
- [3]
 ./Frontiers.tex:75: Undefined control sequence.
 \@sharp ->\multirow 
                     {}{}{}
@@ -502,12 +511,6 @@ misspelled it (e.g., `\hobx'), type `I' and the correct
 spelling (e.g., `I\hbox'). Otherwise just continue,
 and I'll forget about whatever was undefined.
 
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
 
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
@@ -516,41 +519,13 @@ Missing character: There is no â in font ptmr7t!
 Missing character: There is no € in font ptmr7t!
 Missing character: There is no ™ in font ptmr7t!
 
-Underfull \hbox (badness 2205) in paragraph at lines 107--108
-\OT1/ptm/m/n/12 mechanisms involved in the composition of previously-activated 
-constituent morphemes in the
- []
-
-
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
  [5]
-./Frontiers.tex:127: Undefined control sequence.
+./Frontiers.tex:125: Undefined control sequence.
 \@caption ...nipage \fi \normalsize \@makecaption 
                                                   {\csname fnum@#1\endcsname...
-l.127 ...bel{tab:Primes-Analysis} Primes Analysis}
-                                                  
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-./Frontiers.tex:145: Undefined control sequence.
-<recently read> \bottomrule 
-                            
-l.145 \bottomrule
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-./Frontiers.tex:146: Undefined control sequence.
-\@caption ...nipage \fi \normalsize \@makecaption 
-                                                  {\csname fnum@#1\endcsname...
-l.146 ...:latency} Onset Latency Time Differences}
+l.125 ...bel{tab:Primes-Analysis} Primes Analysis}
                                                   
 The control sequence at the end of the top line
 of your error message was never \def'ed. If you have
@@ -568,93 +543,95 @@ Overfull \vbox (2.151pt too high) has occurred while \output is active []
 (./Frontiers.bbl
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
- [8])
-<images/latency_constituent_analysis.pdf, id=42, 361.35pt x 361.35pt>
+ [8]
+Overfull \vbox (2.151pt too high) has occurred while \output is active []
+
+ [9])
+<images/task.png, id=44, 1178.9646pt x 287.6346pt>
+File: images/task.png Graphic file (type png)
+ <use images/task.png>
+Package pdftex.def Info: images/task.png used on input line 163.
+(pdftex.def)             Requested size: 471.57748pt x 115.05179pt.
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 165.
+
+<images/latency_constituent_analysis.pdf, id=46, 361.35pt x 361.35pt>
 File: images/latency_constituent_analysis.pdf Graphic file (type pdf)
 
 <use images/latency_constituent_analysis.pdf>
 Package pdftex.def Info: images/latency_constituent_analysis.pdf used on input 
-line 182.
+line 170.
 (pdftex.def)             Requested size: 271.01184pt x 271.01184pt.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <8> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 184.
 
-<images/transparent_prime_brain_analysis.png, id=43, 361.35pt x 234.1548pt>
+<images/transparent_prime_brain_analysis.png, id=47, 361.35pt x 234.1548pt>
 File: images/transparent_prime_brain_analysis.png Graphic file (type png)
 
 <use images/transparent_prime_brain_analysis.png>
 Package pdftex.def Info: images/transparent_prime_brain_analysis.png used on in
-put line 189.
+put line 177.
 (pdftex.def)             Requested size: 180.67456pt x 117.0771pt.
 
-<images/transparent_prime_analysis.pdf, id=45, 578.16pt x 289.08pt>
+<images/transparent_prime_analysis.pdf, id=48, 578.16pt x 289.08pt>
 File: images/transparent_prime_analysis.pdf Graphic file (type pdf)
 
 <use images/transparent_prime_analysis.pdf>
 Package pdftex.def Info: images/transparent_prime_analysis.pdf used on input li
-ne 189.
+ne 177.
 (pdftex.def)             Requested size: 289.07928pt x 144.53964pt.
 
-<images/transparent_2_prime_brain_analysis.png, id=46, 361.35pt x 234.1548pt>
+<images/transparent_2_prime_brain_analysis.png, id=49, 361.35pt x 234.1548pt>
 File: images/transparent_2_prime_brain_analysis.png Graphic file (type png)
 
 <use images/transparent_2_prime_brain_analysis.png>
 Package pdftex.def Info: images/transparent_2_prime_brain_analysis.png used on 
-input line 196.
+input line 184.
 (pdftex.def)             Requested size: 180.67456pt x 117.0771pt.
 
-<images/transparent_2_prime_analysis.pdf, id=47, 578.16pt x 289.08pt>
+<images/transparent_2_prime_analysis.pdf, id=50, 578.16pt x 289.08pt>
 File: images/transparent_2_prime_analysis.pdf Graphic file (type pdf)
 
 <use images/transparent_2_prime_analysis.pdf>
 Package pdftex.def Info: images/transparent_2_prime_analysis.pdf used on input 
-line 196.
+line 184.
 (pdftex.def)             Requested size: 289.07928pt x 144.53964pt.
 
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
- [9]
+ [10 <./images/task.png> <./images/latency_constituent_analysis.pdf>]
 Overfull \vbox (2.151pt too high) has occurred while \output is active []
 
- [10 <./images/latency_constituent_analysis.pdf> <./images/transparent_prime_br
-ain_analysis.png> <./images/transparent_prime_analysis.pdf
+ [11 <./images/transparent_prime_brain_analysis.png> <./images/transparent_prim
+e_analysis.pdf> <./images/transparent_2_prime_brain_analysis.png> <./images/tra
+nsparent_2_prime_analysis.pdf
 
-pdfTeX warning: pdflatex (file ./images/transparent_prime_analysis.pdf): PDF in
-clusion: multiple pdfs with page group included in a single page
->]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
-
-Overfull \vbox (2.151pt too high) has occurred while \output is active []
-
- [11 <./images/transparent_2_prime_brain_analysis.png> <./images/transparent_2_
-prime_analysis.pdf>] (./Frontiers.aux) ) 
+pdfTeX warning: pdflatex (file ./images/transparent_2_prime_analysis.pdf): PDF 
+inclusion: multiple pdfs with page group included in a single page
+>] (./Frontiers.aux) ) 
 Here is how much of TeX's memory you used:
- 5284 strings out of 493117
- 70827 string characters out of 6135433
- 160838 words of memory out of 5000000
- 8575 multiletter control sequences out of 15000+600000
- 38766 words of font info for 68 fonts, out of 8000000 for 9000
+ 5309 strings out of 493117
+ 71303 string characters out of 6135433
+ 162187 words of memory out of 5000000
+ 8599 multiletter control sequences out of 15000+600000
+ 38259 words of font info for 67 fonts, out of 8000000 for 9000
  1145 hyphenation exceptions out of 8191
- 49i,10n,37p,1861b,324s stack positions out of 5000i,500n,10000p,200000b,80000s
-{/usr/local/texlive/2014/texmf-dist/fon
-ts/enc/dvips/base/8r.enc}</usr/local/texlive/2014/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmex10.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/
-amsfonts/cm/cmmi12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/a
-msfonts/cm/cmmi9.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmr12.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmr9.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmsy9.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvb
-8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvbo8a.pfb
-></usr/local/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></usr/
-local/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvro8a.pfb></usr/local/
-texlive/2014/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/20
-14/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2014/texmf-d
-ist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on Frontiers.pdf (11 pages, 1094895 bytes).
+ 49i,9n,37p,2599b,342s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/local/texlive/2014/texmf-dist/fonts/enc/dvips/base/
+8r.enc}</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmex1
+0.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12
+.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.p
+fb></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb>
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb></
+usr/local/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/loc
+al/texlive/2014/texmf-dist/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/local/tex
+live/2014/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb></usr/local/texlive/20
+14/texmf-dist/fonts/type1/urw/helvetic/uhvro8a.pfb></usr/local/texlive/2014/tex
+mf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2014/texmf-dist/fo
+nts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2014/texmf-dist/fonts/type1/
+urw/times/utmri8a.pfb>
+Output written on Frontiers.pdf (11 pages, 1147387 bytes).
 PDF statistics:
- 237 PDF objects out of 1000 (max. 8388607)
- 84 compressed objects within 1 object stream
+ 235 PDF objects out of 1000 (max. 8388607)
+ 81 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 31 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 36 words of extra memory for PDF output out of 10000 (max. 10000000)
 
