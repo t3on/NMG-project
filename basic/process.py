@@ -854,7 +854,8 @@ class NMG(FileTree):
 
             dataset.update(E.Dataset(c1_dur, c2_dur))
 #             idx = np.setdiff1d(range(dataset.n_cases), ds.info['reject'])
-            dataset = dataset[ds['accept'] == True]
+            # dataset = dataset[ds['accept'] == True]
+            dataset = dataset[dataset['c1_dur'] != 0]
         else:
             raise ValueError('Words do not match up.')
 
