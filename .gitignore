@@ -1,3 +1,4 @@
+Eelbrain
 *.pyo
 *.pyc
 .DS_Store
@@ -38,3 +39,5 @@ basic.egg-info/SOURCES.txt
 *.egg*
 
 *.tar*
+
+basic.egg-info/PKG-INFO

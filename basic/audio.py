@@ -15,10 +15,10 @@ from basic import process
 from pyphon import pyphon as pyp
 
 
-def order_textgrids(subject, data_sdir):
+def order_textgrids(subject, e, data_sdir):
     script_dir = os.path.join(data_sdir, '../../../group/transcripts')
     textgrids = glob(os.path.join(data_sdir, '*.TextGrid'))
-    grids = [os.path.splitext(os.path.basename(grid))[0] for grid in textgrids] 
+    grids = [os.path.splitext(os.path.basename(grid))[0] for grid in textgrids]
     grids = [grid.split('_') for grid in grids]
     if grids[0][0].isdigit():
         words = [grid[-1] for grid in grids]
@@ -29,13 +29,13 @@ def order_textgrids(subject, data_sdir):
     else:
         words = [grid[0] for grid in grids]
         timestamps = [grid[1:] for grid in grids]
-    
+
     timestamps = [timestamp[3:] for timestamp in timestamps]
     timestamps = [map(int, time) for time in timestamps]
     timestamps = [time[0]*60*60 + time[1]*60 + time[2] for time in timestamps]
     ordered_textgrids = zip(timestamps, range(len(timestamps)), words, textgrids)
     ordered_textgrids.sort()
-    
+
     parts = []
     for case in ordered_textgrids:
         word = case[-2]
@@ -53,17 +53,16 @@ def order_textgrids(subject, data_sdir):
     ds['word1'] = E.Factor(word1s)
     ds['word2'] = E.Factor(word2s)
     ds['textgrid'] = E.Factor(textgrids)
-    
-    e = process.NMG(subject)
+
     dataset = e.load_events(edf=False, drop_bad_chs=False)
     dataset = dataset[dataset['target'] == 'target']
     if all(ds['word'] == dataset['word']):
         dataset.update(ds)
     else:
         raise ValueError("Words don't match up.")
-    
+
     return dataset
-    
+
 
 
 def make_transcripts(audio_sdir, script_dir, data_sdir, name):
@@ -72,8 +71,8 @@ def make_transcripts(audio_sdir, script_dir, data_sdir, name):
         filename = '_'.join((name, 'block-' + str(blocknum), 'concatenated.txt'))
         filename = os.path.join(data_sdir, filename)
         idx = ds['block'] == blocknum
-        ds[idx, ('word1', 'word2')].save_txt(path = filename, 
-                                             delim = os.linesep, 
+        ds[idx, ('word1', 'word2')].save_txt(path = filename,
+                                             delim = os.linesep,
                                              header = False)
 
     # for d in targets.itercases():
@@ -88,7 +87,7 @@ def make_transcripts(audio_sdir, script_dir, data_sdir, name):
 
 def force_align(data_sdir):
     group_dir = '/Volumes/GLYPH-1 TB/Experiments/NMG/data/group'
-    os.environ['PATH'] = ':'.join([os.getenv('PATH'), '/Applications/p2fa', 
+    os.environ['PATH'] = ':'.join([os.getenv('PATH'), '/Applications/p2fa',
                                    '/Applications/htk'])
     data_sdir = os.path.join(data_sdir, 'behavioral', 'audio')
     import tempfile
@@ -96,8 +95,8 @@ def force_align(data_sdir):
     files = os.listdir(data_sdir)
     files = fnmatch.filter(files, '*.wav')
 
-    for FILE in files:    
-        lab = os.path.splitext(FILE)[0] 
+    for FILE in files:
+        lab = os.path.splitext(FILE)[0]
         lab = lab.split('_')
         if lab[0].isdigit():
             word = lab[-1]
@@ -109,22 +108,22 @@ def force_align(data_sdir):
         title, _ = os.path.splitext(FILE)
         transcript = word + '.txt'
         textgrid = title + '.TextGrid'
-        
+
         if word.lower() in ['practice', 'is', 'very', 'important', 'no', 'name']:
             continue
         else:
-            cmd = ['/usr/local/Cellar/sox/14.4.1_1/bin/sox', os.path.join(data_sdir, FILE), 
-                   '-r 11025',  '-c 1', 
-                   os.path.join(tmp_dir, 'temp.wav')]        
+            cmd = ['/usr/local/Cellar/sox/14.4.1_1/bin/sox', os.path.join(data_sdir, FILE),
+                   '-r 11025',  '-c 1',
+                   os.path.join(tmp_dir, 'temp.wav')]
             cwd = '/Applications/packages/p2fa/'
             sp = subprocess.call(cmd, cwd = cwd)
-        
-            cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'), 
+
+            cmd = ['python', 'align.py', os.path.join(tmp_dir, 'temp.wav'),
                    os.path.join(group_dir, 'transcripts', transcript),
                    os.path.join(data_sdir, textgrid)]
 
             sp = subprocess.Popen(cmd, cwd=cwd,
-                                  stdout=subprocess.PIPE, 
+                                  stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE)
             stdout, stderr = sp.communicate()
 
@@ -142,5 +141,3 @@ def get_word_duration(dataset):
     dataset.update(ds['c1_dur', 'c2_dur'])
 
     return dataset
-
-    

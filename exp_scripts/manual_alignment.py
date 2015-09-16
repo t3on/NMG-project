@@ -9,12 +9,12 @@ import numpy as np
 import basic.process as process
 import eelbrain.eellab as E
 
-redo = True
-e = process.NMG(None, '{office}')
+
+e = process.NMG(None, '{home}')
 e.exclude['subject'] = ['R0414', 'R0499', 'R0547', 'R0560', 'R0569',
                         'R0574', 'R0575', 'R0576', 'R0580', 'R0605']
 e.set(datatype='behavioral')
-e.set(analysis='manual_alignment_duration')
+e.set(analysis='duration_manual_alignment_match')
 
 group_ds = []
 for _ in e:
@@ -23,8 +23,8 @@ for _ in e:
     ds['duration'] = ds['c1_dur']
     idx = ds['orthotype'] == 'ortho-2'
     ds[idx]['duration'] = ds[idx]['c2_dur']
-    # idx = ds['ortho'] == 'ortho-2'
-    # ds = ds[~idx]
+    idx = ds['ortho'] == 'ortho-2'
+    ds = ds[~idx]
 
     # outlier rejection
     idx = ds['duration'].x != 0
@@ -41,4 +41,3 @@ for _ in e:
 
 group_ds = E.combine(group_ds)
 group_ds.save_txt(e.get('agg-file'))
-
