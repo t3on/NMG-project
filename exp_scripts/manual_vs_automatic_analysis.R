@@ -1,12 +1,15 @@
 library(lme4)
 library(ez)
+library(gtools)
 control = lmerControl(optimizer='bobyqa')
 
 manual <- read.delim("~/Dropbox/academic/Experiments/NMG/data/duration_manual_alignment_match_ds.txt")
-manual$wordtype = C(manual$wordtype, base=3)
 
 auto <- read.delim("~/Dropbox/academic/Experiments/NMG/data/duration_automatic_alignment_match_ds.txt")
-auto$wordtype = C(auto$wordtype, base=3)
+
+shuffle = permute(1:length(auto$c1_dur))
+idx = shuffle[1:round(.75*(length(auto$c1_dur)))]
+t.test(auto[idx,]$c1_dur, manual[idx,]$c1_dur)
 
 constituent = data[(data$condition == 'control_constituent') | (data$condition == 'first_constituent'),]
 identity = data[(data$condition == 'control_identity') | (data$condition == 'identity'),]

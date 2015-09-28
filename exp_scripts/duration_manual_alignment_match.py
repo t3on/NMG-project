@@ -20,10 +20,7 @@ group_ds = []
 for _ in e:
     ds = e.get_word_duration(block=1)
     orig_N = ds.n_cases
-    ds['duration'] = ds['c1_dur']
-    idx = ds['orthotype'] == 'ortho-2'
-    ds[idx]['duration'] = ds[idx]['c2_dur']
-    idx = ds['ortho'] == 'ortho-2'
+    ds['duration'] = E.Var(ds['c1_dur'].x + ds['c2_dur'].x)
 
     remainder = ds.n_cases * 100. / orig_N
     e.logger.info('duration: %d' % remainder + r'% ' + 'remain after outlier rejection')
